@@ -7497,6 +7497,7 @@ pub const Regex = struct {
             //   fprintf(DBGFP, "\n");
         }
 
+        // TODO(slimsag): replace ops with ArrayList?
         //   if (reg->ops_alloc == 0) {
         //     r = ops_init(reg, OPS_INIT_SIZE);
         //     if (r != 0) {
@@ -7517,15 +7518,17 @@ pub const Regex = struct {
         //                     );
         //   if (r != 0) return r;
 
-        // #ifdef ONIG_DEBUG_PARSE
-        //   fprintf(DBGFP, "TREE (after tune)\n");
-        //   print_tree(DBGFP, root);
-        //   fprintf(DBGFP, "\n");
-        // #endif
+        if (config.DebugParse) {
+            // TODO(slimsag):
+            //   fprintf(DBGFP, "TREE (after tune)\n");
+            //   print_tree(DBGFP, root);
+            //   fprintf(DBGFP, "\n");
+        }
 
         //   reg->capture_history = scan_env.cap_history;
         //   reg->push_mem_start  = scan_env.backtrack_mem | scan_env.cap_history;
 
+        // TODO(slimsag):
         // #ifdef USE_CALLOUT
         //   if (IS_NOT_NULL(reg->extp) && reg->extp->callout_num != 0) {
         //     reg->push_mem_end = reg->push_mem_start;
