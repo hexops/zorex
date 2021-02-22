@@ -546,12 +546,12 @@ const CaseFold = @import("oniguruma2.zig").CaseFold;
 //   ((type) == ANCR_WORD_BOUNDARY || (type) == ANCR_NO_WORD_BOUNDARY || \
 //    (type) == ANCR_WORD_BEGIN || (type) == ANCR_WORD_END)
 
-// /* operation code */
-// enum OpCode {
-//   OP_FINISH = 0,  /* matching process terminator (no more alternative) */
-//   OP_END    = 1,  /* pattern code terminator (success end) */
-//   OP_STR_1 = 2,   /* single byte, N = 1 */
-//   OP_STR_2,       /* single byte, N = 2 */
+/// operation code
+pub const OpCode = enum(u32) {
+   OP_FINISH = 0,  /// matching process terminator (no more alternative)
+   OP_END    = 1,  /// pattern code terminator (success end)
+   OP_STR_1 = 2,   /// single byte, N = 1
+   OP_STR_2,       /// single byte, N = 2
 //   OP_STR_3,       /* single byte, N = 3 */
 //   OP_STR_4,       /* single byte, N = 4 */
 //   OP_STR_5,       /* single byte, N = 5 */
@@ -648,7 +648,7 @@ const CaseFold = @import("oniguruma2.zig").CaseFold;
 //   OP_CALLOUT_CONTENTS,      /* (?{...}) (?{{...}}) */
 //   OP_CALLOUT_NAME,          /* (*name) (*name[tag](args...)) */
 // #endif
-// };
+};
 
 // enum SaveType {
 //   SAVE_KEEP        = 0, /* SAVE S */
@@ -802,6 +802,14 @@ const CaseFold = @import("oniguruma2.zig").CaseFold;
 // #define IS_NCCLASS_NOT(nd)      IS_NCCLASS_FLAG_ON(nd, FLAG_NCCLASS_NOT)
 
 pub const Operation = struct {
+    // TODO(slimsag):
+    // #ifdef USE_DIRECT_THREADED_CODE
+    //   const void* opaddr;
+    // #else
+    // #else
+    //   enum OpCode opcode;
+    // #endif
+    opcode: OpCode,
 };
 
 // TODO(slimsag):
@@ -979,7 +987,8 @@ pub const RePatternBuffer = struct{
     //ops_curr: ?*Operation,
     //ops_used: usize, /// used space for ops
     //ops_alloc: usize, /// allocated space for ops
-    ops: std.ArrayList(Operation),
+    // TODO(slimsag): if allocated earlier, could be a non-optional field
+    ops: ?std.ArrayList(Operation),
 
     // TODO(slimsag):
     //   unsigned char* string_pool;
