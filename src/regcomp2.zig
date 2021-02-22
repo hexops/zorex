@@ -4,6 +4,7 @@ const RePatternBuffer = @import("regint2.zig").RePatternBuffer;
 const Option = @import("oniguruma2.zig").Option;
 const Syntax = @import("oniguruma2.zig").Syntax;
 const CaseFold = @import("oniguruma2.zig").CaseFold;
+const config = @import("config.zig");
 
 // /**********************************************************************
 //   regcomp.c -  Oniguruma (regular expression library)
@@ -7430,175 +7431,9 @@ const CaseFold = @import("oniguruma2.zig").CaseFold;
 //   return r;
 // }
 
-// extern int
-// onig_compile(regex_t* reg, const UChar* pattern, const UChar* pattern_end,
-//              OnigErrorInfo* einfo)
-// {
-//   int r;
-//   Node* root;
-//   ParseEnv scan_env;
-// #ifdef USE_CALL
-//   UnsetAddrList uslist = {0};
-// #endif
-
-// #ifdef ONIG_DEBUG
-//   fprintf(DBGFP, "\nPATTERN: /");
-//   print_enc_string(DBGFP, reg->enc, pattern, pattern_end);
-//   fprintf(DBGFP, "/\n");
-//   fprintf(DBGFP, "OPTIONS:");
-//   print_options(DBGFP, reg->options);
-//   fprintf(DBGFP, "\n");
-// #endif
-
-//   if (reg->ops_alloc == 0) {
-//     r = ops_init(reg, OPS_INIT_SIZE);
-//     if (r != 0) {
-//       if (IS_NOT_NULL(einfo)) {
-//         einfo->enc = reg->enc;
-//         einfo->par = (UChar* )NULL;
-//       }
-//       return r;
-//     }
-//   }
-//   else
-//     reg->ops_used = 0;
-
-//   r = parse_and_tune(reg, pattern, pattern_end, &scan_env, &root, einfo
-// #ifdef USE_CALL
-//                      , &uslist
-// #endif
-//                     );
-//   if (r != 0) return r;
-
-// #ifdef ONIG_DEBUG_PARSE
-//   fprintf(DBGFP, "TREE (after tune)\n");
-//   print_tree(DBGFP, root);
-//   fprintf(DBGFP, "\n");
-// #endif
-
-//   reg->capture_history = scan_env.cap_history;
-//   reg->push_mem_start  = scan_env.backtrack_mem | scan_env.cap_history;
-
-// #ifdef USE_CALLOUT
-//   if (IS_NOT_NULL(reg->extp) && reg->extp->callout_num != 0) {
-//     reg->push_mem_end = reg->push_mem_start;
-//   }
-//   else {
-//     if (MEM_STATUS_IS_ALL_ON(reg->push_mem_start))
-//       reg->push_mem_end = scan_env.backrefed_mem | scan_env.cap_history;
-//     else
-//       reg->push_mem_end = reg->push_mem_start &
-//                         (scan_env.backrefed_mem | scan_env.cap_history);
-//   }
-// #else
-//   if (MEM_STATUS_IS_ALL_ON(reg->push_mem_start))
-//     reg->push_mem_end = scan_env.backrefed_mem | scan_env.cap_history;
-//   else
-//     reg->push_mem_end = reg->push_mem_start &
-//                       (scan_env.backrefed_mem | scan_env.cap_history);
-// #endif
-
-//   clear_optimize_info(reg);
-// #ifndef ONIG_DONT_OPTIMIZE
-//   r = set_optimize_info_from_tree(root, reg, &scan_env);
-//   if (r != 0)  {
-// #ifdef USE_CALL
-//     if (scan_env.num_call > 0) {
-//       unset_addr_list_end(&uslist);
-//     }
-// #endif
-//     goto err;
-//   }
-// #endif
-
-//   if (IS_NOT_NULL(scan_env.mem_env_dynamic)) {
-//     xfree(scan_env.mem_env_dynamic);
-//     scan_env.mem_env_dynamic = (MemEnv* )NULL;
-//   }
-
-//   r = compile_tree(root, reg, &scan_env);
-//   if (r == 0) {
-//     if (scan_env.keep_num > 0) {
-//       r = add_op(reg, OP_UPDATE_VAR);
-//       if (r != 0) goto err;
-
-//       COP(reg)->update_var.type = UPDATE_VAR_KEEP_FROM_STACK_LAST;
-//       COP(reg)->update_var.id   = 0; /* not used */
-//       COP(reg)->update_var.clear = FALSE;
-//     }
-
-//     r = add_op(reg, OP_END);
-//     if (r != 0) goto err;
-
-// #ifdef USE_CALL
-//     if (scan_env.num_call > 0) {
-//       r = fix_unset_addr_list(&uslist, reg);
-//       unset_addr_list_end(&uslist);
-//       if (r != 0) goto err;
-//     }
-// #endif
-
-//     set_addr_in_repeat_range(reg);
-
-//     if ((reg->push_mem_end != 0)
-// #ifdef USE_REPEAT_AND_EMPTY_CHECK_LOCAL_VAR
-//         || (reg->num_repeat      != 0)
-//         || (reg->num_empty_check != 0)
-// #endif
-// #ifdef USE_CALLOUT
-//         || (IS_NOT_NULL(reg->extp) && reg->extp->callout_num != 0)
-// #endif
-// #ifdef USE_CALL
-//         || scan_env.num_call > 0
-// #endif
-//         )
-//       reg->stack_pop_level = STACK_POP_LEVEL_ALL;
-//     else {
-//       if (reg->push_mem_start != 0)
-//         reg->stack_pop_level = STACK_POP_LEVEL_MEM_START;
-//       else
-//         reg->stack_pop_level = STACK_POP_LEVEL_FREE;
-//     }
-
-//     r = ops_make_string_pool(reg);
-//     if (r != 0) goto err;
-//   }
-// #ifdef USE_CALL
-//   else if (scan_env.num_call > 0) {
-//     unset_addr_list_end(&uslist);
-//   }
-// #endif
-//   onig_node_free(root);
-
-// #ifdef ONIG_DEBUG_COMPILE
-//   onig_print_names(DBGFP, reg);
-//   onig_print_compiled_byte_code_list(DBGFP, reg);
-// #endif
-
-// #ifdef USE_DIRECT_THREADED_CODE
-//   /* opcode -> opaddr */
-//   onig_init_for_match_at(reg);
-// #endif
-
-//   return r;
-
-//  err:
-//   if (IS_NOT_NULL(scan_env.error)) {
-//     if (IS_NOT_NULL(einfo)) {
-//       einfo->par     = scan_env.error;
-//       einfo->par_end = scan_env.error_end;
-//     }
-//   }
-
-//   onig_node_free(root);
-//   if (IS_NOT_NULL(scan_env.mem_env_dynamic))
-//       xfree(scan_env.mem_env_dynamic);
-//   return r;
-// }
-
-
 pub const Regex = struct {
     re_pattern_buffer: RePatternBuffer,
+    allocator: *Allocator,
 
     const Self = @This();
 
@@ -7624,6 +7459,7 @@ pub const Regex = struct {
 
         const self = try allocator.create(Self);
         self.* = Self{
+            .allocator = allocator,
             .re_pattern_buffer = std.mem.zeroInit(RePatternBuffer, .{
                 // TODO(slimsag): all zeros.
                 .options = option,
@@ -7637,8 +7473,176 @@ pub const Regex = struct {
         return self;
     }
 
-    pub fn deinit(self: *Self, allocator: *Allocator) void {
-        allocator.destroy(self);
+    pub fn deinit(self: *Self) void {
+        self.allocator.destroy(self);
+    }
+
+    // TODO(slimsag): detailed error type OnigErrorInfo
+    pub fn compile(self: *Self, pattern: []const u8) !void {
+        // TODO(slimsag):
+        //   int r;
+        //   Node* root;
+        //   ParseEnv scan_env;
+        // #ifdef USE_CALL
+        //   UnsetAddrList uslist = {0};
+        // #endif
+
+        if (config.Debug) {
+            // TODO(slimsag):
+            //   fprintf(DBGFP, "\nPATTERN: /");
+            //   print_enc_string(DBGFP, reg->enc, pattern, pattern_end);
+            //   fprintf(DBGFP, "/\n");
+            //   fprintf(DBGFP, "OPTIONS:");
+            //   print_options(DBGFP, reg->options);
+            //   fprintf(DBGFP, "\n");
+        }
+
+        //   if (reg->ops_alloc == 0) {
+        //     r = ops_init(reg, OPS_INIT_SIZE);
+        //     if (r != 0) {
+        //       if (IS_NOT_NULL(einfo)) {
+        //         einfo->enc = reg->enc;
+        //         einfo->par = (UChar* )NULL;
+        //       }
+        //       return r;
+        //     }
+        //   }
+        //   else
+        //     reg->ops_used = 0;
+
+        //   r = parse_and_tune(reg, pattern, pattern_end, &scan_env, &root, einfo
+        // #ifdef USE_CALL
+        //                      , &uslist
+        // #endif
+        //                     );
+        //   if (r != 0) return r;
+
+        // #ifdef ONIG_DEBUG_PARSE
+        //   fprintf(DBGFP, "TREE (after tune)\n");
+        //   print_tree(DBGFP, root);
+        //   fprintf(DBGFP, "\n");
+        // #endif
+
+        //   reg->capture_history = scan_env.cap_history;
+        //   reg->push_mem_start  = scan_env.backtrack_mem | scan_env.cap_history;
+
+        // #ifdef USE_CALLOUT
+        //   if (IS_NOT_NULL(reg->extp) && reg->extp->callout_num != 0) {
+        //     reg->push_mem_end = reg->push_mem_start;
+        //   }
+        //   else {
+        //     if (MEM_STATUS_IS_ALL_ON(reg->push_mem_start))
+        //       reg->push_mem_end = scan_env.backrefed_mem | scan_env.cap_history;
+        //     else
+        //       reg->push_mem_end = reg->push_mem_start &
+        //                         (scan_env.backrefed_mem | scan_env.cap_history);
+        //   }
+        // #else
+        //   if (MEM_STATUS_IS_ALL_ON(reg->push_mem_start))
+        //     reg->push_mem_end = scan_env.backrefed_mem | scan_env.cap_history;
+        //   else
+        //     reg->push_mem_end = reg->push_mem_start &
+        //                       (scan_env.backrefed_mem | scan_env.cap_history);
+        // #endif
+
+        //   clear_optimize_info(reg);
+        // #ifndef ONIG_DONT_OPTIMIZE
+        //   r = set_optimize_info_from_tree(root, reg, &scan_env);
+        //   if (r != 0)  {
+        // #ifdef USE_CALL
+        //     if (scan_env.num_call > 0) {
+        //       unset_addr_list_end(&uslist);
+        //     }
+        // #endif
+        //     goto err;
+        //   }
+        // #endif
+
+        //   if (IS_NOT_NULL(scan_env.mem_env_dynamic)) {
+        //     xfree(scan_env.mem_env_dynamic);
+        //     scan_env.mem_env_dynamic = (MemEnv* )NULL;
+        //   }
+
+        //   r = compile_tree(root, reg, &scan_env);
+        //   if (r == 0) {
+        //     if (scan_env.keep_num > 0) {
+        //       r = add_op(reg, OP_UPDATE_VAR);
+        //       if (r != 0) goto err;
+
+        //       COP(reg)->update_var.type = UPDATE_VAR_KEEP_FROM_STACK_LAST;
+        //       COP(reg)->update_var.id   = 0; /* not used */
+        //       COP(reg)->update_var.clear = FALSE;
+        //     }
+
+        //     r = add_op(reg, OP_END);
+        //     if (r != 0) goto err;
+
+        // #ifdef USE_CALL
+        //     if (scan_env.num_call > 0) {
+        //       r = fix_unset_addr_list(&uslist, reg);
+        //       unset_addr_list_end(&uslist);
+        //       if (r != 0) goto err;
+        //     }
+        // #endif
+
+        //     set_addr_in_repeat_range(reg);
+
+        //     if ((reg->push_mem_end != 0)
+        // #ifdef USE_REPEAT_AND_EMPTY_CHECK_LOCAL_VAR
+        //         || (reg->num_repeat      != 0)
+        //         || (reg->num_empty_check != 0)
+        // #endif
+        // #ifdef USE_CALLOUT
+        //         || (IS_NOT_NULL(reg->extp) && reg->extp->callout_num != 0)
+        // #endif
+        // #ifdef USE_CALL
+        //         || scan_env.num_call > 0
+        // #endif
+        //         )
+        //       reg->stack_pop_level = STACK_POP_LEVEL_ALL;
+        //     else {
+        //       if (reg->push_mem_start != 0)
+        //         reg->stack_pop_level = STACK_POP_LEVEL_MEM_START;
+        //       else
+        //         reg->stack_pop_level = STACK_POP_LEVEL_FREE;
+        //     }
+
+        //     r = ops_make_string_pool(reg);
+        //     if (r != 0) goto err;
+        //   }
+        // #ifdef USE_CALL
+        //   else if (scan_env.num_call > 0) {
+        //     unset_addr_list_end(&uslist);
+        //   }
+        // #endif
+        //   onig_node_free(root);
+
+        // #ifdef ONIG_DEBUG_COMPILE
+        //   onig_print_names(DBGFP, reg);
+        //   onig_print_compiled_byte_code_list(DBGFP, reg);
+        // #endif
+
+        // #ifdef USE_DIRECT_THREADED_CODE
+        //   /* opcode -> opaddr */
+        //   onig_init_for_match_at(reg);
+        // #endif
+
+        //   return r;
+
+        //  err:
+        //   if (IS_NOT_NULL(scan_env.error)) {
+        //     if (IS_NOT_NULL(einfo)) {
+        //       einfo->par     = scan_env.error;
+        //       einfo->par_end = scan_env.error_end;
+        //     }
+        //   }
+
+        //   onig_node_free(root);
+        //   if (IS_NOT_NULL(scan_env.mem_env_dynamic))
+        //       xfree(scan_env.mem_env_dynamic);
+        //   return r;
+        // }
+        return;
     }
 };
 
@@ -7662,8 +7666,7 @@ pub const Regex = struct {
 pub fn New(allocator: *Allocator, pattern: []const u8, option: Option, syntax: *Syntax) !*Regex {
     const reg = try Regex.init(allocator, option, CaseFold.Default, syntax);
     errdefer reg.deinit();
-    // TODO(slimsag):
-    //try reg.compile(pattern);
+    try reg.compile(pattern);
     return reg;
 }
 

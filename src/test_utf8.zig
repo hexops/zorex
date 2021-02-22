@@ -42,7 +42,7 @@ fn xx(
         //     return ;
         return;
     };
-    defer reg.deinit(allocator);
+    defer reg.deinit();
 
     //   r = onig_search(reg, (UChar* )str, (UChar* )(str + SLEN(str)),
     //                   (UChar* )str, (UChar* )(str + SLEN(str)),
