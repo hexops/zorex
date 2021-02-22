@@ -2,3 +2,7 @@
 
 [![CI](https://github.com/hexops/zing/workflows/CI/badge.svg)](https://github.com/hexops/zing/actions)
 
+## Non-goals
+
+- Support for encodings other than ASCII and UTF-8.
+- Support for the GNU and POSIX regex ABIs.
