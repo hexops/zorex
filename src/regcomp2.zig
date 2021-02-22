@@ -6,6 +6,8 @@ const Option = @import("oniguruma2.zig").Option;
 const Syntax = @import("oniguruma2.zig").Syntax;
 const CaseFold = @import("oniguruma2.zig").CaseFold;
 const config = @import("config.zig");
+const Node = @import("regparse_header2.zig").Node;
+const ParseEnv = @import("regparse_header2.zig").ParseEnv;
 
 // /**********************************************************************
 //   regcomp.c -  Oniguruma (regular expression library)
@@ -7372,7 +7374,7 @@ pub const Regex = struct {
         // #endif
         //                     );
         //   if (r != 0) return r;
-        var scan_env = ParseEnv{};
+        var scan_env = std.mem.zeroes(ParseEnv);
         var root = try self.parseAndTune(pattern, &scan_env);
 
         if (config.DebugParse) {
@@ -7513,14 +7515,10 @@ pub const Regex = struct {
     //   , UnsetAddrList* uslist
     // #endif
     // )
-    pub fn parseAndTune(self: *Regex, pattern: []u8, scan_env: *ParseEnv) !*Node {
-    // {
-    //   int r;
-    //   Node* root;
-    //   root = NULL_NODE;
-
-    //   r = onig_parse_tree(&root, pattern, pattern_end, reg, scan_env);
-    //   if (r != 0) goto err;
+    pub fn parseAndTune(self: *Regex, pattern: []const u8, scan_env: *ParseEnv) !*Node {
+        var root = std.mem.zeroes(Node);
+        try Node.parseTree(&root, pattern, self, scan_env);
+        return root; // TODO(slimsag): remove
 
     //   r = reduce_string_list(root, reg->enc);
     //   if (r != 0) goto err;
