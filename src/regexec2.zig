@@ -1,3 +1,7 @@
+const std = @import("std");
+const Allocator = std.mem.Allocator;
+const ReRegisters = @import("oniguruma2.zig").ReRegisters;
+
 // /**********************************************************************
 //   regexec.c -  Oniguruma (regular expression library)
 // **********************************************************************/
@@ -942,42 +946,43 @@
 //   return 0;
 // }
 
-// extern void
-// onig_region_init(OnigRegion* region)
-// {
-//   region->num_regs     = 0;
-//   region->allocated    = 0;
-//   region->beg          = (int* )0;
-//   region->end          = (int* )0;
-//   region->history_root = (OnigCaptureTreeNode* )0;
-// }
+pub const Region = struct {
+    re_registers: ReRegisters,
 
-// extern OnigRegion*
-// onig_region_new(void)
-// {
-//   OnigRegion* r;
+    const Self = @This();
 
-//   r = (OnigRegion* )xmalloc(sizeof(OnigRegion));
-//   CHECK_NULL_RETURN(r);
-//   onig_region_init(r);
-//   return r;
-// }
+    pub fn init(allocator: *Allocator) !*Self {
+        const self = try allocator.create(Self);
+        self.* = Self{
+            .re_registers = ReRegisters{
+                .num_regs = 0,
+                .allocated = 0,
+                .beg = undefined,
+                .end = undefined,
+                .history_root = undefined,
+            },
+        };
+        return self;
+    }
 
-// extern void
-// onig_region_free(OnigRegion* r, int free_self)
-// {
-//   if (r != 0) {
-//     if (r->allocated > 0) {
-//       if (r->beg) xfree(r->beg);
-//       if (r->end) xfree(r->end);
-//       r->allocated = 0;
-//     }
-// #ifdef USE_CAPTURE_HISTORY
-//     history_root_free(r);
-// #endif
-//     if (free_self) xfree(r);
-//   }
-// }
+    pub fn deinit(self: *Self, allocator: *Allocator) void {
+        // extern void
+        // onig_region_free(OnigRegion* r, int free_self)
+        // {
+        //   if (r != 0) {
+        //     if (r->allocated > 0) {
+        //       if (r->beg) xfree(r->beg);
+        //       if (r->end) xfree(r->end);
+        //       r->allocated = 0;
+        //     }
+        // #ifdef USE_CAPTURE_HISTORY
+        //     history_root_free(r);
+        // #endif
+        //     if (free_self) xfree(r);
+        //   }
+        // }
+    }
+};
 
 // extern void
 // onig_region_copy(OnigRegion* to, OnigRegion* from)
