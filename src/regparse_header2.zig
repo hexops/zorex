@@ -269,7 +269,10 @@ pub const Node = struct {
         //reg.re_pattern_buffer.repeat_range_alloc = 0;
         //reg.re_pattern_buffer.repeat_range = null;
 
-        reg.namesClear();
+        if (reg.re_pattern_buffer.name_table) | name_table | {
+            name_table.deinit();
+            reg.re_pattern_buffer.name_table = null;
+        }
 
         // TODO(slimsag):
         //   scan_env_clear(env);

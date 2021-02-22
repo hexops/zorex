@@ -657,14 +657,14 @@
 
 // #define INIT_NAME_BACKREFS_ALLOC_NUM   8
 
-// typedef struct {
-//   UChar* name;
-//   int    name_len;   /* byte length */
-//   int    back_num;   /* number of backrefs */
-//   int    back_alloc;
-//   int    back_ref1;
-//   int*   back_refs;
-// } NameEntry;
+const NameEntry = struct {
+    name: []const u8,
+    // TODO(slimsag):
+    //   int    back_num;   /* number of backrefs */
+    //   int    back_alloc;
+    //   int    back_ref1;
+    //   int*   back_refs;
+};
 
 // #ifdef USE_ST_LIBRARY
 
@@ -722,23 +722,18 @@
 //   return ST_DELETE;
 // }
 
-// static int
-// names_clear(regex_t* reg)
-// {
-//   NameTable* t = (NameTable* )reg->name_table;
-
-//   if (IS_NOT_NULL(t)) {
-//     onig_st_foreach(t, i_free_name_entry, 0);
-//   }
-//   return 0;
-// }
-
 // extern int
 // onig_names_free(regex_t* reg)
 // {
 //   int r;
 //   NameTable* t;
 
+// TODO(slimsag): names_clear ==:
+// if (reg.re_pattern_buffer.name_table) | name_table | {
+//     name_table.deinit();
+//     reg.re_pattern_buffer.name_table = null;
+// }
+//
 //   r = names_clear(reg);
 //   if (r != 0) return r;
 
@@ -846,11 +841,21 @@
 
 // #define INIT_NAMES_ALLOC_NUM    8
 
-// typedef struct {
-//   NameEntry* e;
-//   int        num;
-//   int        alloc;
-// } NameTable;
+// TODO(slimsag): Slice? Hashmap?
+pub const NameTable = struct {
+    e: *NameEntry,
+    num: isize,
+    alloc: isize,
+
+    pub fn deinit(self: *NameTable) void {
+        // TODO(slimsag):
+        //   NameTable* t = (NameTable* )reg->name_table;
+        //   if (IS_NOT_NULL(t)) {
+        //     onig_st_foreach(t, i_free_name_entry, 0);
+        //   }
+        //   return 0;
+    }
+};
 
 // #ifdef ONIG_DEBUG
 // extern int
@@ -885,6 +890,12 @@
 // }
 // #endif
 
+// TODO(slimsag): names_clear ==:
+// if (reg.re_pattern_buffer.name_table) | name_table | {
+//     name_table.deinit();
+//     reg.re_pattern_buffer.name_table = null;
+// }
+//
 // static int
 // names_clear(regex_t* reg)
 // {
