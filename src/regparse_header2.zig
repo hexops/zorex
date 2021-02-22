@@ -295,7 +295,9 @@ pub const Node = struct {
 
         // TODO(slimsag): Why does this take &pattern? Should it?
         var p = pattern;
-        try self.prs_regexp(&p, env);
+        var root = self;
+        _ = try Node.prs_regexp(&root, &p, env);
+        // TODO(slimsag): root needs to be returned somewhere
 
         // #ifdef USE_CALL
         //   if (env->has_call_zero != 0) {
@@ -332,32 +334,28 @@ pub const Node = struct {
         unreachable;
     }
 
-    pub fn prs_regexp(self: *Node, src: *[]const u8, env: *ParseEnv) !void {
+    pub fn prs_regexp(top: **Node, src: *[]const u8, env: *ParseEnv) !TokenSym {
         var tok = PToken.init();
         try fetchToken(&tok, src, env);
-        return try self.prs_alts(&tok, TokenSym.EOT, src, env, false);
+        return try Node.prs_alts(top, &tok, TokenSym.EOT, src, env, false);
     }
 
     /// term_tok: TokenSym.EOT or TokenSym.SubExpClose
-    pub fn prs_alts(self: *Node, tok: *PToken, term: TokenSym, src: *[]const u8, env: *ParseEnv, group_head: bool) !void {
+    pub fn prs_alts(top: **Node, tok: *PToken, term: TokenSym, src: *[]const u8, env: *ParseEnv, group_head: bool) !TokenSym {
         //   int r;
         //   Node *node, **headp;
         //   OnigOptionType save_options;
 
-        //   *top = NULL;
+        top.* = undefined;
         //   INC_PARSE_DEPTH(env->parse_depth);
-        //   save_options = env->options;
+        const save_options = env.options;
 
-        //   r = prs_branch(&node, tok, term, src, end, env, group_head);
-        //   if (r < 0) {
-        //     onig_node_free(node);
-        //     return r;
-        //   }
-
-        //   if (r == term) {
-        //     *top = node;
-        //   }
-        //   else if (r == TK_ALT) {
+        var node: *Node = undefined;
+        errdefer node.deinit(); // TODO(slimsag): this is awkward/sketchy
+        const r = try Node.prs_branch(&node, tok, term, src, env, group_head);
+        if (r == term) {
+            top.* = node; // TODO(slimsag): this style of returns is nasty
+        } else if (r == TokenSym.Alt) {
         //     *top  = onig_node_new_alt(node, NULL);
         //     if (IS_NULL(*top)) {
         //       onig_node_free(node);
@@ -385,17 +383,64 @@ pub const Node = struct {
 
         //     if (tok->type != (enum TokenSyms )term)
         //       goto err;
-        //   }
-        //   else {
+        } else {
         //     onig_node_free(node);
         //   err:
         //     if (term == TK_SUBEXP_CLOSE)
         //       return ONIGERR_END_PATTERN_WITH_UNMATCHED_PARENTHESIS;
         //     else
         //       return ONIGERR_PARSER_BUG;
+        }
+
+        env.options = save_options;
+        //   DEC_PARSE_DEPTH(env->parse_depth);
+        return r;
+    }
+
+    pub fn prs_branch(top: **Node, tok: *PToken, term: TokenSym, src: *[]const u8, env: *ParseEnv, group_head: bool) !TokenSym {
+        return TokenSym.EOT; // TODO(slimsag): remove this line
+        //   int r;
+        //   Node *node, **headp;
+
+        //   *top = NULL;
+        //   INC_PARSE_DEPTH(env->parse_depth);
+
+        //   r = prs_exp(&node, tok, term, src, end, env, group_head);
+        //   if (r < 0) {
+        //     onig_node_free(node);
+        //     return r;
         //   }
 
-        //   env->options = save_options;
+        //   if (r == TK_EOT || r == term || r == TK_ALT) {
+        //     *top = node;
+        //   }
+        //   else {
+        //     *top = node_new_list(node, NULL);
+        //     if (IS_NULL(*top)) {
+        //       onig_node_free(node);
+        //       return ONIGERR_MEMORY;
+        //     }
+
+        //     headp = &(NODE_CDR(*top));
+        //     while (r != TK_EOT && r != term && r != TK_ALT) {
+        //       r = prs_exp(&node, tok, term, src, end, env, FALSE);
+        //       if (r < 0) {
+        //         onig_node_free(node);
+        //         return r;
+        //       }
+
+        //       if (NODE_TYPE(node) == NODE_LIST) {
+        //         *headp = node;
+        //         while (IS_NOT_NULL(NODE_CDR(node))) node = NODE_CDR(node);
+        //         headp = &(NODE_CDR(node));
+        //       }
+        //       else {
+        //         *headp = node_new_list(node, NULL);
+        //         headp = &(NODE_CDR(*headp));
+        //       }
+        //     }
+        //   }
+
         //   DEC_PARSE_DEPTH(env->parse_depth);
         //   return r;
     }
