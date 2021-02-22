@@ -1,3 +1,4 @@
+const std = @import("std");
 const Option = @import("oniguruma2.zig").Option;
 const Syntax = @import("oniguruma2.zig").Syntax;
 const CaseFold = @import("oniguruma2.zig").CaseFold;
@@ -969,14 +970,17 @@ const Operation = struct {
 
 pub const RePatternBuffer = struct{
     /// common members of BBuf(bytes-buffer)
-    ops: ?*Operation,
     // TODO(slimsag): ?
     // #ifdef USE_DIRECT_THREADED_CODE
     //   enum OpCode* ocs;
     // #endif
-    ops_curr: ?*Operation,
-    ops_used: usize, /// used space for ops
-    ops_alloc: usize, /// allocated space for ops
+    // TODO(slimsag): remove later, replaced with ArrayList
+    //ops: ?*Operation,
+    //ops_curr: ?*Operation,
+    //ops_used: usize, /// used space for ops
+    //ops_alloc: usize, /// allocated space for ops
+    ops: ?std.ArrayList(Operation), // TODO(slimsag): check if this can actually ever be optional
+
     // TODO(slimsag):
     //   unsigned char* string_pool;
     //   unsigned char* string_pool_end;

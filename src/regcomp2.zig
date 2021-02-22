@@ -136,10 +136,7 @@ const config = @import("config.zig");
 
 pub fn opsInit(allocator: *Allocator, reg: *Regex, init_alloc_size: usize) !void {
     if (init_alloc_size > 0) {
-//     size = sizeof(Operation) * init_alloc_size;
-//     p = (Operation* )xrealloc(reg->ops, size);
-//     CHECK_NULL_RETURN_MEMERR(p);
-//     reg->ops = p;
+        reg.re_pattern_buffer.ops = try std.ArrayList(Operation).initCapacity(allocator, init_alloc_size);
         if (config.UseDirectThreadedCode) {
 //       enum OpCode* cp;
 //       size = sizeof(enum OpCode) * init_alloc_size;
@@ -153,9 +150,6 @@ pub fn opsInit(allocator: *Allocator, reg: *Regex, init_alloc_size: usize) !void
             reg.ocs = null;
         }
     }
-    reg.re_pattern_buffer.ops_curr = 0; // !!! not yet done opsNew()
-    reg.re_pattern_buffer.ops_alloc = init_alloc_size;
-    reg.re_pattern_buffer.ops_used = 0;
     return;
 }
 
@@ -7451,12 +7445,9 @@ pub const Regex = struct {
         self.* = Self{
             .allocator = allocator,
             .re_pattern_buffer = std.mem.zeroInit(RePatternBuffer, .{
-                // TODO(slimsag): all zeros.
                 .options = option,
                 .syntax = syntax,
                 .optimize = 0,
-                .ops_used = 0,
-                .ops_alloc = 0,
                 .case_fold_flag = case_fold_flag,
             }),
         };
