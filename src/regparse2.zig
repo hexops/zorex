@@ -1,3 +1,5 @@
+const ParseEnv = @import("regparse_header2.zig").ParseEnv;
+
 // /**********************************************************************
 //   regparse.c -  Oniguruma (regular expression library)
 // **********************************************************************/
@@ -4403,43 +4405,44 @@ pub const NameTable = struct {
 //   return 0;
 // }
 
-// enum TokenSyms {
-//   TK_EOT      = 0,   /* end of token */
-//   TK_CRUDE_BYTE = 1,
-//   TK_CHAR,
-//   TK_STRING,
-//   TK_CODE_POINT,
-//   TK_ANYCHAR,
-//   TK_CHAR_TYPE,
-//   TK_BACKREF,
-//   TK_CALL,
-//   TK_ANCHOR,
-//   TK_REPEAT,
-//   TK_INTERVAL,
-//   TK_ANYCHAR_ANYTIME,  /* SQL '%' == .* */
-//   TK_ALT,
-//   TK_SUBEXP_OPEN,
-//   TK_SUBEXP_CLOSE,
-//   TK_OPEN_CC,
-//   TK_QUOTE_OPEN,
-//   TK_CHAR_PROPERTY,    /* \p{...}, \P{...} */
-//   TK_KEEP,             /* \K */
-//   TK_GENERAL_NEWLINE,  /* \R */
-//   TK_NO_NEWLINE,       /* \N */
-//   TK_TRUE_ANYCHAR,     /* \O */
-//   TK_TEXT_SEGMENT,     /* \X */
+pub const TokenSym = enum {
+    // TODO(slimsag): Rename to EndOfToken
+    EOT      = 0,   /// end of token
+    CrudeByte = 1,
+    Char,
+    String,
+    CodePoint,
+    AnyChar,
+    CharType,
+    BackRef,
+    Call,
+    Anchor,
+    Repeat,
+    Interval,
+    AnyCharAnyTime, /// SQL '%' == .*
+    Alt,
+    SubExpOpen,
+    SubExpClose,
+    OpenCC,
+    QuoteOpen,
+    CharProperty, /// \p{...}, \P{...}
+    Keep, /// \K
+    GeneralNewLine, /// \R
+    NoNewLine, /// \N
+    TrueAnyChar, /// \O
+    TextSegment, /// \X
 
-//   /* in cc */
-//   TK_CC_CLOSE,
-//   TK_CC_RANGE,
-//   TK_CC_POSIX_BRACKET_OPEN,
-//   TK_CC_AND,           /* && */
-//   TK_CC_OPEN_CC        /* [ */
-// };
+    /// in cc
+    CCClose,
+    CCRange,
+    CCPosixBracketOpen,
+    CCAnd, /// &&
+    CCOpenCC, /// [
+};
 
-// typedef struct {
-//   enum TokenSyms type;
-//   int code_point_continue;
+pub const PToken = struct {
+    type: TokenSym,
+    code_point_continue: isize,
 //   int escaped;
 //   int base_num;   /* is number: 8, 16 (used in [....]) */
 //   UChar* backp;
@@ -4476,7 +4479,14 @@ pub const NameTable = struct {
 //       int not;
 //     } prop;
 //   } u;
-// } PToken;
+
+    pub fn init() callconv(.Inline) PToken {
+        return PToken{
+            .type = TokenSym.EOT,
+            .code_point_continue = 0,
+        };
+    }
+};
 
 // static void
 // ptoken_init(PToken* tok)
@@ -5351,9 +5361,7 @@ pub const NameTable = struct {
 //   return tok->type;
 // }
 
-// static int
-// fetch_token(PToken* tok, UChar** src, UChar* end, ParseEnv* env)
-// {
+pub fn fetchToken(tok: *PToken, src: *[]const u8, env: *ParseEnv) !void {
 //   int r;
 //   OnigCodePoint code;
 //   OnigCodePoint c;
@@ -6211,7 +6219,7 @@ pub const NameTable = struct {
 //  out:
 //   *src = p;
 //   return tok->type;
-// }
+}
 
 // static int
 // add_ctype_to_cc_by_range(CClassNode* cc, int ctype ARG_UNUSED, int not,
@@ -8959,85 +8967,6 @@ pub const NameTable = struct {
 //   return r;
 // }
 
-// /* term_tok: TK_EOT or TK_SUBEXP_CLOSE */
-// static int
-// prs_alts(Node** top, PToken* tok, int term, UChar** src, UChar* end,
-//          ParseEnv* env, int group_head)
-// {
-//   int r;
-//   Node *node, **headp;
-//   OnigOptionType save_options;
-
-//   *top = NULL;
-//   INC_PARSE_DEPTH(env->parse_depth);
-//   save_options = env->options;
-
-//   r = prs_branch(&node, tok, term, src, end, env, group_head);
-//   if (r < 0) {
-//     onig_node_free(node);
-//     return r;
-//   }
-
-//   if (r == term) {
-//     *top = node;
-//   }
-//   else if (r == TK_ALT) {
-//     *top  = onig_node_new_alt(node, NULL);
-//     if (IS_NULL(*top)) {
-//       onig_node_free(node);
-//       return ONIGERR_MEMORY;
-//     }
-
-//     headp = &(NODE_CDR(*top));
-//     while (r == TK_ALT) {
-//       r = fetch_token(tok, src, end, env);
-//       if (r < 0) return r;
-//       r = prs_branch(&node, tok, term, src, end, env, FALSE);
-//       if (r < 0) {
-//         onig_node_free(node);
-//         return r;
-//       }
-//       *headp = onig_node_new_alt(node, NULL);
-//       if (IS_NULL(*headp)) {
-//         onig_node_free(node);
-//         onig_node_free(*top);
-//         return ONIGERR_MEMORY;
-//       }
-
-//       headp = &(NODE_CDR(*headp));
-//     }
-
-//     if (tok->type != (enum TokenSyms )term)
-//       goto err;
-//   }
-//   else {
-//     onig_node_free(node);
-//   err:
-//     if (term == TK_SUBEXP_CLOSE)
-//       return ONIGERR_END_PATTERN_WITH_UNMATCHED_PARENTHESIS;
-//     else
-//       return ONIGERR_PARSER_BUG;
-//   }
-
-//   env->options = save_options;
-//   DEC_PARSE_DEPTH(env->parse_depth);
-//   return r;
-// }
-
-// static int
-// prs_regexp(Node** top, UChar** src, UChar* end, ParseEnv* env)
-// {
-//   int r;
-//   PToken tok;
-
-//   ptoken_init(&tok);
-//   r = fetch_token(&tok, src, end, env);
-//   if (r < 0) return r;
-//   r = prs_alts(top, &tok, TK_EOT, src, end, env, FALSE);
-//   if (r < 0) return r;
-
-//   return 0;
-// }
 
 // #ifdef USE_CALL
 // static int

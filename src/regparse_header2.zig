@@ -1,5 +1,9 @@
+const std = @import("std");
 const Option = @import("oniguruma2.zig").Option;
 const Regex = @import("regcomp2.zig").Regex;
+const PToken = @import("regparse2.zig").PToken;
+const TokenSym = @import("regparse2.zig").TokenSym;
+const fetchToken = @import("regparse2.zig").fetchToken;
 
 // #ifndef REGPARSE_H
 // #define REGPARSE_H
@@ -284,15 +288,14 @@ pub const Node = struct {
         //   env->pattern_end    = (UChar* )end;
         //   env->reg            = reg;
 
-        // TODO(slimsag): **Node before
-        //   *root = NULL;
+        self.* = std.mem.zeroes(Node);
 
         //   if (! ONIGENC_IS_VALID_MBC_STRING(env->enc, pattern, end))
         //     return ONIGERR_INVALID_WIDE_CHAR_VALUE;
 
-        //   p = (UChar* )pattern;
-        //   r = prs_regexp(root, &p, (UChar* )end, env);
-        //   if (r != 0) return r;
+        // TODO(slimsag): Why does this take &pattern? Should it?
+        var p = pattern;
+        try self.prs_regexp(&p, env);
 
         // #ifdef USE_CALL
         //   if (env->has_call_zero != 0) {
@@ -327,6 +330,74 @@ pub const Node = struct {
             u.base.node_type = newType;
         }
         unreachable;
+    }
+
+    pub fn prs_regexp(self: *Node, src: *[]const u8, env: *ParseEnv) !void {
+        var tok = PToken.init();
+        try fetchToken(&tok, src, env);
+        return try self.prs_alts(&tok, TokenSym.EOT, src, env, false);
+    }
+
+    /// term_tok: TokenSym.EOT or TokenSym.SubExpClose
+    pub fn prs_alts(self: *Node, tok: *PToken, term: TokenSym, src: *[]const u8, env: *ParseEnv, group_head: bool) !void {
+        //   int r;
+        //   Node *node, **headp;
+        //   OnigOptionType save_options;
+
+        //   *top = NULL;
+        //   INC_PARSE_DEPTH(env->parse_depth);
+        //   save_options = env->options;
+
+        //   r = prs_branch(&node, tok, term, src, end, env, group_head);
+        //   if (r < 0) {
+        //     onig_node_free(node);
+        //     return r;
+        //   }
+
+        //   if (r == term) {
+        //     *top = node;
+        //   }
+        //   else if (r == TK_ALT) {
+        //     *top  = onig_node_new_alt(node, NULL);
+        //     if (IS_NULL(*top)) {
+        //       onig_node_free(node);
+        //       return ONIGERR_MEMORY;
+        //     }
+
+        //     headp = &(NODE_CDR(*top));
+        //     while (r == TK_ALT) {
+        //       r = fetch_token(tok, src, end, env);
+        //       if (r < 0) return r;
+        //       r = prs_branch(&node, tok, term, src, end, env, FALSE);
+        //       if (r < 0) {
+        //         onig_node_free(node);
+        //         return r;
+        //       }
+        //       *headp = onig_node_new_alt(node, NULL);
+        //       if (IS_NULL(*headp)) {
+        //         onig_node_free(node);
+        //         onig_node_free(*top);
+        //         return ONIGERR_MEMORY;
+        //       }
+
+        //       headp = &(NODE_CDR(*headp));
+        //     }
+
+        //     if (tok->type != (enum TokenSyms )term)
+        //       goto err;
+        //   }
+        //   else {
+        //     onig_node_free(node);
+        //   err:
+        //     if (term == TK_SUBEXP_CLOSE)
+        //       return ONIGERR_END_PATTERN_WITH_UNMATCHED_PARENTHESIS;
+        //     else
+        //       return ONIGERR_PARSER_BUG;
+        //   }
+
+        //   env->options = save_options;
+        //   DEC_PARSE_DEPTH(env->parse_depth);
+        //   return r;
     }
 };
 
