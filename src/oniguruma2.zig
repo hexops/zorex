@@ -367,45 +367,50 @@
 // /* constants */
 // #define ONIG_MAX_ERROR_MESSAGE_LEN            90
 
-// typedef unsigned int        OnigOptionType;
+/// Options
+pub const Option = enum(u32) {
+    None = 0,
+    Default = None,
 
-// #define ONIG_OPTION_DEFAULT            ONIG_OPTION_NONE
+    /// Compile-time options
+    IgnoreCase = 1 << 1,
+    Extend = 1 << 2,
+    MultiLine = 1 << 3,
+    SingleLine = 1 << 4,
+    FindLongest = 1 << 5,
+    FindNotEmpty = 1 << 6,
+    NegateSingleLine = 1 << 7,
+    DontCaptureGroup = 1 << 8,
+    CaptureGroup = 1 << 9,
 
-// /* options */
-// #define ONIG_OPTION_NONE                 0U
-// /* options (compile time) */
-// #define ONIG_OPTION_IGNORECASE           1U
-// #define ONIG_OPTION_EXTEND               (ONIG_OPTION_IGNORECASE         << 1)
-// #define ONIG_OPTION_MULTILINE            (ONIG_OPTION_EXTEND             << 1)
-// #define ONIG_OPTION_SINGLELINE           (ONIG_OPTION_MULTILINE          << 1)
-// #define ONIG_OPTION_FIND_LONGEST         (ONIG_OPTION_SINGLELINE         << 1)
-// #define ONIG_OPTION_FIND_NOT_EMPTY       (ONIG_OPTION_FIND_LONGEST       << 1)
-// #define ONIG_OPTION_NEGATE_SINGLELINE    (ONIG_OPTION_FIND_NOT_EMPTY     << 1)
-// #define ONIG_OPTION_DONT_CAPTURE_GROUP   (ONIG_OPTION_NEGATE_SINGLELINE  << 1)
-// #define ONIG_OPTION_CAPTURE_GROUP        (ONIG_OPTION_DONT_CAPTURE_GROUP << 1)
-// /* options (search time) */
-// #define ONIG_OPTION_NOTBOL                    (ONIG_OPTION_CAPTURE_GROUP << 1)
-// #define ONIG_OPTION_NOTEOL                    (ONIG_OPTION_NOTBOL << 1)
-// #define ONIG_OPTION_POSIX_REGION              (ONIG_OPTION_NOTEOL << 1)
-// #define ONIG_OPTION_CHECK_VALIDITY_OF_STRING  (ONIG_OPTION_POSIX_REGION << 1)
-// /* options (compile time) */
-// #define ONIG_OPTION_IGNORECASE_IS_ASCII  (ONIG_OPTION_CHECK_VALIDITY_OF_STRING << 3)
-// #define ONIG_OPTION_WORD_IS_ASCII        (ONIG_OPTION_IGNORECASE_IS_ASCII << 1)
-// #define ONIG_OPTION_DIGIT_IS_ASCII       (ONIG_OPTION_WORD_IS_ASCII << 1)
-// #define ONIG_OPTION_SPACE_IS_ASCII       (ONIG_OPTION_DIGIT_IS_ASCII << 1)
-// #define ONIG_OPTION_POSIX_IS_ASCII       (ONIG_OPTION_SPACE_IS_ASCII << 1)
-// #define ONIG_OPTION_TEXT_SEGMENT_EXTENDED_GRAPHEME_CLUSTER  (ONIG_OPTION_POSIX_IS_ASCII << 1)
-// #define ONIG_OPTION_TEXT_SEGMENT_WORD    (ONIG_OPTION_TEXT_SEGMENT_EXTENDED_GRAPHEME_CLUSTER << 1)
-// /* options (search time) */
-// #define ONIG_OPTION_NOT_BEGIN_STRING     (ONIG_OPTION_TEXT_SEGMENT_WORD << 1)
-// #define ONIG_OPTION_NOT_END_STRING       (ONIG_OPTION_NOT_BEGIN_STRING << 1)
-// #define ONIG_OPTION_NOT_BEGIN_POSITION   (ONIG_OPTION_NOT_END_STRING << 1)
+    /// Search-time options
+    NotBOL = 1 << 10,
+    NotEOL = 1 << 11,
+    NotPOSIXRegion = 1 << 12,
+    CheckValidityOfString = 1 << 13,
 
-// #define ONIG_OPTION_MAXBIT               ONIG_OPTION_NOT_BEGIN_POSITION
+    /// Compile-time options
+    IgnoreCaseIsASCII = 1 << 14,
+    WordIsASCII = 1 << 15,
+    DigitIsASCII = 1 << 16,
+    SpaceIsASCII = 1 << 17,
+    POSIXIsASCII = 1 << 18,
+    TextSegmentExtendedGraphemeCluster = 1 << 19,
+    TextSegmentWord = 1 << 20,
 
-// #define ONIG_OPTION_ON(options,regopt)      ((options) |= (regopt))
-// #define ONIG_OPTION_OFF(options,regopt)     ((options) &= ~(regopt))
-// #define ONIG_IS_OPTION_ON(options,option)   ((options) & (option))
+    /// Search-time options
+    NotBeginString = 1 << 21,
+    NotEndString = 1 << 22,
+    NotBeginPosition = 1 << 23,
+
+    pub fn on(self: Option, regopt: Option) callconv(.Inline) bool {
+        return self |= regopt;
+    }
+
+    pub fn off(self: Option, regopt: Option) callconv(.Inline) bool {
+        return self &= ~regopt;
+    }
+};
 
 // /* syntax */
 // typedef struct {
