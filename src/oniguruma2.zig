@@ -87,19 +87,18 @@
 
 // #define ONIG_INFINITE_DISTANCE  ~((OnigLen )0)
 
-// typedef unsigned int OnigCaseFoldType; /* case fold flag */
 
-// ONIG_EXTERN OnigCaseFoldType OnigDefaultCaseFoldFlag;
 
-// #define ONIGENC_CASE_FOLD_ASCII_ONLY            (1)
-// /* #define ONIGENC_CASE_FOLD_HIRAGANA_KATAKANA  (1<<1) */
-// /* #define ONIGENC_CASE_FOLD_KATAKANA_WIDTH     (1<<2) */
-// #define ONIGENC_CASE_FOLD_TURKISH_AZERI         (1<<20)
-// #define INTERNAL_ONIGENC_CASE_FOLD_MULTI_CHAR   (1<<30)
+// TODO(slimsag): candidate for removal.
+/// Case fold flags
+pub const CaseFold = enum(u32) {
+    Default = 0,
+    ASCIIOnly = 1,
+    InternalMultiChar = 1 << 30,
+};
 
-// #define ONIGENC_CASE_FOLD_MIN      INTERNAL_ONIGENC_CASE_FOLD_MULTI_CHAR
-// #define ONIGENC_CASE_FOLD_DEFAULT  OnigDefaultCaseFoldFlag
-
+// TODO(slimsag): candidate for removal?
+pub const CaseFoldMin = CaseFold.InternalMultiChar;
 
 // #define ONIGENC_MAX_COMP_CASE_FOLD_CODE_LEN       3
 // #define ONIGENC_GET_CASE_FOLD_CODES_MAX_NUM      13
@@ -369,8 +368,7 @@
 
 /// Options
 pub const Option = enum(u32) {
-    None = 0,
-    Default = None,
+    Default = 0,
 
     /// Compile-time options
     IgnoreCase = 1 << 1,
@@ -412,14 +410,18 @@ pub const Option = enum(u32) {
     }
 };
 
-// /* syntax */
-// typedef struct {
-//   unsigned int   op;
-//   unsigned int   op2;
-//   unsigned int   behavior;
-//   OnigOptionType options;   /* default option */
-//   OnigMetaCharTableType meta_char_table;
-// } OnigSyntaxType;
+/// Syntax
+pub const Syntax = struct {
+    op: usize,
+    op2: usize,
+    behavior: usize,
+    options: Option, /// default option
+    // TODO(slimsag):
+    //meta_char_table: MetaCharTable,
+
+    /// Default syntax
+    pub const Default: *Syntax = undefined;
+};
 
 // ONIG_EXTERN OnigSyntaxType OnigSyntaxASIS;
 // ONIG_EXTERN OnigSyntaxType OnigSyntaxPosixBasic;
@@ -448,9 +450,6 @@ pub const Option = enum(u32) {
 // #define ONIG_SYNTAX_PYTHON             (&OnigSyntaxPython)
 // #define ONIG_SYNTAX_ONIGURUMA          (&OnigSyntaxOniguruma)
 
-// /* default syntax */
-// ONIG_EXTERN OnigSyntaxType*   OnigDefaultSyntax;
-// #define ONIG_SYNTAX_DEFAULT   OnigDefaultSyntax
 
 // /* syntax (operators) */
 // #define ONIG_SYN_OP_VARIABLE_META_CHARACTERS    (1U<<0)
@@ -693,24 +692,16 @@ pub const ReRegisters = struct {
 //   OnigUChar* par_end;
 // } OnigErrorInfo;
 
-// typedef struct {
-//   int lower;
-//   int upper;
-// } OnigRepeatRange;
+const RepeatRange = struct {
+    lower: isize,
+    upper: isize,
+};
 
 // typedef void (*OnigWarnFunc) P_((const char* s));
 // extern void onig_null_warn P_((const char* s));
 // #define ONIG_NULL_WARN       onig_null_warn
 
 // #define ONIG_CHAR_TABLE_SIZE   256
-
-// struct re_pattern_buffer;
-// typedef struct re_pattern_buffer OnigRegexType;
-// typedef OnigRegexType*  OnigRegex;
-
-// #ifndef ONIG_ESCAPE_REGEX_T_COLLISION
-//   typedef OnigRegexType  regex_t;
-// #endif
 
 // struct OnigRegSetStruct;
 // typedef struct OnigRegSetStruct OnigRegSet;

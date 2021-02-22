@@ -1,6 +1,9 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
+const RePatternBuffer = @import("regint2.zig").RePatternBuffer;
 const Option = @import("oniguruma2.zig").Option;
+const Syntax = @import("oniguruma2.zig").Syntax;
+const CaseFold = @import("oniguruma2.zig").CaseFold;
 
 // /**********************************************************************
 //   regcomp.c -  Oniguruma (regular expression library)
@@ -7594,66 +7597,52 @@ const Option = @import("oniguruma2.zig").Option;
 // }
 
 
-// static int onig_inited = 0;
+pub const Regex = struct {
+    re_pattern_buffer: RePatternBuffer,
 
-// extern int
-// onig_reg_init(regex_t* reg, OnigOptionType option, OnigCaseFoldType case_fold_flag,
-//               OnigEncoding enc, OnigSyntaxType* syntax)
-// {
-//   int r;
+    const Self = @This();
 
-//   xmemset(reg, 0, sizeof(*reg));
+    pub fn init(allocator: *Allocator, option: Option, case_fold_flag: CaseFold, syntax: *Syntax) !*Self {
+        // TODO(slimsag):
+        //   if ((option & (ONIG_OPTION_DONT_CAPTURE_GROUP|ONIG_OPTION_CAPTURE_GROUP))
+        //       == (ONIG_OPTION_DONT_CAPTURE_GROUP|ONIG_OPTION_CAPTURE_GROUP)) {
+        //     return ONIGERR_INVALID_COMBINATION_OF_OPTIONS;
+        //   }
 
-//   if (onig_inited == 0) {
-// #if 0
-//     return ONIGERR_LIBRARY_IS_NOT_INITIALIZED;
-// #else
-//     r = onig_initialize(&enc, 1);
-//     if (r != 0)
-//       return ONIGERR_FAIL_TO_INITIALIZE;
+        //   if ((option & ONIG_OPTION_NEGATE_SINGLELINE) != 0) {
+        //     option |= syntax->options;
+        //     option &= ~ONIG_OPTION_SINGLELINE;
+        //   }
+        //   else
+        //     option |= syntax->options;
 
-//     onig_warning("You didn't call onig_initialize() explicitly");
-// #endif
-//   }
+        //   if ((option & ONIG_OPTION_IGNORECASE_IS_ASCII) != 0) {
+        //     case_fold_flag &= ~(INTERNAL_ONIGENC_CASE_FOLD_MULTI_CHAR |
+        //                         ONIGENC_CASE_FOLD_TURKISH_AZERI);
+        //     case_fold_flag |= ONIGENC_CASE_FOLD_ASCII_ONLY;
+        //   }
 
-//   if (IS_NULL(reg))
-//     return ONIGERR_INVALID_ARGUMENT;
+        const self = try allocator.create(Self);
+        self.* = Self{
+            .re_pattern_buffer = std.mem.zeroInit(RePatternBuffer, .{
+                // TODO(slimsag): all zeros.
+                .options = option,
+                .syntax = syntax,
+                .optimize = 0,
+                .ops_used = 0,
+                .ops_alloc = 0,
+                .case_fold_flag = case_fold_flag,
+            }),
+        };
+        return self;
+    }
 
-//   if (ONIGENC_IS_UNDEF(enc))
-//     return ONIGERR_DEFAULT_ENCODING_IS_NOT_SETTED;
+    pub fn deinit(self: *Self, allocator: *Allocator) void {
+        allocator.destroy(self);
+    }
+};
 
-//   if ((option & (ONIG_OPTION_DONT_CAPTURE_GROUP|ONIG_OPTION_CAPTURE_GROUP))
-//       == (ONIG_OPTION_DONT_CAPTURE_GROUP|ONIG_OPTION_CAPTURE_GROUP)) {
-//     return ONIGERR_INVALID_COMBINATION_OF_OPTIONS;
-//   }
-
-//   if ((option & ONIG_OPTION_NEGATE_SINGLELINE) != 0) {
-//     option |= syntax->options;
-//     option &= ~ONIG_OPTION_SINGLELINE;
-//   }
-//   else
-//     option |= syntax->options;
-
-//   if ((option & ONIG_OPTION_IGNORECASE_IS_ASCII) != 0) {
-//     case_fold_flag &= ~(INTERNAL_ONIGENC_CASE_FOLD_MULTI_CHAR |
-//                         ONIGENC_CASE_FOLD_TURKISH_AZERI);
-//     case_fold_flag |= ONIGENC_CASE_FOLD_ASCII_ONLY;
-//   }
-
-//   (reg)->enc            = enc;
-//   (reg)->options        = option;
-//   (reg)->syntax         = syntax;
-//   (reg)->optimize       = 0;
-//   (reg)->exact          = (UChar* )NULL;
-//   (reg)->extp           = (RegexExt* )NULL;
-//   (reg)->ops            = (Operation* )NULL;
-//   (reg)->ops_curr       = (Operation* )NULL;
-//   (reg)->ops_used       = 0;
-//   (reg)->ops_alloc      = 0;
-//   (reg)->name_table     = (void* )NULL;
-//   (reg)->case_fold_flag = case_fold_flag;
-//   return 0;
-// }
+// TODO(slimsag): move New, onig_new_without_alloc into Regex struct.
 
 // extern int
 // onig_new_without_alloc(regex_t* reg,
@@ -7670,10 +7659,12 @@ const Option = @import("oniguruma2.zig").Option;
 //   return r;
 // }
 
-pub fn New(allocator: *Allocator, pattern: []const u8, option: Option, syntax: Syntax) !void {
-    const reg = try Regex.init(allocator, option, ONIGENC_CASE_FOLD_DEFAULT, syntax);
+pub fn New(allocator: *Allocator, pattern: []const u8, option: Option, syntax: *Syntax) !*Regex {
+    const reg = try Regex.init(allocator, option, CaseFold.Default, syntax);
     errdefer reg.deinit();
-    try reg.compile(pattern);
+    // TODO(slimsag):
+    //try reg.compile(pattern);
+    return reg;
 }
 
 // typedef struct EndCallListItem {

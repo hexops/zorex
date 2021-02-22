@@ -19,7 +19,7 @@ fn xx(
     error_no: isize,
 ) void {
     const allocator = std.heap.page_allocator;
-    const reg = try zorex.New(allocator, pattern, zorex.OPTION_DEFAULT, zorex.SYNTAX_DEFAULT) catch |err| {
+    const reg = zorex.New(allocator, pattern, zorex.Option.Default, zorex.Syntax.Default) catch |err| {
         //     char s[ONIG_MAX_ERROR_MESSAGE_LEN];
 
         //     if (error_no == 0) {
@@ -40,8 +40,9 @@ fn xx(
         //     }
 
         //     return ;
+        return;
     };
-    defer reg.deinit();
+    defer reg.deinit(allocator);
 
     //   r = onig_search(reg, (UChar* )str, (UChar* )(str + SLEN(str)),
     //                   (UChar* )str, (UChar* )(str + SLEN(str)),
