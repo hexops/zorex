@@ -7478,19 +7478,10 @@ pub const Regex = struct {
             //   fprintf(DBGFP, "\n");
         }
 
-        // TODO(slimsag): replace ops with ArrayList?
-        //   if (reg->ops_alloc == 0) {
-        //     r = ops_init(reg, OPS_INIT_SIZE);
-        //     if (r != 0) {
-        //       if (IS_NOT_NULL(einfo)) {
-        //         einfo->enc = reg->enc;
-        //         einfo->par = (UChar* )NULL;
-        //       }
-        //       return r;
-        //     }
-        //   }
-        //   else
-        //     reg->ops_used = 0;
+        if (reg.ops == null) {
+            // TODO(slimsag): it's weird this doesn't return a reg.ops value, cleanup.
+            try opsInit(allocator, OPS_INIT_SIZE);
+        }
 
         //   r = parse_and_tune(reg, pattern, pattern_end, &scan_env, &root, einfo
         // #ifdef USE_CALL
