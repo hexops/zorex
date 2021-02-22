@@ -1,108 +1,107 @@
 const std = @import("std");
 const testing = std.testing;
 
-test "utf8" {
-    var nsucc: usize = 0;
-    var nfail: usize = 0;
-    var nerror: usize = 0;
+var nsucc: usize = 0;
+var nfail: usize = 0;
+var nerror: usize = 0;
+
+var err_file: *std.fs.File = undefined;
+var region: *zing.Region = undefined;
+
+fn xx(
+    pattern: []u8,
+    str: []u8,
+    from: isize,
+    to: isize,
+    mem: isize,
+    not: isize,
+    error_no: isize,
+    line_no: isize,
+) void {
+    const allocator = std.heap.page_allocator;
+    const reg = try zing.New(allocator, pattern, zing.OPTION_DEFAULT, zing.ENCODING_UTF8, zing.SYNTAX_DEFAULT) catch |err| {
+        //     char s[ONIG_MAX_ERROR_MESSAGE_LEN];
+
+        //     if (error_no == 0) {
+        //       onig_error_code_to_str((UChar* )s, r, &einfo);
+        //       fprintf(err_file, "ERROR: %s  /%s/  #%d\n", s, pattern, line_no);
+        //       nerror++;
+        //     }
+        //     else {
+        //       if (r == error_no) {
+        //         fprintf(stdout, "OK(ERROR): /%s/ %d  #%d\n", pattern, r, line_no);
+        //         nsucc++;
+        //       }
+        //       else {
+        //         fprintf(stdout, "FAIL(ERROR): /%s/ '%s', %d, %d  #%d\n", pattern, str,
+        //                 error_no, r, line_no);
+        //         nfail++;
+        //       }
+        //     }
+
+        //     return ;
+    };
+    defer reg.deinit();
+
+    //   r = onig_search(reg, (UChar* )str, (UChar* )(str + SLEN(str)),
+    //                   (UChar* )str, (UChar* )(str + SLEN(str)),
+    //                   region, ONIG_OPTION_NONE);
+    //   if (r < ONIG_MISMATCH) {
+    //     char s[ONIG_MAX_ERROR_MESSAGE_LEN];
+
+    //     if (error_no == 0) {
+    //       onig_error_code_to_str((UChar* )s, r);
+    //       fprintf(err_file, "ERROR: %s  /%s/  #%d\n", s, pattern, line_no);
+    //       nerror++;
+    //     }
+    //     else {
+    //       if (r == error_no) {
+    //         fprintf(stdout, "OK(ERROR): /%s/ '%s', %d  #%d\n",
+    //                 pattern, str, r, line_no);
+    //         nsucc++;
+    //       }
+    //       else {
+    //         fprintf(stdout, "FAIL ERROR NO: /%s/ '%s', %d, %d  #%d\n",
+    //                 pattern, str, error_no, r, line_no);
+    //         nfail++;
+    //       }
+    //     }
+
+    //     return ;
+    //   }
+
+    //   if (r == ONIG_MISMATCH) {
+    //     if (not) {
+    //       fprintf(stdout, "OK(N): /%s/ '%s'  #%d\n", pattern, str, line_no);
+    //       nsucc++;
+    //     }
+    //     else {
+    //       fprintf(stdout, "FAIL: /%s/ '%s'  #%d\n", pattern, str, line_no);
+    //       nfail++;
+    //     }
+    //   }
+    //   else {
+    //     if (not) {
+    //       fprintf(stdout, "FAIL(N): /%s/ '%s'  #%d\n", pattern, str, line_no);
+    //       nfail++;
+    //     }
+    //     else {
+    //       if (region->beg[mem] == from && region->end[mem] == to) {
+    //         fprintf(stdout, "OK: /%s/ '%s'  #%d\n", pattern, str, line_no);
+    //         nsucc++;
+    //       }
+    //       else {
+    //         fprintf(stdout, "FAIL: /%s/ '%s' %d-%d : %d-%d  #%d\n", pattern, str,
+    //                 from, to, region->beg[mem], region->end[mem], line_no);
+    //         nfail++;
+    //       }
+    //     }
+    //   }
+    //   onig_free(reg);
+    // }
 }
 
-// static FILE* err_file;
-
-// static OnigRegion* region;
-
-// static void xx(char* pattern, char* str, int from, int to, int mem, int not,
-//                int error_no, int line_no)
-// {
-// #ifdef __TRUSTINSOFT_ANALYZER__
-//   if (nall++ % TIS_TEST_CHOOSE_MAX != TIS_TEST_CHOOSE_CURRENT) return;
-// #endif
-
-//   int r;
-//   regex_t* reg;
-//   OnigErrorInfo einfo;
-
-//   r = onig_new(&reg, (UChar* )pattern, (UChar* )(pattern + SLEN(pattern)),
-//          ONIG_OPTION_DEFAULT, ONIG_ENCODING_UTF8, ONIG_SYNTAX_DEFAULT, &einfo);
-//   if (r) {
-//     char s[ONIG_MAX_ERROR_MESSAGE_LEN];
-
-//     if (error_no == 0) {
-//       onig_error_code_to_str((UChar* )s, r, &einfo);
-//       fprintf(err_file, "ERROR: %s  /%s/  #%d\n", s, pattern, line_no);
-//       nerror++;
-//     }
-//     else {
-//       if (r == error_no) {
-//         fprintf(stdout, "OK(ERROR): /%s/ %d  #%d\n", pattern, r, line_no);
-//         nsucc++;
-//       }
-//       else {
-//         fprintf(stdout, "FAIL(ERROR): /%s/ '%s', %d, %d  #%d\n", pattern, str,
-//                 error_no, r, line_no);
-//         nfail++;
-//       }
-//     }
-
-//     return ;
-//   }
-
-//   r = onig_search(reg, (UChar* )str, (UChar* )(str + SLEN(str)),
-//                   (UChar* )str, (UChar* )(str + SLEN(str)),
-//                   region, ONIG_OPTION_NONE);
-//   if (r < ONIG_MISMATCH) {
-//     char s[ONIG_MAX_ERROR_MESSAGE_LEN];
-
-//     if (error_no == 0) {
-//       onig_error_code_to_str((UChar* )s, r);
-//       fprintf(err_file, "ERROR: %s  /%s/  #%d\n", s, pattern, line_no);
-//       nerror++;
-//     }
-//     else {
-//       if (r == error_no) {
-//         fprintf(stdout, "OK(ERROR): /%s/ '%s', %d  #%d\n",
-//                 pattern, str, r, line_no);
-//         nsucc++;
-//       }
-//       else {
-//         fprintf(stdout, "FAIL ERROR NO: /%s/ '%s', %d, %d  #%d\n",
-//                 pattern, str, error_no, r, line_no);
-//         nfail++;
-//       }
-//     }
-
-//     return ;
-//   }
-
-//   if (r == ONIG_MISMATCH) {
-//     if (not) {
-//       fprintf(stdout, "OK(N): /%s/ '%s'  #%d\n", pattern, str, line_no);
-//       nsucc++;
-//     }
-//     else {
-//       fprintf(stdout, "FAIL: /%s/ '%s'  #%d\n", pattern, str, line_no);
-//       nfail++;
-//     }
-//   }
-//   else {
-//     if (not) {
-//       fprintf(stdout, "FAIL(N): /%s/ '%s'  #%d\n", pattern, str, line_no);
-//       nfail++;
-//     }
-//     else {
-//       if (region->beg[mem] == from && region->end[mem] == to) {
-//         fprintf(stdout, "OK: /%s/ '%s'  #%d\n", pattern, str, line_no);
-//         nsucc++;
-//       }
-//       else {
-//         fprintf(stdout, "FAIL: /%s/ '%s' %d-%d : %d-%d  #%d\n", pattern, str,
-//                 from, to, region->beg[mem], region->end[mem], line_no);
-//         nfail++;
-//       }
-//     }
-//   }
-//   onig_free(reg);
-// }
+test "utf8" {}
 
 // static void xx2(char* pattern, char* str, int from, int to, int line_no)
 // {
