@@ -119,8 +119,6 @@ fn e(pattern: []u8, str: []u8, error_no: isize) void {
 }
 
 test "utf8" {
-    zorex.initialize();
-
     err_file = std.io.getStdOut();
     region = zorex.region_new();
     defer region.deinit();
