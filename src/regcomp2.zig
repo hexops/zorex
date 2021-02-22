@@ -7669,10 +7669,10 @@ const Allocator = std.mem.Allocator;
 //   return r;
 // }
 
-pub fn New(allocator: *Allocator, pattern: []u8, option: Option, syntax: Syntax) void! {
+pub fn New(allocator: *Allocator, pattern: []const u8, option: Option, syntax: Syntax) !void {
     const reg = try Regex.init(allocator, option, ONIGENC_CASE_FOLD_DEFAULT, syntax);
     errdefer reg.deinit();
-    try reg.compile(pattern)
+    try reg.compile(pattern);
 }
 
 // typedef struct EndCallListItem {
