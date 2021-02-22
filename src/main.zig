@@ -1,10 +1,4 @@
 const std = @import("std");
-const testing = std.testing;
-
-export fn add(a: i32, b: i32) i32 {
-    return a + b;
-}
-
-test "basic add functionality" {
-    testing.expect(add(3, 7) == 10);
-}
+pub const New = @import("regcomp2.zig").New;
+pub const ReRegisters = @import("oniguruma2.zig").ReRegisters;
+pub const Region = @import("regexec2.zig").Region;

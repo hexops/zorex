@@ -1,5 +1,6 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
+const Option = @import("oniguruma2.zig").Option;
 
 // /**********************************************************************
 //   regcomp.c -  Oniguruma (regular expression library)

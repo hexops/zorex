@@ -6,18 +6,17 @@ var nsucc: usize = 0;
 var nfail: usize = 0;
 var nerror: usize = 0;
 
-var err_file: *std.fs.File = undefined;
+var err_file: std.fs.File = undefined;
 var region: *zorex.Region = undefined;
 
 fn xx(
-    pattern: []u8,
-    str: []u8,
+    pattern: []const u8,
+    str: []const u8,
     from: isize,
     to: isize,
     mem: isize,
     not: isize,
     error_no: isize,
-    line_no: isize,
 ) void {
     const allocator = std.heap.page_allocator;
     const reg = try zorex.New(allocator, pattern, zorex.OPTION_DEFAULT, zorex.SYNTAX_DEFAULT) catch |err| {
@@ -102,26 +101,28 @@ fn xx(
     // }
 }
 
-fn x2(pattern: []u8, str: []u8, from: isize, to: isize) void {
+fn x2(pattern: []const u8, str: []const u8, from: isize, to: isize) void {
     return xx(pattern, str, from, to, 0, 0, 0);
 }
 
-fn x3(pattern: []u8, str: []u8, from: isize, to: isize, mem: usize) void {
+fn x3(pattern: []const u8, str: []const u8, from: isize, to: isize, mem: isize) void {
     return xx(pattern, str, from, to, mem, 0, 0);
 }
 
-fn n(pattern: []u8, str: []u8) void {
+fn n(pattern: []const u8, str: []const u8) void {
     return xx(pattern, str, 0, 0, 0, 1, 0);
 }
 
-fn e(pattern: []u8, str: []u8, error_no: isize) void {
+fn e(pattern: []const u8, str: []const u8, error_no: isize) void {
     return xx(pattern, str, 0, 0, 0, 0, error_no);
 }
 
 test "utf8" {
+    const allocator = std.heap.page_allocator;
+
     err_file = std.io.getStdOut();
-    region = zorex.region_new();
-    defer region.deinit();
+    region = try zorex.Region.init(allocator);
+    defer region.deinit(allocator);
 
     x2("", "", 0, 0);
     x2("^", "", 0, 0);
@@ -1397,7 +1398,8 @@ test "utf8" {
     x2("(?<=;()|)\\k<1>", ";", 1, 1);
     x2("(())\\g<3>{0}(?<=|())", "abc", 0, 0); // #175
     x2("(?<=()|)\\1{0}", "abc", 0, 0);
-    e("(?<!xxxxxxxxxxxxxxxxxxxxxxx{32774}{65521}xxxxxxxx{65521}xxxxxxxxxxxxxx{32774}xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx)", "", ONIGERR_INVALID_LOOK_BEHIND_PATTERN); // #177
+    // TODO(slimsag):
+    //e("(?<!xxxxxxxxxxxxxxxxxxxxxxx{32774}{65521}xxxxxxxx{65521}xxxxxxxxxxxxxx{32774}xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx)", "", ONIGERR_INVALID_LOOK_BEHIND_PATTERN); // #177
     x2("(?<=(?<=abc))def", "abcdef", 3, 6);
     x2("(?<=ab(?<=.+b)c)def", "abcdef", 3, 6);
     n("(?<=ab(?<=a+)c)def", "abcdef");
@@ -1631,7 +1633,7 @@ test "utf8" {
     //   e("^*", "abc", ONIGERR_TARGET_OF_REPEAT_OPERATOR_INVALID);
 
     // TODO(slimsag): translate %4d format string.
-    try err_file.writer().print("\nRESULT   SUCC: %4d,  FAIL: {},  ERROR: {}\n", .{ nsucc, nfail, nerror });
+    try err_file.writer().print("\nRESULT   SUCC: {d:4},  FAIL: {},  ERROR: {}\n", .{ nsucc, nfail, nerror });
     testing.expectEqual(nfail, 0);
     testing.expectEqual(nerror, 0);
 
