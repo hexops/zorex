@@ -651,24 +651,25 @@
 // #define ONIG_IS_CAPTURE_HISTORY_GROUP(r, i) \
 //   ((i) <= ONIG_MAX_CAPTURE_HISTORY_GROUP && (r)->list && (r)->list[i])
 
-// typedef struct OnigCaptureTreeNodeStruct {
-//   int group;   /* group number */
-//   int beg;
-//   int end;
-//   int allocated;
-//   int num_childs;
-//   struct OnigCaptureTreeNodeStruct** childs;
-// } OnigCaptureTreeNode;
+const CaptureTreeNode = struct {
+    group: isize, /// group number
+    beg: isize,
+    end: isize,
+    allocated: isize,
+    childs: []*CaptureTreeNode,
+};
 
-// /* match result region type */
-// struct re_registers {
-//   int  allocated;
-//   int  num_regs;
-//   int* beg;
-//   int* end;
-//   /* extended */
-//   OnigCaptureTreeNode* history_root;  /* capture history tree root */
-// };
+/// Match result region type
+pub const ReRegisters = struct {
+    allocated: isize,
+    num_regs: isize,
+    // TODO(slimsag): these are likely pointers into a slice and could be better
+    // expressed another way.
+    beg: *isize,
+    end: *isize,
+    // extended
+    history_root: *CaptureTreeNode, /// capture history tree root
+};
 
 // /* capture tree traverse */
 // #define ONIG_TRAVERSE_CALLBACK_AT_FIRST   1
