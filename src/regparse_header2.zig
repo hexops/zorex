@@ -260,16 +260,16 @@ pub const Node = struct {
         // #endif
 
         // TODO(slimsag):
-        //   reg->string_pool        = 0;
-        //   reg->string_pool_end    = 0;
-        //   reg->num_mem            = 0;
-        //   reg->num_repeat         = 0;
-        //   reg->num_empty_check    = 0;
-        //   reg->repeat_range_alloc = 0;
-        //   reg->repeat_range       = (RepeatRange* )NULL;
-
+        //reg.re_pattern_buffer.string_pool = 0;
+        //reg.re_pattern_buffer.string_pool_end = 0;
+        reg.re_pattern_buffer.num_mem = 0;
+        reg.re_pattern_buffer.num_repeat = 0;
+        reg.re_pattern_buffer.num_empty_check = 0;
         // TODO(slimsag):
-        //   names_clear(reg);
+        //reg.re_pattern_buffer.repeat_range_alloc = 0;
+        //reg.re_pattern_buffer.repeat_range = null;
+
+        reg.namesClear();
 
         // TODO(slimsag):
         //   scan_env_clear(env);
