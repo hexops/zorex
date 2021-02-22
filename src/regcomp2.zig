@@ -1,5 +1,6 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
+const Operation = @import("regint2.zig").Operation;
 const RePatternBuffer = @import("regint2.zig").RePatternBuffer;
 const Option = @import("oniguruma2.zig").Option;
 const Syntax = @import("oniguruma2.zig").Syntax;
@@ -36,8 +37,6 @@ const config = @import("config.zig");
 //  */
 
 // #include "regparse.h"
-
-// #define OPS_INIT_SIZE  8
 
 // #define NODE_IS_REAL_IGNORECASE(node) \
 //   (NODE_IS_IGNORECASE(node) && !NODE_STRING_IS_CRUDE(node))
@@ -133,25 +132,6 @@ const config = @import("config.zig");
 //   return v;
 // }
 // #endif
-
-pub fn opsInit(allocator: *Allocator, reg: *Regex, init_alloc_size: usize) !void {
-    if (init_alloc_size > 0) {
-        reg.re_pattern_buffer.ops = try std.ArrayList(Operation).initCapacity(allocator, init_alloc_size);
-        if (config.UseDirectThreadedCode) {
-//       enum OpCode* cp;
-//       size = sizeof(enum OpCode) * init_alloc_size;
-//       cp = (enum OpCode* )xrealloc(reg->ocs, size);
-//       CHECK_NULL_RETURN_MEMERR(cp);
-//       reg->ocs = cp;
-        }
-    } else {
-        reg.ops = null;
-        if (config.UseDirectThreadedCode) {
-            reg.ocs = null;
-        }
-    }
-    return;
-}
 
 // static int
 // ops_expand(regex_t* reg, int n)
@@ -7478,9 +7458,14 @@ pub const Regex = struct {
             //   fprintf(DBGFP, "\n");
         }
 
-        if (reg.ops == null) {
-            // TODO(slimsag): it's weird this doesn't return a reg.ops value, cleanup.
-            try opsInit(allocator, OPS_INIT_SIZE);
+        const ops_init_size = 8;
+        self.re_pattern_buffer.ops = try std.ArrayList(Operation).initCapacity(self.allocator, ops_init_size);
+        if (config.UseDirectThreadedCode) {
+    //       enum OpCode* cp;
+    //       size = sizeof(enum OpCode) * init_alloc_size;
+    //       cp = (enum OpCode* )xrealloc(reg->ocs, size);
+    //       CHECK_NULL_RETURN_MEMERR(cp);
+    //       reg->ocs = cp;
         }
 
         //   r = parse_and_tune(reg, pattern, pattern_end, &scan_env, &root, einfo

@@ -801,7 +801,7 @@ const CaseFold = @import("oniguruma2.zig").CaseFold;
 // #define NCCLASS_CLEAR_NOT(nd)   NCCLASS_FLAG_CLEAR(nd, FLAG_NCCLASS_NOT)
 // #define IS_NCCLASS_NOT(nd)      IS_NCCLASS_FLAG_ON(nd, FLAG_NCCLASS_NOT)
 
-const Operation = struct {
+pub const Operation = struct {
 };
 
 // TODO(slimsag):
@@ -979,7 +979,7 @@ pub const RePatternBuffer = struct{
     //ops_curr: ?*Operation,
     //ops_used: usize, /// used space for ops
     //ops_alloc: usize, /// allocated space for ops
-    ops: ?std.ArrayList(Operation), // TODO(slimsag): check if this can actually ever be optional
+    ops: std.ArrayList(Operation),
 
     // TODO(slimsag):
     //   unsigned char* string_pool;
