@@ -1,12 +1,13 @@
 const std = @import("std");
 const testing = std.testing;
+const zorex = @import("main.zig");
 
 var nsucc: usize = 0;
 var nfail: usize = 0;
 var nerror: usize = 0;
 
 var err_file: *std.fs.File = undefined;
-var region: *zing.Region = undefined;
+var region: *zorex.Region = undefined;
 
 fn xx(
     pattern: []u8,
@@ -19,7 +20,7 @@ fn xx(
     line_no: isize,
 ) void {
     const allocator = std.heap.page_allocator;
-    const reg = try zing.New(allocator, pattern, zing.OPTION_DEFAULT, zing.ENCODING_UTF8, zing.SYNTAX_DEFAULT) catch |err| {
+    const reg = try zorex.New(allocator, pattern, zorex.OPTION_DEFAULT, zorex.SYNTAX_DEFAULT) catch |err| {
         //     char s[ONIG_MAX_ERROR_MESSAGE_LEN];
 
         //     if (error_no == 0) {
@@ -118,11 +119,10 @@ fn e(pattern: []u8, str: []u8, error_no: isize) void {
 }
 
 test "utf8" {
-    var use_encs = []zing.Encoding{zing.ENCODING_UTF8};
-    zing.initialize(use_encs);
+    zorex.initialize();
 
     err_file = std.io.getStdOut();
-    region = zing.region_new();
+    region = zorex.region_new();
     defer region.deinit();
 
     x2("", "", 0, 0);
