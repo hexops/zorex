@@ -38,20 +38,20 @@ const Regex = @import("regcomp2.zig").Regex;
 // #define NODE_STRING_BUF_SIZE   24  /* sizeof(CClassNode) - sizeof(int)*4 */
 // #define NODE_BACKREFS_SIZE      6
 
-// /* node type */
-// typedef enum {
-//   NODE_STRING  =  0,
-//   NODE_CCLASS  =  1,
-//   NODE_CTYPE   =  2,
-//   NODE_BACKREF =  3,
-//   NODE_QUANT   =  4,
-//   NODE_BAG     =  5,
-//   NODE_ANCHOR  =  6,
-//   NODE_LIST    =  7,
-//   NODE_ALT     =  8,
-//   NODE_CALL    =  9,
-//   NODE_GIMMICK = 10
-// } NodeType;
+/// node type
+pub const NodeType = enum {
+    String,
+    CClass,
+    CType,
+    BackRef,
+    Quant,
+    Bag,
+    Anchor,
+    List,
+    Alt,
+    Call,
+    Gimmick,
+};
 
 // enum BagType {
 //   BAG_MEMORY         = 0,
@@ -229,28 +229,29 @@ const Regex = @import("regcomp2.zig").Regex;
 //   int  id;
 // } GimmickNode;
 
-pub const Node = struct {
-//   union {
-//     struct {
-//       NodeType node_type;
-//       int status;
-//       struct _Node* parent;
-//       struct _Node* body;
-//     } base;
+pub const NodeBase = union {
+    base: struct {
+        node_type: NodeType,
+        status: isize,
+        parent: *Node,
+        body: *Node,
+    },
+    //     StrNode       str;
+    //     CClassNode    cclass;
+    //     QuantNode     quant;
+    //     BagNode       bag;
+    //     BackRefNode   backref;
+    //     AnchorNode    anchor;
+    //     ConsAltNode   cons;
+    //     CtypeNode     ctype;
+    // #ifdef USE_CALL
+    //     CallNode      call;
+    // #endif
+    //     GimmickNode   gimmick;
+};
 
-//     StrNode       str;
-//     CClassNode    cclass;
-//     QuantNode     quant;
-//     BagNode       bag;
-//     BackRefNode   backref;
-//     AnchorNode    anchor;
-//     ConsAltNode   cons;
-//     CtypeNode     ctype;
-// #ifdef USE_CALL
-//     CallNode      call;
-// #endif
-//     GimmickNode   gimmick;
-//   } u;
+pub const Node = struct {
+    u: ?NodeBase,
 
     pub fn parseTree(self: *Node, pattern: []const u8, reg: *Regex, env: *ParseEnv) !void {
         // TODO(slimsag):
@@ -310,6 +311,20 @@ pub const Node = struct {
         // #endif
         return;
     }
+
+    pub fn getType(self: *Node) callconv(.Inline) NodeType {
+        if (self.u) |u| {
+            return u.base.node_type;
+        }
+        unreachable;
+    }
+
+    pub fn setType(self: *Node, newType: NodeType) callconv(.Inline) void {
+        if (self.u) |u| {
+            u.base.node_type = newType;
+        }
+        unreachable;
+    }
 };
 
 // typedef struct {
@@ -334,9 +349,6 @@ pub const Node = struct {
 // #define NODE_BIT_ALT        NODE_TYPE2BIT(NODE_ALT)
 // #define NODE_BIT_CALL       NODE_TYPE2BIT(NODE_CALL)
 // #define NODE_BIT_GIMMICK    NODE_TYPE2BIT(NODE_GIMMICK)
-
-// #define NODE_TYPE(node)             ((node)->u.base.node_type)
-// #define NODE_SET_TYPE(node, ntype)   (node)->u.base.node_type = (ntype)
 
 // #define STR_(node)         (&((node)->u.str))
 // #define CCLASS_(node)      (&((node)->u.cclass))
