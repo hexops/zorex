@@ -356,6 +356,187 @@ pub const Node = struct {
         //   try = onig_node_str_cat(node, s, end);
     }
 
+    pub fn newAnchor(allocator: *Allocator, type: isize) !*Node {
+        const node = try Node.new(allocator);
+        node.setType(NodeType.Anchor);
+        //   ANCHOR_(node)->type       = type;
+        //   ANCHOR_(node)->char_min_len = 0;
+        //   ANCHOR_(node)->char_max_len = INFINITE_LEN;
+        //   ANCHOR_(node)->ascii_mode = 0;
+        //   ANCHOR_(node)->lead_node  = NULL_NODE;
+        return node;
+    }
+
+    pub fn newAnchorWithOptions(allocator: *Allocator, options: Option) !*Node {
+        const node = try Node.newAnchor(allocator);
+
+        //   int ascii_mode = OPTON_WORD_ASCII(options) && IS_WORD_ANCHOR_TYPE(type) ? 1 : 0;
+        //   ANCHOR_(node)->ascii_mode = ascii_mode;
+        //   if (type == ANCR_TEXT_SEGMENT_BOUNDARY ||
+        //       type == ANCR_NO_TEXT_SEGMENT_BOUNDARY) {
+        //     if (OPTON_TEXT_SEGMENT_WORD(options))
+        //       NODE_STATUS_ADD(node, TEXT_SEGMENT_WORD);
+        //   }
+
+        return node;
+    }
+
+    // static Node*
+    // node_new_backref(int back_num, int* backrefs, int by_name,
+    // #ifdef USE_BACKREF_WITH_LEVEL
+    //                  int exist_level, int nest_level,
+    // #endif
+    //                  ParseEnv* env)
+    // {
+    //   int i;
+    //   Node* node;
+    //   node = node_new();
+    //   CHECK_NULL_RETURN(node);
+    //   NODE_SET_TYPE(node, NODE_BACKREF);
+    //   BACKREF_(node)->back_num = back_num;
+    //   BACKREF_(node)->back_dynamic = (int* )NULL;
+    //   if (by_name != 0)
+    //     NODE_STATUS_ADD(node, BY_NAME);
+    //   if (OPTON_IGNORECASE(env->options))
+    //     NODE_STATUS_ADD(node, IGNORECASE);
+    // #ifdef USE_BACKREF_WITH_LEVEL
+    //   if (exist_level != 0) {
+    //     NODE_STATUS_ADD(node, NEST_LEVEL);
+    //     BACKREF_(node)->nest_level  = nest_level;
+    //   }
+    // #endif
+    //   for (i = 0; i < back_num; i++) {
+    //     if (backrefs[i] <= env->num_mem &&
+    //         IS_NULL(PARSEENV_MEMENV(env)[backrefs[i]].mem_node)) {
+    //       NODE_STATUS_ADD(node, RECURSION);   /* /...(\1).../ */
+    //       break;
+    //     }
+    //   }
+    //   if (back_num <= NODE_BACKREFS_SIZE) {
+    //     for (i = 0; i < back_num; i++)
+    //       BACKREF_(node)->back_static[i] = backrefs[i];
+    //   }
+    //   else {
+    //     int* p = (int* )xmalloc(sizeof(int) * back_num);
+    //     if (IS_NULL(p)) {
+    //       onig_node_free(node);
+    //       return NULL;
+    //     }
+    //     BACKREF_(node)->back_dynamic = p;
+    //     for (i = 0; i < back_num; i++)
+    //       p[i] = backrefs[i];
+    //   }
+    //   env->backref_num++;
+    //   return node;
+    // }
+
+    // static Node*
+    // node_new_backref_checker(int back_num, int* backrefs, int by_name,
+    // #ifdef USE_BACKREF_WITH_LEVEL
+    //                          int exist_level, int nest_level,
+    // #endif
+    //                          ParseEnv* env)
+    // {
+    //   Node* node;
+    //   node = node_new_backref(back_num, backrefs, by_name,
+    // #ifdef USE_BACKREF_WITH_LEVEL
+    //                           exist_level, nest_level,
+    // #endif
+    //                           env);
+    //   CHECK_NULL_RETURN(node);
+    //   NODE_STATUS_ADD(node, CHECKER);
+    //   return node;
+    // }
+
+    // #ifdef USE_CALL
+    // static Node*
+    // node_new_call(UChar* name, UChar* name_end, int gnum, int by_number)
+    // {
+    //   Node* node = node_new();
+    //   CHECK_NULL_RETURN(node);
+    //   NODE_SET_TYPE(node, NODE_CALL);
+    //   CALL_(node)->by_number   = by_number;
+    //   CALL_(node)->name        = name;
+    //   CALL_(node)->name_end    = name_end;
+    //   CALL_(node)->called_gnum = gnum;
+    //   CALL_(node)->entry_count = 1;
+    //   return node;
+    // }
+    // #endif
+
+    // TODO(slimsag): by_number may be a boolean
+    pub fn newQuantifier(allocator: *Allocator, lower: isize, upper: isize, by_number: isize) !*Node {
+        const node = try Node.new(allocator);
+        node.setType(NodeType.Quant);
+        //   QUANT_(node)->lower            = lower;
+        //   QUANT_(node)->upper            = upper;
+        //   QUANT_(node)->greedy           = 1;
+        //   QUANT_(node)->emptiness        = BODY_IS_NOT_EMPTY;
+        //   QUANT_(node)->head_exact       = NULL_NODE;
+        //   QUANT_(node)->next_head_exact  = NULL_NODE;
+        //   QUANT_(node)->include_referred = 0;
+        //   QUANT_(node)->empty_status_mem = 0;
+        //   if (by_number != 0)
+        //     NODE_STATUS_ADD(node, BY_NUMBER);
+        return node;
+    }
+
+    pub fn newBag(allocator: *Allocator, type: Bag) !*Node {
+        const node = try Node.new(allocator);
+        node.setType(NodeType.Bag); // TODO(slimsag): NodeType.Bag should have lowercase Bag
+        //   BAG_(node)->type = type;
+        //   switch (type) {
+        //   case BAG_MEMORY:
+        //     BAG_(node)->m.regnum       =  0;
+        //     BAG_(node)->m.called_addr  = -1;
+        //     BAG_(node)->m.entry_count  =  1;
+        //     BAG_(node)->m.called_state =  0;
+        //     break;
+        //   case BAG_OPTION:
+        //     BAG_(node)->o.options =  0;
+        //     break;
+        //   case BAG_STOP_BACKTRACK:
+        //     break;
+        //   case BAG_IF_ELSE:
+        //     BAG_(node)->te.Then = 0;
+        //     BAG_(node)->te.Else = 0;
+        //     break;
+        //   }
+        //   BAG_(node)->opt_count = 0;
+        return node;
+    }
+
+    // TODO(slimsag): presumably condition is optional?
+    pub fn newBagIfElse(allocator: *Allocator, cond: *Node, then: *Node, els: *Node) !*Node {
+        const node = try Node.newBag(allocator);
+        //   NODE_BODY(n) = cond;
+        //   BAG_(n)->te.Then = Then;
+        //   BAG_(n)->te.Else = Else;
+        return node;
+    }
+
+    pub fn newMemory(allocator: *Allocator, is_named: bool) !*Node {
+        const node = try Node.newBag(allocator, Bag.memory);
+        if (is_named) {
+            //     NODE_STATUS_ADD(node, NAMED_GROUP);
+        }
+        return node;
+    }
+
+    pub fn newOption(allocator: *Allocator, option: Option) !*Node {
+        const node = try Node.newBag(allocator, Bag.option);
+        //   BAG_(node)->o.options = option;
+        return node;
+    }
+
+    pub fn newGroup(allocator: *Allocator, content: *Node) !*Node {
+        const node = try Node.new(allocator);
+        node.setType(NodeType.List);
+        //   NODE_CAR(node) = content;
+        //   NODE_CDR(node) = NULL_NODE;
+        return node;
+    }
+
     pub fn deinit(self: *Node, allocator: *Allocator) void {
         // #ifdef DEBUG_NODE_FREE
         //   fprintf(stderr, "onig_node_free: %p\n", node);
