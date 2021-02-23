@@ -1,4 +1,5 @@
 const std = @import("std");
+const Allocator = std.mem.Allocator;
 const Option = @import("oniguruma2.zig").Option;
 const Regex = @import("regcomp2.zig").Regex;
 const PToken = @import("regparse2.zig").PToken;
@@ -39,7 +40,7 @@ const fetchToken = @import("regparse2.zig").fetchToken;
 // #include "regint.h"
 
 // #define NODE_STRING_MARGIN     16
-// #define NODE_STRING_BUF_SIZE   24  /* sizeof(CClassNode) - sizeof(int)*4 */
+const NODE_STRING_BUF_SIZE = 24;  /// sizeof(CClassNode) - sizeof(int)*4
 // #define NODE_BACKREFS_SIZE      6
 
 /// node type
@@ -82,17 +83,15 @@ pub const NodeType = enum {
 
 // struct _Node;
 
-// typedef struct {
-//   NodeType node_type;
-//   int status;
-//   struct _Node* parent;
-
-//   UChar* s;
-//   UChar* end;
-//   unsigned int flag;
-//   UChar  buf[NODE_STRING_BUF_SIZE];
-//   int    capacity;  /* (allocated size - 1) or 0: use buf[] */
-// } StrNode;
+const StrNode = struct {
+    node_type: NodeType,
+    status: isize,
+    parent: *Node,
+    s: []u8,
+    flag: usize,
+    buf: [NODE_STRING_BUF_SIZE]u8,
+    capacity: isize, /// (allocated size - 1) or 0: use buf[]
+};
 
 // typedef struct {
 //   NodeType node_type;
@@ -240,7 +239,7 @@ pub const NodeBase = union {
         parent: *Node,
         body: *Node,
     },
-    //     StrNode       str;
+    str: StrNode,
     //     CClassNode    cclass;
     //     QuantNode     quant;
     //     BagNode       bag;
@@ -257,7 +256,108 @@ pub const NodeBase = union {
 pub const Node = struct {
     u: ?NodeBase,
 
-    pub fn parseTree(self: *Node, pattern: []const u8, reg: *Regex, env: *ParseEnv) !void {
+    pub fn new(allocator: *Allocator) !*Node {
+        const node = try allocator.create(Node);
+        node.* = std.mem.zeroes(Node);
+        // #ifdef DEBUG_NODE_FREE
+        //   fprintf(stderr, "node_new: %p\n", node);
+        // #endif
+        return node;
+    }
+
+    pub fn newString(allocator: *Allocator, s: []const u8) !*Node {
+        const node = try Node.new(allocator);
+        errdefer node.deinit(allocator);
+        try node.setString(s);
+        return node;
+    }
+
+    pub fn newEmpty(allocator: *Allocator) !*Node {
+        return Node.newString(allocator, ""); // TODO(slimsag): is an empty string right?
+    }
+
+    pub fn setString(self: *Node, s: []const u8) !void {
+        self.setType(NodeType.String);
+        self.u.?.str.flag = 0;
+        self.u.?.str.s = &self.u.?.str.buf;
+        self.u.?.str.capacity = 0;
+
+        //   try = onig_node_str_cat(node, s, end);
+    }
+
+    pub fn deinit(self: *Node, allocator: *Allocator) void {
+        // #ifdef DEBUG_NODE_FREE
+        //   fprintf(stderr, "onig_node_free: %p\n", node);
+        // #endif
+        self.deinit_body(allocator);
+        allocator.destroy(self);
+    }
+
+    fn deinit_body(self: *Node, allocator: *Allocator) void {
+        switch (self.getType()) {
+        NodeType.String => {
+            //     if (STR_(node)->capacity != 0 &&
+            //         IS_NOT_NULL(STR_(node)->s) && STR_(node)->s != STR_(node)->buf) {
+            //       xfree(STR_(node)->s);
+            //     }
+            //     break;
+        },
+        NodeType.List, NodeType.Alt => {
+            //     onig_node_free(NODE_CAR(node));
+            //     node = NODE_CDR(node);
+            //     while (IS_NOT_NULL(node)) {
+            //       Node* next = NODE_CDR(node);
+            //       onig_node_free(NODE_CAR(node));
+            //       xfree(node);
+            //       node = next;
+            //     }
+            //     break;
+        },
+        NodeType.CClass => {
+            //     {
+            //       CClassNode* cc = CCLASS_(node);
+
+            //       if (cc->mbuf)
+            //         bbuf_free(cc->mbuf);
+            //     }
+            //     break;
+        },
+        NodeType.BackRef => {
+            //     if (IS_NOT_NULL(BACKREF_(node)->back_dynamic))
+            //       xfree(BACKREF_(node)->back_dynamic);
+            //     break;
+        },
+        NodeType.Bag => {
+            //     if (NODE_BODY(node))
+            //       onig_node_free(NODE_BODY(node));
+
+            //     {
+            //       BagNode* en = BAG_(node);
+            //       if (en->type == BAG_IF_ELSE) {
+            //         onig_node_free(en->te.Then);
+            //         onig_node_free(en->te.Else);
+            //       }
+            //     }
+            //     break;
+        },
+        NodeType.Quant => {
+            //     if (NODE_BODY(node))
+            //       onig_node_free(NODE_BODY(node));
+            //     break;
+        },
+        NodeType.Anchor => {
+            //     if (NODE_BODY(node))
+            //       onig_node_free(NODE_BODY(node));
+            //     if (IS_NOT_NULL(ANCHOR_(node)->lead_node))
+            //       onig_node_free(ANCHOR_(node)->lead_node);
+            //     break;
+        },
+        NodeType.CType, NodeType.Call, NodeType.Gimmick => {},
+        }
+    }
+
+
+    pub fn parseTree(allocator: *Allocator, self: *Node, pattern: []const u8, reg: *Regex, env: *ParseEnv) !void {
         // TODO(slimsag):
         // #ifdef USE_CALLOUT
         //   RegexExt* ext;
@@ -274,7 +374,7 @@ pub const Node = struct {
         //reg.re_pattern_buffer.repeat_range = null;
 
         if (reg.re_pattern_buffer.name_table) | name_table | {
-            name_table.deinit();
+            name_table.deinit(allocator);
             reg.re_pattern_buffer.name_table = null;
         }
 
@@ -296,7 +396,7 @@ pub const Node = struct {
         // TODO(slimsag): Why does this take &pattern? Should it?
         var p = pattern;
         var root = self;
-        _ = try Node.prs_regexp(&root, &p, env);
+        _ = try Node.prs_regexp(allocator, &root, &p, env);
         // TODO(slimsag): root needs to be returned somewhere
 
         // #ifdef USE_CALL
@@ -329,19 +429,21 @@ pub const Node = struct {
 
     pub fn setType(self: *Node, newType: NodeType) callconv(.Inline) void {
         if (self.u) |u| {
-            u.base.node_type = newType;
+            var uu = u;
+            uu.base.node_type = newType;
+            self.u = uu;
         }
         unreachable;
     }
 
-    pub fn prs_regexp(top: **Node, src: *[]const u8, env: *ParseEnv) !TokenSym {
+    pub fn prs_regexp(allocator: *Allocator, top: **Node, src: *[]const u8, env: *ParseEnv) !TokenSym {
         var tok = PToken.init();
         try fetchToken(&tok, src, env);
-        return try Node.prs_alts(top, &tok, TokenSym.EOT, src, env, false);
+        return try Node.prs_alts(allocator, top, &tok, TokenSym.EOT, src, env, false);
     }
 
     /// term_tok: TokenSym.EOT or TokenSym.SubExpClose
-    pub fn prs_alts(top: **Node, tok: *PToken, term: TokenSym, src: *[]const u8, env: *ParseEnv, group_head: bool) !TokenSym {
+    pub fn prs_alts(allocator: *Allocator, top: **Node, tok: *PToken, term: TokenSym, src: *[]const u8, env: *ParseEnv, group_head: bool) !TokenSym {
         //   int r;
         //   Node *node, **headp;
         //   OnigOptionType save_options;
@@ -351,8 +453,8 @@ pub const Node = struct {
         const save_options = env.options;
 
         var node: *Node = undefined;
-        errdefer node.deinit(); // TODO(slimsag): this is awkward/sketchy
-        const r = try Node.prs_branch(&node, tok, term, src, env, group_head);
+        errdefer node.deinit(allocator); // TODO(slimsag): this is awkward/sketchy
+        const r = try Node.prs_branch(allocator, &node, tok, term, src, env, group_head);
         if (r == term) {
             top.* = node; // TODO(slimsag): this style of returns is nasty
         } else if (r == TokenSym.Alt) {
@@ -397,7 +499,7 @@ pub const Node = struct {
         return r;
     }
 
-    pub fn prs_branch(top: **Node, tok: *PToken, term: TokenSym, src: *[]const u8, env: *ParseEnv, group_head: bool) !TokenSym {
+    pub fn prs_branch(allocator: *Allocator, top: **Node, tok: *PToken, term: TokenSym, src: *[]const u8, env: *ParseEnv, group_head: bool) !TokenSym {
         //   int r;
         //   Node *node, **headp;
 
@@ -405,8 +507,8 @@ pub const Node = struct {
         //   INC_PARSE_DEPTH(env->parse_depth);
 
         var node: *Node = undefined;
-        errdefer node.deinit(); // TODO(slimsag): this is awkward/sketchy
-        const r = try Node.prs_exp(&node, tok, term, src, env, group_head);
+        errdefer node.deinit(allocator); // TODO(slimsag): this is awkward/sketchy
+        const r = try Node.prs_exp(allocator, &node, tok, term, src, env, group_head);
         if (r == TokenSym.EOT or r == term or r == TokenSym.Alt) {
             top.* = node;
         } else {
@@ -439,7 +541,7 @@ pub const Node = struct {
         return r;
     }
 
-    pub fn prs_exp(np: **Node, tok: *PToken, term: TokenSym, src: *[]const u8, env: *ParseEnv, group_head: bool) !TokenSym {
+    pub fn prs_exp(allocator: *Allocator, np: **Node, tok: *PToken, term: TokenSym, src: *[]const u8, env: *ParseEnv, group_head: bool) !TokenSym {
         //   int r, len, group;
         //   Node* qn;
         //   Node** tp;
@@ -449,16 +551,12 @@ pub const Node = struct {
         retry: while (true) {
             group = 0;
             np.* = undefined;
-            if (tok.type == term) { // end of token
-            }
 
             //parse_depth = env.parse_depth;
 
             if (tok.type == TokenSym.Alt or tok.type == TokenSym.EOT or tok.type == term) {
-                // end of token
-                //     *np = node_new_empty();
-                //     CHECK_NULL_RETURN_MEMERR(*np);
-                //     return tok->type;
+                np.* = try Node.newEmpty(allocator);
+                return tok.type;
             }
 
             switch (tok.type) {

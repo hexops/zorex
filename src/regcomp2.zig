@@ -7510,7 +7510,7 @@ pub const Regex = struct {
     // )
     pub fn parseAndTune(self: *Regex, pattern: []const u8, scan_env: *ParseEnv) !*Node {
         var root = std.mem.zeroes(Node);
-        try Node.parseTree(&root, pattern, self, scan_env);
+        try Node.parseTree(self.allocator, &root, pattern, self, scan_env);
 
         const r = try reduceStringList(&root);
         if (r != 0) { } // TODO(slimsag): goto err;

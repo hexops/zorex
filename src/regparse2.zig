@@ -1,3 +1,5 @@
+const std = @import("std");
+const Allocator = std.mem.Allocator;
 const ParseEnv = @import("regparse_header2.zig").ParseEnv;
 
 // /**********************************************************************
@@ -849,7 +851,7 @@ pub const NameTable = struct {
     num: isize,
     alloc: isize,
 
-    pub fn deinit(self: *NameTable) void {
+    pub fn deinit(self: *NameTable, allocator: *Allocator) void {
         // TODO(slimsag):
         //   NameTable* t = (NameTable* )reg->name_table;
         //   if (IS_NOT_NULL(t)) {
@@ -2085,110 +2087,11 @@ pub const NameTable = struct {
 // }
 
 // static void
-// node_free_body(Node* node)
-// {
-//   if (IS_NULL(node)) return ;
-
-//   switch (NODE_TYPE(node)) {
-//   case NODE_STRING:
-//     if (STR_(node)->capacity != 0 &&
-//         IS_NOT_NULL(STR_(node)->s) && STR_(node)->s != STR_(node)->buf) {
-//       xfree(STR_(node)->s);
-//     }
-//     break;
-
-//   case NODE_LIST:
-//   case NODE_ALT:
-//     onig_node_free(NODE_CAR(node));
-//     node = NODE_CDR(node);
-//     while (IS_NOT_NULL(node)) {
-//       Node* next = NODE_CDR(node);
-//       onig_node_free(NODE_CAR(node));
-//       xfree(node);
-//       node = next;
-//     }
-//     break;
-
-//   case NODE_CCLASS:
-//     {
-//       CClassNode* cc = CCLASS_(node);
-
-//       if (cc->mbuf)
-//         bbuf_free(cc->mbuf);
-//     }
-//     break;
-
-//   case NODE_BACKREF:
-//     if (IS_NOT_NULL(BACKREF_(node)->back_dynamic))
-//       xfree(BACKREF_(node)->back_dynamic);
-//     break;
-
-//   case NODE_BAG:
-//     if (NODE_BODY(node))
-//       onig_node_free(NODE_BODY(node));
-
-//     {
-//       BagNode* en = BAG_(node);
-//       if (en->type == BAG_IF_ELSE) {
-//         onig_node_free(en->te.Then);
-//         onig_node_free(en->te.Else);
-//       }
-//     }
-//     break;
-
-//   case NODE_QUANT:
-//     if (NODE_BODY(node))
-//       onig_node_free(NODE_BODY(node));
-//     break;
-
-//   case NODE_ANCHOR:
-//     if (NODE_BODY(node))
-//       onig_node_free(NODE_BODY(node));
-//     if (IS_NOT_NULL(ANCHOR_(node)->lead_node))
-//       onig_node_free(ANCHOR_(node)->lead_node);
-//     break;
-
-//   case NODE_CTYPE:
-//   case NODE_CALL:
-//   case NODE_GIMMICK:
-//     break;
-//   }
-// }
-
-// extern void
-// onig_node_free(Node* node)
-// {
-//   if (IS_NULL(node)) return ;
-
-// #ifdef DEBUG_NODE_FREE
-//   fprintf(stderr, "onig_node_free: %p\n", node);
-// #endif
-
-//   node_free_body(node);
-//   xfree(node);
-// }
-
-// static void
 // cons_node_free_alone(Node* node)
 // {
 //   NODE_CAR(node) = 0;
 //   NODE_CDR(node) = 0;
 //   onig_node_free(node);
-// }
-
-// static Node*
-// node_new(void)
-// {
-//   Node* node;
-
-//   node = (Node* )xmalloc(sizeof(Node));
-//   CHECK_NULL_RETURN(node);
-//   xmemset(node, 0, sizeof(*node));
-
-// #ifdef DEBUG_NODE_FREE
-//   fprintf(stderr, "node_new: %p\n", node);
-// #endif
-//   return node;
 // }
 
 // extern int
@@ -3346,37 +3249,6 @@ pub const NameTable = struct {
 // }
 
 // static int
-// node_set_str(Node* node, const UChar* s, const UChar* end)
-// {
-//   int r;
-
-//   NODE_SET_TYPE(node, NODE_STRING);
-//   STR_(node)->flag     = 0;
-//   STR_(node)->s        = STR_(node)->buf;
-//   STR_(node)->end      = STR_(node)->buf;
-//   STR_(node)->capacity = 0;
-
-//   r = onig_node_str_cat(node, s, end);
-//   return r;
-// }
-
-// static Node*
-// node_new_str(const UChar* s, const UChar* end)
-// {
-//   int r;
-//   Node* node = node_new();
-//   CHECK_NULL_RETURN(node);
-
-//   r = node_set_str(node, s, end);
-//   if (r != 0) {
-//     onig_node_free(node);
-//     return NULL;
-//   }
-
-//   return node;
-// }
-
-// static int
 // node_reset_str(Node* node, const UChar* s, const UChar* end)
 // {
 //   node_free_body(node);
@@ -3415,12 +3287,6 @@ pub const NameTable = struct {
 //   CHECK_NULL_RETURN(node);
 //   NODE_STRING_SET_CRUDE(node);
 //   return node;
-// }
-
-// static Node*
-// node_new_empty(void)
-// {
-//   return node_new_str(NULL, NULL);
 // }
 
 // static Node*
