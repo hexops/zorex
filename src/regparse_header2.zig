@@ -440,407 +440,406 @@ pub const Node = struct {
     }
 
     pub fn prs_exp(np: **Node, tok: *PToken, term: TokenSym, src: *[]const u8, env: *ParseEnv, group_head: bool) !TokenSym {
-        return TokenSym.EOT; // TODO(slimsag): remove this line
-    //   int r, len, group;
-    //   Node* qn;
-    //   Node** tp;
-    //   unsigned int parse_depth;
+        //   int r, len, group;
+        //   Node* qn;
+        //   Node** tp;
+        var group: isize = 0;
+        var parse_depth: usize = 0;
+        retry: while (true) {
+            group = 0;
+            np.* = undefined;
+            if (tok.type == term) { // end of token
+            }
 
-    //  retry:
-    //   group = 0;
-    //   *np = NULL;
-    //   if (tok->type == (enum TokenSyms )term)
-    //     goto end_of_token;
+            //parse_depth = env.parse_depth;
+            return TokenSym.EOT; // TODO(slimsag): remove this line
 
-    //   parse_depth = env->parse_depth;
+            switch (tok.type) {
+            TokenSym.Alt, TokenSym.EOT, term => {},
+                // end of token
+                //     *np = node_new_empty();
+                //     CHECK_NULL_RETURN_MEMERR(*np);
+                //     return tok->type;
+            TokenSym.SubExpOpen => {
+                //     r = prs_bag(np, tok, TK_SUBEXP_CLOSE, src, end, env);
+                //     if (r < 0) return r;
+                //     if (r == 1) { /* group */
+                //       if (group_head == 0)
+                //         group = 1;
+                //       else {
+                //         Node* target = *np;
+                //         *np = node_new_group(target);
+                //         if (IS_NULL(*np)) {
+                //           onig_node_free(target);
+                //           return ONIGERR_MEMORY;
+                //         }
+                //         group = 2;
+                //       }
+                //     }
+                //     else if (r == 2) { /* option only */
+                //       if (IS_SYNTAX_BV(env->syntax, ONIG_SYN_ISOLATED_OPTION_CONTINUE_BRANCH)) {
+                //         env->options = BAG_(*np)->o.options;
+                //         r = fetch_token(tok, src, end, env);
+                //         if (r < 0) return r;
+                //         onig_node_free(*np);
+                         continue :retry;
+                //       }
+                //       else {
+                //         Node* target;
+                //         OnigOptionType prev = env->options;
 
-    //   switch (tok->type) {
-    //   case TK_ALT:
-    //   case TK_EOT:
-    //   end_of_token:
-    //     *np = node_new_empty();
-    //     CHECK_NULL_RETURN_MEMERR(*np);
-    //     return tok->type;
-    //   break;
+                //         env->options = BAG_(*np)->o.options;
+                //         r = fetch_token(tok, src, end, env);
+                //         if (r < 0) return r;
+                //         r = prs_alts(&target, tok, term, src, end, env, FALSE);
+                //         env->options = prev;
+                //         if (r < 0) {
+                //           onig_node_free(target);
+                //           return r;
+                //         }
+                //         NODE_BODY(*np) = target;
+                //       }
+                //       return tok->type;
+                //     }
+                //     break;
+            },
+            TokenSym.SubExpClose => {
+                //     if (! IS_SYNTAX_BV(env->syntax, ONIG_SYN_ALLOW_UNMATCHED_CLOSE_SUBEXP))
+                //       return ONIGERR_UNMATCHED_CLOSE_PARENTHESIS;
 
-    //   case TK_SUBEXP_OPEN:
-    //     r = prs_bag(np, tok, TK_SUBEXP_CLOSE, src, end, env);
-    //     if (r < 0) return r;
-    //     if (r == 1) { /* group */
-    //       if (group_head == 0)
-    //         group = 1;
-    //       else {
-    //         Node* target = *np;
-    //         *np = node_new_group(target);
-    //         if (IS_NULL(*np)) {
-    //           onig_node_free(target);
-    //           return ONIGERR_MEMORY;
-    //         }
-    //         group = 2;
-    //       }
-    //     }
-    //     else if (r == 2) { /* option only */
-    //       if (IS_SYNTAX_BV(env->syntax, ONIG_SYN_ISOLATED_OPTION_CONTINUE_BRANCH)) {
-    //         env->options = BAG_(*np)->o.options;
-    //         r = fetch_token(tok, src, end, env);
-    //         if (r < 0) return r;
-    //         onig_node_free(*np);
-    //         goto retry;
-    //       }
-    //       else {
-    //         Node* target;
-    //         OnigOptionType prev = env->options;
+                //     if (tok->escaped) goto tk_crude_byte;
+                //     else goto tk_byte;
+                //     break;
+            },
+            TokenSym.String => {
+                //   tk_byte:
+                //     {
+                //       *np = node_new_str_with_options(tok->backp, *src, env->options);
+                //       CHECK_NULL_RETURN_MEMERR(*np);
 
-    //         env->options = BAG_(*np)->o.options;
-    //         r = fetch_token(tok, src, end, env);
-    //         if (r < 0) return r;
-    //         r = prs_alts(&target, tok, term, src, end, env, FALSE);
-    //         env->options = prev;
-    //         if (r < 0) {
-    //           onig_node_free(target);
-    //           return r;
-    //         }
-    //         NODE_BODY(*np) = target;
-    //       }
-    //       return tok->type;
-    //     }
-    //     break;
+                //       while (1) {
+                //         r = fetch_token(tok, src, end, env);
+                //         if (r < 0) return r;
+                //         if (r != TK_STRING) break;
 
-    //   case TK_SUBEXP_CLOSE:
-    //     if (! IS_SYNTAX_BV(env->syntax, ONIG_SYN_ALLOW_UNMATCHED_CLOSE_SUBEXP))
-    //       return ONIGERR_UNMATCHED_CLOSE_PARENTHESIS;
+                //         r = onig_node_str_cat(*np, tok->backp, *src);
+                //         if (r < 0) return r;
+                //       }
 
-    //     if (tok->escaped) goto tk_crude_byte;
-    //     else goto tk_byte;
-    //     break;
+                //     string_end:
+                //       tp = np;
+                //       goto repeat;
+                //     }
+                //     break;
+            },
+            TokenSym.CrudeByte => {
+            //   tk_crude_byte:
+            //     {
+            //       *np = node_new_str_crude_char(tok->u.byte, env->options);
+            //       CHECK_NULL_RETURN_MEMERR(*np);
+            //       len = 1;
+            //       while (1) {
+            //         if (len >= ONIGENC_MBC_MINLEN(env->enc)) {
+            //           if (len == enclen(env->enc, STR_(*np)->s)) {
+            //             r = fetch_token(tok, src, end, env);
+            //             goto tk_crude_byte_end;
+            //           }
+            //         }
 
-    //   case TK_STRING:
-    //   tk_byte:
-    //     {
-    //       *np = node_new_str_with_options(tok->backp, *src, env->options);
-    //       CHECK_NULL_RETURN_MEMERR(*np);
+            //         r = fetch_token(tok, src, end, env);
+            //         if (r < 0) return r;
+            //         if (r != TK_CRUDE_BYTE)
+            //           return ONIGERR_TOO_SHORT_MULTI_BYTE_STRING;
 
-    //       while (1) {
-    //         r = fetch_token(tok, src, end, env);
-    //         if (r < 0) return r;
-    //         if (r != TK_STRING) break;
+            //         r = node_str_cat_char(*np, tok->u.byte);
+            //         if (r < 0) return r;
 
-    //         r = onig_node_str_cat(*np, tok->backp, *src);
-    //         if (r < 0) return r;
-    //       }
+            //         len++;
+            //       }
 
-    //     string_end:
-    //       tp = np;
-    //       goto repeat;
-    //     }
-    //     break;
+            //     tk_crude_byte_end:
+            //       if (! ONIGENC_IS_VALID_MBC_STRING(env->enc, STR_(*np)->s, STR_(*np)->end))
+            //         return ONIGERR_INVALID_WIDE_CHAR_VALUE;
 
-    //   case TK_CRUDE_BYTE:
-    //   tk_crude_byte:
-    //     {
-    //       *np = node_new_str_crude_char(tok->u.byte, env->options);
-    //       CHECK_NULL_RETURN_MEMERR(*np);
-    //       len = 1;
-    //       while (1) {
-    //         if (len >= ONIGENC_MBC_MINLEN(env->enc)) {
-    //           if (len == enclen(env->enc, STR_(*np)->s)) {
-    //             r = fetch_token(tok, src, end, env);
-    //             goto tk_crude_byte_end;
-    //           }
-    //         }
+            //       NODE_STRING_CLEAR_CRUDE(*np);
+            //       goto string_end;
+            //     }
+            //     break;
+            },
+            TokenSym.CodePoint => {
+            //     {
+            //       UChar buf[ONIGENC_CODE_TO_MBC_MAXLEN];
+            //       len = ONIGENC_CODE_TO_MBCLEN(env->enc, tok->u.code);
+            //       if (len < 0) return len;
+            //       len = ONIGENC_CODE_TO_MBC(env->enc, tok->u.code, buf);
+            // #ifdef NUMBERED_CHAR_IS_NOT_CASE_AMBIG
+            //       *np = node_new_str_crude(buf, buf + len, env->options);
+            // #else
+            //       *np = node_new_str_with_options(buf, buf + len, env->options);
+            // #endif
+            //       CHECK_NULL_RETURN_MEMERR(*np);
+            //     }
+            //     break;
+            },
+            TokenSym.QuoteOpen => {
+            //     {
+            //       OnigCodePoint end_op[2];
+            //       UChar *qstart, *qend, *nextp;
 
-    //         r = fetch_token(tok, src, end, env);
-    //         if (r < 0) return r;
-    //         if (r != TK_CRUDE_BYTE)
-    //           return ONIGERR_TOO_SHORT_MULTI_BYTE_STRING;
+            //       end_op[0] = (OnigCodePoint )MC_ESC(env->syntax);
+            //       end_op[1] = (OnigCodePoint )'E';
+            //       qstart = *src;
+            //       qend = find_str_position(end_op, 2, qstart, end, &nextp, env->enc);
+            //       if (IS_NULL(qend)) {
+            //         nextp = qend = end;
+            //       }
+            //       *np = node_new_str_with_options(qstart, qend, env->options);
+            //       CHECK_NULL_RETURN_MEMERR(*np);
+            //       *src = nextp;
+            //     }
+            //     break;
+            },
+            TokenSym.CharType => {
+            //     {
+            //       switch (tok->u.prop.ctype) {
+            //       case ONIGENC_CTYPE_WORD:
+            //         *np = node_new_ctype(tok->u.prop.ctype, tok->u.prop.not, env->options);
+            //         CHECK_NULL_RETURN_MEMERR(*np);
+            //         break;
 
-    //         r = node_str_cat_char(*np, tok->u.byte);
-    //         if (r < 0) return r;
+            //       case ONIGENC_CTYPE_SPACE:
+            //       case ONIGENC_CTYPE_DIGIT:
+            //       case ONIGENC_CTYPE_XDIGIT:
+            //         {
+            //           CClassNode* cc;
 
-    //         len++;
-    //       }
+            //           *np = node_new_cclass();
+            //           CHECK_NULL_RETURN_MEMERR(*np);
+            //           cc = CCLASS_(*np);
+            //           r = add_ctype_to_cc(cc, tok->u.prop.ctype, FALSE, env);
+            //           if (r != 0) {
+            //             onig_node_free(*np);
+            //             *np = NULL_NODE;
+            //             return r;
+            //           }
+            //           if (tok->u.prop.not != 0) NCCLASS_SET_NOT(cc);
+            //         }
+            //         break;
 
-    //     tk_crude_byte_end:
-    //       if (! ONIGENC_IS_VALID_MBC_STRING(env->enc, STR_(*np)->s, STR_(*np)->end))
-    //         return ONIGERR_INVALID_WIDE_CHAR_VALUE;
+            //       default:
+            //         return ONIGERR_PARSER_BUG;
+            //         break;
+            //       }
+            //     }
+            //     break;
+            },
+            TokenSym.CharProperty => {
+            //     r = prs_char_property(np, tok, src, end, env);
+            //     if (r != 0) return r;
+            //     break;
+            },
+            TokenSym.OpenCC => {
+            //     {
+            //       CClassNode* cc;
 
-    //       NODE_STRING_CLEAR_CRUDE(*np);
-    //       goto string_end;
-    //     }
-    //     break;
+            //       r = prs_cc(np, tok, src, end, env);
+            //       if (r != 0) return r;
 
-    //   case TK_CODE_POINT:
-    //     {
-    //       UChar buf[ONIGENC_CODE_TO_MBC_MAXLEN];
-    //       len = ONIGENC_CODE_TO_MBCLEN(env->enc, tok->u.code);
-    //       if (len < 0) return len;
-    //       len = ONIGENC_CODE_TO_MBC(env->enc, tok->u.code, buf);
-    // #ifdef NUMBERED_CHAR_IS_NOT_CASE_AMBIG
-    //       *np = node_new_str_crude(buf, buf + len, env->options);
-    // #else
-    //       *np = node_new_str_with_options(buf, buf + len, env->options);
-    // #endif
-    //       CHECK_NULL_RETURN_MEMERR(*np);
-    //     }
-    //     break;
+            //       cc = CCLASS_(*np);
+            //       if (OPTON_IGNORECASE(env->options)) {
+            //         IApplyCaseFoldArg iarg;
 
-    //   case TK_QUOTE_OPEN:
-    //     {
-    //       OnigCodePoint end_op[2];
-    //       UChar *qstart, *qend, *nextp;
+            //         iarg.env      = env;
+            //         iarg.cc       = cc;
+            //         iarg.alt_root = NULL_NODE;
+            //         iarg.ptail    = &(iarg.alt_root);
 
-    //       end_op[0] = (OnigCodePoint )MC_ESC(env->syntax);
-    //       end_op[1] = (OnigCodePoint )'E';
-    //       qstart = *src;
-    //       qend = find_str_position(end_op, 2, qstart, end, &nextp, env->enc);
-    //       if (IS_NULL(qend)) {
-    //         nextp = qend = end;
-    //       }
-    //       *np = node_new_str_with_options(qstart, qend, env->options);
-    //       CHECK_NULL_RETURN_MEMERR(*np);
-    //       *src = nextp;
-    //     }
-    //     break;
+            //         r = ONIGENC_APPLY_ALL_CASE_FOLD(env->enc, env->case_fold_flag,
+            //                                         i_apply_case_fold, &iarg);
+            //         if (r != 0) {
+            //           onig_node_free(iarg.alt_root);
+            //           return r;
+            //         }
+            //         if (IS_NOT_NULL(iarg.alt_root)) {
+            //           Node* work = onig_node_new_alt(*np, iarg.alt_root);
+            //           if (IS_NULL(work)) {
+            //             onig_node_free(iarg.alt_root);
+            //             return ONIGERR_MEMORY;
+            //           }
+            //           *np = work;
+            //         }
+            //       }
+            //     }
+            //     break;
+            },
+            TokenSym.AnyChar => {
+            //     *np = node_new_anychar(env->options);
+            //     CHECK_NULL_RETURN_MEMERR(*np);
+            //     break;
+            },
+            TokenSym.AnyCharAnyTime => {
+            //     *np = node_new_anychar(env->options);
+            //     CHECK_NULL_RETURN_MEMERR(*np);
+            //     qn = node_new_quantifier(0, INFINITE_REPEAT, FALSE);
+            //     CHECK_NULL_RETURN_MEMERR(qn);
+            //     NODE_BODY(qn) = *np;
+            //     *np = qn;
+            //     break;
+            },
+            TokenSym.BackRef => {
+            //     len = tok->u.backref.num;
+            //     *np = node_new_backref(len,
+            //                   (len > 1 ? tok->u.backref.refs : &(tok->u.backref.ref1)),
+            //                   tok->u.backref.by_name,
+            // #ifdef USE_BACKREF_WITH_LEVEL
+            //                            tok->u.backref.exist_level,
+            //                            tok->u.backref.level,
+            // #endif
+            //                            env);
+            //     CHECK_NULL_RETURN_MEMERR(*np);
+            //     break;
+            },
+            TokenSym.Call => {
+            // #ifdef USE_CALL
+            //   case TK_CALL:
+            //     {
+            //       int gnum = tok->u.call.gnum;
 
-    //   case TK_CHAR_TYPE:
-    //     {
-    //       switch (tok->u.prop.ctype) {
-    //       case ONIGENC_CTYPE_WORD:
-    //         *np = node_new_ctype(tok->u.prop.ctype, tok->u.prop.not, env->options);
-    //         CHECK_NULL_RETURN_MEMERR(*np);
-    //         break;
+            //       *np = node_new_call(tok->u.call.name, tok->u.call.name_end,
+            //                           gnum, tok->u.call.by_number);
+            //       CHECK_NULL_RETURN_MEMERR(*np);
+            //       env->num_call++;
+            //       if (tok->u.call.by_number != 0 && gnum == 0) {
+            //         env->has_call_zero = 1;
+            //       }
+            //     }
+            //     break;
+            // #endif
+            },
+            TokenSym.Anchor => {
+            //     *np = node_new_anchor_with_options(tok->u.anchor, env->options);
+            //     CHECK_NULL_RETURN_MEMERR(*np);
+            //     break;
+            },
+            TokenSym.Repeat, TokenSym.Interval => {
+            //     if (IS_SYNTAX_BV(env->syntax, ONIG_SYN_CONTEXT_INDEP_REPEAT_OPS)) {
+            //       if (IS_SYNTAX_BV(env->syntax, ONIG_SYN_CONTEXT_INVALID_REPEAT_OPS))
+            //         return ONIGERR_TARGET_OF_REPEAT_OPERATOR_NOT_SPECIFIED;
+            //       else {
+            //         *np = node_new_empty();
+            //         CHECK_NULL_RETURN_MEMERR(*np);
+            //       }
+            //     }
+            //     else {
+            //       goto tk_byte;
+            //     }
+            //     break;
+            },
+            TokenSym.Keep => {
+            //     r = node_new_keep(np, env);
+            //     if (r < 0) return r;
+            //     break;
+            },
+            TokenSym.GeneralNewLine => {
+            //     r = node_new_general_newline(np, env);
+            //     if (r < 0) return r;
+            //     break;
+            },
+            TokenSym.NoNewLine => {
+            //     r = node_new_no_newline(np, env);
+            //     if (r < 0) return r;
+            //     break;
+            },
+            TokenSym.TrueAnyChar => {
+            //     r = node_new_true_anychar(np);
+            //     if (r < 0) return r;
+            //     break;
+            },
+            TokenSym.TextSegment => {
+            //     r = make_text_segment(np, env);
+            //     if (r < 0) return r;
+            //     break;
+            },
+            else => {
+            //     return ONIGERR_PARSER_BUG;
+            //     break;
+            }
+            }
 
-    //       case ONIGENC_CTYPE_SPACE:
-    //       case ONIGENC_CTYPE_DIGIT:
-    //       case ONIGENC_CTYPE_XDIGIT:
-    //         {
-    //           CClassNode* cc;
+            //   {
+            //     tp = np;
 
-    //           *np = node_new_cclass();
-    //           CHECK_NULL_RETURN_MEMERR(*np);
-    //           cc = CCLASS_(*np);
-    //           r = add_ctype_to_cc(cc, tok->u.prop.ctype, FALSE, env);
-    //           if (r != 0) {
-    //             onig_node_free(*np);
-    //             *np = NULL_NODE;
-    //             return r;
-    //           }
-    //           if (tok->u.prop.not != 0) NCCLASS_SET_NOT(cc);
-    //         }
-    //         break;
+            //   re_entry:
+            //     r = fetch_token(tok, src, end, env);
+            //     if (r < 0) return r;
 
-    //       default:
-    //         return ONIGERR_PARSER_BUG;
-    //         break;
-    //       }
-    //     }
-    //     break;
+            //   repeat:
+            //     if (r == TK_REPEAT || r == TK_INTERVAL) {
+            //       Node* target;
 
-    //   case TK_CHAR_PROPERTY:
-    //     r = prs_char_property(np, tok, src, end, env);
-    //     if (r != 0) return r;
-    //     break;
+            //       if (is_invalid_quantifier_target(*tp))
+            //         return ONIGERR_TARGET_OF_REPEAT_OPERATOR_INVALID;
 
-    //   case TK_OPEN_CC:
-    //     {
-    //       CClassNode* cc;
+            //       INC_PARSE_DEPTH(parse_depth);
 
-    //       r = prs_cc(np, tok, src, end, env);
-    //       if (r != 0) return r;
+            //       qn = node_new_quantifier(tok->u.repeat.lower, tok->u.repeat.upper,
+            //                                r == TK_INTERVAL);
+            //       CHECK_NULL_RETURN_MEMERR(qn);
+            //       QUANT_(qn)->greedy = tok->u.repeat.greedy;
+            //       if (group == 2) {
+            //         target = node_drop_group(*tp);
+            //         *tp = NULL_NODE;
+            //       }
+            //       else {
+            //         target = *tp;
+            //       }
+            //       r = assign_quantifier_body(qn, target, group, env);
+            //       if (r < 0) {
+            //         onig_node_free(qn);
+            //         *tp = NULL_NODE;
+            //         return r;
+            //       }
 
-    //       cc = CCLASS_(*np);
-    //       if (OPTON_IGNORECASE(env->options)) {
-    //         IApplyCaseFoldArg iarg;
+            //       if (tok->u.repeat.possessive != 0) {
+            //         Node* en;
+            //         en = node_new_bag(BAG_STOP_BACKTRACK);
+            //         if (IS_NULL(en)) {
+            //           onig_node_free(qn);
+            //           return ONIGERR_MEMORY;
+            //         }
+            //         NODE_BODY(en) = qn;
+            //         qn = en;
+            //       }
 
-    //         iarg.env      = env;
-    //         iarg.cc       = cc;
-    //         iarg.alt_root = NULL_NODE;
-    //         iarg.ptail    = &(iarg.alt_root);
+            //       if (r == 0) {
+            //         *tp = qn;
+            //       }
+            //       else if (r == 1) { /* x{1,1} ==> x */
+            //         onig_node_free(qn);
+            //         *tp = target;
+            //       }
+            //       else if (r == 2) { /* split case: /abc+/ */
+            //         Node *tmp;
 
-    //         r = ONIGENC_APPLY_ALL_CASE_FOLD(env->enc, env->case_fold_flag,
-    //                                         i_apply_case_fold, &iarg);
-    //         if (r != 0) {
-    //           onig_node_free(iarg.alt_root);
-    //           return r;
-    //         }
-    //         if (IS_NOT_NULL(iarg.alt_root)) {
-    //           Node* work = onig_node_new_alt(*np, iarg.alt_root);
-    //           if (IS_NULL(work)) {
-    //             onig_node_free(iarg.alt_root);
-    //             return ONIGERR_MEMORY;
-    //           }
-    //           *np = work;
-    //         }
-    //       }
-    //     }
-    //     break;
+            //         *tp = node_new_list(*tp, NULL);
+            //         if (IS_NULL(*tp)) {
+            //           onig_node_free(qn);
+            //           return ONIGERR_MEMORY;
+            //         }
+            //         tmp = NODE_CDR(*tp) = node_new_list(qn, NULL);
+            //         if (IS_NULL(tmp)) {
+            //           onig_node_free(qn);
+            //           return ONIGERR_MEMORY;
+            //         }
+            //         tp = &(NODE_CAR(tmp));
+            //       }
+            //       group = 0;
+            //       goto re_entry;
+            //     }
+            //   }
 
-    //   case TK_ANYCHAR:
-    //     *np = node_new_anychar(env->options);
-    //     CHECK_NULL_RETURN_MEMERR(*np);
-    //     break;
-
-    //   case TK_ANYCHAR_ANYTIME:
-    //     *np = node_new_anychar(env->options);
-    //     CHECK_NULL_RETURN_MEMERR(*np);
-    //     qn = node_new_quantifier(0, INFINITE_REPEAT, FALSE);
-    //     CHECK_NULL_RETURN_MEMERR(qn);
-    //     NODE_BODY(qn) = *np;
-    //     *np = qn;
-    //     break;
-
-    //   case TK_BACKREF:
-    //     len = tok->u.backref.num;
-    //     *np = node_new_backref(len,
-    //                   (len > 1 ? tok->u.backref.refs : &(tok->u.backref.ref1)),
-    //                   tok->u.backref.by_name,
-    // #ifdef USE_BACKREF_WITH_LEVEL
-    //                            tok->u.backref.exist_level,
-    //                            tok->u.backref.level,
-    // #endif
-    //                            env);
-    //     CHECK_NULL_RETURN_MEMERR(*np);
-    //     break;
-
-    // #ifdef USE_CALL
-    //   case TK_CALL:
-    //     {
-    //       int gnum = tok->u.call.gnum;
-
-    //       *np = node_new_call(tok->u.call.name, tok->u.call.name_end,
-    //                           gnum, tok->u.call.by_number);
-    //       CHECK_NULL_RETURN_MEMERR(*np);
-    //       env->num_call++;
-    //       if (tok->u.call.by_number != 0 && gnum == 0) {
-    //         env->has_call_zero = 1;
-    //       }
-    //     }
-    //     break;
-    // #endif
-
-    //   case TK_ANCHOR:
-    //     *np = node_new_anchor_with_options(tok->u.anchor, env->options);
-    //     CHECK_NULL_RETURN_MEMERR(*np);
-    //     break;
-
-    //   case TK_REPEAT:
-    //   case TK_INTERVAL:
-    //     if (IS_SYNTAX_BV(env->syntax, ONIG_SYN_CONTEXT_INDEP_REPEAT_OPS)) {
-    //       if (IS_SYNTAX_BV(env->syntax, ONIG_SYN_CONTEXT_INVALID_REPEAT_OPS))
-    //         return ONIGERR_TARGET_OF_REPEAT_OPERATOR_NOT_SPECIFIED;
-    //       else {
-    //         *np = node_new_empty();
-    //         CHECK_NULL_RETURN_MEMERR(*np);
-    //       }
-    //     }
-    //     else {
-    //       goto tk_byte;
-    //     }
-    //     break;
-
-    //   case TK_KEEP:
-    //     r = node_new_keep(np, env);
-    //     if (r < 0) return r;
-    //     break;
-
-    //   case TK_GENERAL_NEWLINE:
-    //     r = node_new_general_newline(np, env);
-    //     if (r < 0) return r;
-    //     break;
-
-    //   case TK_NO_NEWLINE:
-    //     r = node_new_no_newline(np, env);
-    //     if (r < 0) return r;
-    //     break;
-
-    //   case TK_TRUE_ANYCHAR:
-    //     r = node_new_true_anychar(np);
-    //     if (r < 0) return r;
-    //     break;
-
-    //   case TK_TEXT_SEGMENT:
-    //     r = make_text_segment(np, env);
-    //     if (r < 0) return r;
-    //     break;
-
-    //   default:
-    //     return ONIGERR_PARSER_BUG;
-    //     break;
-    //   }
-
-    //   {
-    //     tp = np;
-
-    //   re_entry:
-    //     r = fetch_token(tok, src, end, env);
-    //     if (r < 0) return r;
-
-    //   repeat:
-    //     if (r == TK_REPEAT || r == TK_INTERVAL) {
-    //       Node* target;
-
-    //       if (is_invalid_quantifier_target(*tp))
-    //         return ONIGERR_TARGET_OF_REPEAT_OPERATOR_INVALID;
-
-    //       INC_PARSE_DEPTH(parse_depth);
-
-    //       qn = node_new_quantifier(tok->u.repeat.lower, tok->u.repeat.upper,
-    //                                r == TK_INTERVAL);
-    //       CHECK_NULL_RETURN_MEMERR(qn);
-    //       QUANT_(qn)->greedy = tok->u.repeat.greedy;
-    //       if (group == 2) {
-    //         target = node_drop_group(*tp);
-    //         *tp = NULL_NODE;
-    //       }
-    //       else {
-    //         target = *tp;
-    //       }
-    //       r = assign_quantifier_body(qn, target, group, env);
-    //       if (r < 0) {
-    //         onig_node_free(qn);
-    //         *tp = NULL_NODE;
-    //         return r;
-    //       }
-
-    //       if (tok->u.repeat.possessive != 0) {
-    //         Node* en;
-    //         en = node_new_bag(BAG_STOP_BACKTRACK);
-    //         if (IS_NULL(en)) {
-    //           onig_node_free(qn);
-    //           return ONIGERR_MEMORY;
-    //         }
-    //         NODE_BODY(en) = qn;
-    //         qn = en;
-    //       }
-
-    //       if (r == 0) {
-    //         *tp = qn;
-    //       }
-    //       else if (r == 1) { /* x{1,1} ==> x */
-    //         onig_node_free(qn);
-    //         *tp = target;
-    //       }
-    //       else if (r == 2) { /* split case: /abc+/ */
-    //         Node *tmp;
-
-    //         *tp = node_new_list(*tp, NULL);
-    //         if (IS_NULL(*tp)) {
-    //           onig_node_free(qn);
-    //           return ONIGERR_MEMORY;
-    //         }
-    //         tmp = NODE_CDR(*tp) = node_new_list(qn, NULL);
-    //         if (IS_NULL(tmp)) {
-    //           onig_node_free(qn);
-    //           return ONIGERR_MEMORY;
-    //         }
-    //         tp = &(NODE_CAR(tmp));
-    //       }
-    //       group = 0;
-    //       goto re_entry;
-    //     }
-    //   }
-
-    //   return r;
+            //   return r;
+        }
     }
 };
 
