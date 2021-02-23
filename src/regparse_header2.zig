@@ -443,6 +443,7 @@ pub const Node = struct {
         //   int r, len, group;
         //   Node* qn;
         //   Node** tp;
+        var r: TokenSym = TokenSym.EOT;
         var group: isize = 0;
         var parse_depth: usize = 0;
         retry: while (true) {
@@ -452,14 +453,15 @@ pub const Node = struct {
             }
 
             //parse_depth = env.parse_depth;
-            return TokenSym.EOT; // TODO(slimsag): remove this line
 
-            switch (tok.type) {
-            TokenSym.Alt, TokenSym.EOT, term => {},
+            if (tok.type == TokenSym.Alt or tok.type == TokenSym.EOT or tok.type == term) {
                 // end of token
                 //     *np = node_new_empty();
                 //     CHECK_NULL_RETURN_MEMERR(*np);
                 //     return tok->type;
+            }
+
+            switch (tok.type) {
             TokenSym.SubExpOpen => {
                 //     r = prs_bag(np, tok, TK_SUBEXP_CLOSE, src, end, env);
                 //     if (r < 0) return r;
@@ -838,7 +840,7 @@ pub const Node = struct {
             //     }
             //   }
 
-            //   return r;
+            return r;
         }
     }
 };
