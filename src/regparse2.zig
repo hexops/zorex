@@ -2154,104 +2154,6 @@ pub const NameTable = struct {
 //   return ONIG_NORMAL;
 // }
 
-
-// static void
-// initialize_cclass(CClassNode* cc)
-// {
-//   BITSET_CLEAR(cc->bs);
-//   cc->flags = 0;
-//   cc->mbuf  = NULL;
-// }
-
-// static Node*
-// node_new_cclass(void)
-// {
-//   Node* node = node_new();
-//   CHECK_NULL_RETURN(node);
-
-//   NODE_SET_TYPE(node, NODE_CCLASS);
-//   initialize_cclass(CCLASS_(node));
-//   return node;
-// }
-
-// static Node*
-// node_new_ctype(int type, int not, OnigOptionType options)
-// {
-//   Node* node = node_new();
-//   CHECK_NULL_RETURN(node);
-
-//   NODE_SET_TYPE(node, NODE_CTYPE);
-//   CTYPE_(node)->ctype   = type;
-//   CTYPE_(node)->not     = not;
-//   CTYPE_(node)->ascii_mode = OPTON_IS_ASCII_MODE_CTYPE(type, options);
-//   return node;
-// }
-
-// static Node*
-// node_new_anychar(OnigOptionType options)
-// {
-//   Node* node;
-
-//   node = node_new_ctype(CTYPE_ANYCHAR, FALSE, options);
-//   CHECK_NULL_RETURN(node);
-
-//   if (OPTON_MULTILINE(options))
-//     NODE_STATUS_ADD(node, MULTILINE);
-//   return node;
-// }
-
-// static int
-// node_new_no_newline(Node** node, ParseEnv* env)
-// {
-//   Node* n;
-
-//   n = node_new_anychar(ONIG_OPTION_NONE);
-//   CHECK_NULL_RETURN_MEMERR(n);
-//   *node = n;
-//   return 0;
-// }
-
-// static int
-// node_new_true_anychar(Node** node)
-// {
-//   Node* n;
-
-//   n = node_new_anychar(ONIG_OPTION_MULTILINE);
-//   CHECK_NULL_RETURN_MEMERR(n);
-//   *node = n;
-//   return 0;
-// }
-
-// static Node*
-// node_new_list(Node* left, Node* right)
-// {
-//   Node* node = node_new();
-//   CHECK_NULL_RETURN(node);
-
-//   NODE_SET_TYPE(node, NODE_LIST);
-//   NODE_CAR(node)  = left;
-//   NODE_CDR(node) = right;
-//   return node;
-// }
-
-// extern Node*
-// onig_node_new_list(Node* left, Node* right)
-// {
-//   return node_new_list(left, right);
-// }
-
-// extern Node*
-// onig_node_new_alt(Node* left, Node* right)
-// {
-//   Node* node = node_new();
-//   CHECK_NULL_RETURN(node);
-
-//   NODE_SET_TYPE(node, NODE_ALT);
-//   NODE_CAR(node)  = left;
-//   NODE_CDR(node) = right;
-//   return node;
-// }
-
 // static Node*
 // make_list_or_alt(NodeType type, int n, Node* ns[])
 // {
@@ -3259,12 +3161,6 @@ pub const NameTable = struct {
 // onig_node_reset_empty(Node* node)
 // {
 //   return node_reset_str(node, NULL, NULL);
-// }
-
-// extern Node*
-// onig_node_new_str(const UChar* s, const UChar* end)
-// {
-//   return node_new_str(s, end);
 // }
 
 // static Node*

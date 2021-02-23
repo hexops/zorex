@@ -276,6 +276,77 @@ pub const Node = struct {
         return Node.newString(allocator, ""); // TODO(slimsag): is an empty string right?
     }
 
+    pub fn newAlt(allocator: *Allocator, left: *Node, right: ?*Node) !*Node {
+        const node = try Node.new(allocator);
+        node.setType(NodeType.Alt);
+    //   NODE_CAR(node)  = left;
+    //   NODE_CDR(node) = right;
+        return node;
+    }
+
+    // static void
+    // initialize_cclass(CClassNode* cc)
+    // {
+    //   BITSET_CLEAR(cc->bs);
+    //   cc->flags = 0;
+    //   cc->mbuf  = NULL;
+    // }
+
+    pub fn newCClass(allocator: *Allocator) !*Node {
+        const node = try Node.new(allocator);
+        node.setType(NodeType.CClass);
+        //   initialize_cclass(CCLASS_(node));
+        return node;
+    }
+
+    pub fn newCType(allocator: *Allocator, type: isize, not: isize, options: Option) !*Node {
+        const node = try Node.new(allocator);
+        node.setType(NodeType.CType);
+        //   CTYPE_(node)->ctype   = type;
+        //   CTYPE_(node)->not     = not;
+        //   CTYPE_(node)->ascii_mode = OPTON_IS_ASCII_MODE_CTYPE(type, options);
+        return node;
+    }
+
+    // static Node*
+    // node_new_anychar(OnigOptionType options)
+    // {
+    //   Node* node;
+    //   node = node_new_ctype(CTYPE_ANYCHAR, FALSE, options);
+    //   CHECK_NULL_RETURN(node);
+    //   if (OPTON_MULTILINE(options))
+    //     NODE_STATUS_ADD(node, MULTILINE);
+    //   return node;
+    // }
+
+    // static int
+    // node_new_no_newline(Node** node, ParseEnv* env)
+    // {
+    //   Node* n
+    //   n = node_new_anychar(ONIG_OPTION_NONE);
+    //   CHECK_NULL_RETURN_MEMERR(n);
+    //   *node = n;
+    //   return 0;
+    // }
+
+    // static int
+    // node_new_true_anychar(Node** node)
+    // {
+    //   Node* n;
+    //   n = node_new_anychar(ONIG_OPTION_MULTILINE);
+    //   CHECK_NULL_RETURN_MEMERR(n);
+    //   *node = n;
+    //   return 0;
+    // }
+
+    pub fn newList(allocator: *Allocator, left: *Node, right: *Node) !*Node {
+        const node = try Node.new(allocator);
+        node.setType(NodeType.List);
+    //   NODE_CAR(node)  = left;
+    //   NODE_CDR(node) = right;
+        return node;
+    }
+
     pub fn setString(self: *Node, s: []const u8) !void {
         self.setType(NodeType.String);
         self.u.?.str.flag = 0;
@@ -458,11 +529,7 @@ pub const Node = struct {
         if (r == term) {
             top.* = node; // TODO(slimsag): this style of returns is nasty
         } else if (r == TokenSym.Alt) {
-        //     *top  = onig_node_new_alt(node, NULL);
-        //     if (IS_NULL(*top)) {
-        //       onig_node_free(node);
-        //       return ONIGERR_MEMORY;
-        //     }
+            top.* = try Node.newAlt(allocator, node, null);
 
         //     headp = &(NODE_CDR(*top));
         //     while (r == TK_ALT) {
