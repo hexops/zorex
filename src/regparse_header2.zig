@@ -6,42 +6,9 @@ const PToken = @import("regparse2.zig").PToken;
 const TokenSym = @import("regparse2.zig").TokenSym;
 const fetchToken = @import("regparse2.zig").fetchToken;
 
-// #ifndef REGPARSE_H
-// #define REGPARSE_H
-// /**********************************************************************
-//   regparse.h -  Oniguruma (regular expression library)
-// **********************************************************************/
-// /*-
-//  * Copyright (c) 2002-2021  K.Kosako
-//  * All rights reserved.
-//  *
-//  * Redistribution and use in source and binary forms, with or without
-//  * modification, are permitted provided that the following conditions
-//  * are met:
-//  * 1. Redistributions of source code must retain the above copyright
-//  *    notice, this list of conditions and the following disclaimer.
-//  * 2. Redistributions in binary form must reproduce the above copyright
-//  *    notice, this list of conditions and the following disclaimer in the
-//  *    documentation and/or other materials provided with the distribution.
-//  *
-//  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
-//  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-//  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-//  * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
-//  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-//  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
-//  * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-//  * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-//  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-//  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
-//  * SUCH DAMAGE.
-//  */
-
-// #include "regint.h"
-
-// #define NODE_STRING_MARGIN     16
+const NODE_STRING_MARGIN = 16;
 const NODE_STRING_BUF_SIZE = 24;  /// sizeof(CClassNode) - sizeof(int)*4
-// #define NODE_BACKREFS_SIZE      6
+const NODE_BACKREFS_SIZE = 6;
 
 /// node type
 pub const NodeType = enum {
@@ -58,28 +25,28 @@ pub const NodeType = enum {
     Gimmick,
 };
 
-// enum BagType {
-//   BAG_MEMORY         = 0,
-//   BAG_OPTION         = 1,
-//   BAG_STOP_BACKTRACK = 2,
-//   BAG_IF_ELSE        = 3,
-// };
+pub const BagType = enum {
+    memory,
+    option,
+    stopBacktrack,
+    ifElse,
+};
 
-// enum GimmickType {
-//   GIMMICK_FAIL       = 0,
-//   GIMMICK_SAVE       = 1,
-//   GIMMICK_UPDATE_VAR = 2,
-// #ifdef USE_CALLOUT
-//   GIMMICK_CALLOUT    = 3,
-// #endif
-// };
+pub const GimmickType = enum {
+    fail,
+    save,
+    updateVar,
+    // #ifdef USE_CALLOUT
+    //   GIMMICK_CALLOUT    = 3,
+    // #endif
+};
 
-// enum BodyEmptyType {
-//   BODY_IS_NOT_EMPTY     = 0,
-//   BODY_MAY_BE_EMPTY     = 1,
-//   BODY_MAY_BE_EMPTY_MEM = 2,
-//   BODY_MAY_BE_EMPTY_REC = 3
-// };
+pub const BodyEmptyType = enum {
+    isNotEmpty,
+    mayBeEmpty,
+    mayBeEmptyMem,
+    mayBeEmptyRec,
+};
 
 // struct _Node;
 
@@ -93,31 +60,30 @@ const StrNode = struct {
     capacity: isize, /// (allocated size - 1) or 0: use buf[]
 };
 
-// typedef struct {
-//   NodeType node_type;
-//   int status;
-//   struct _Node* parent;
+const CClassNode = struct {
+    node_type: NodeType,
+    status: isize,
+    parent: *Node,
+    flags: usize,
+    bs: BitSet,
+    mbuf: *BBuf, /// multi-byte info or NULL
+};
 
-//   unsigned int flags;
-//   BitSet bs;
-//   BBuf*  mbuf;   /* multi-byte info or NULL */
-// } CClassNode;
-
-// typedef struct {
-//   NodeType node_type;
-//   int status;
-//   struct _Node* parent;
-//   struct _Node* body;
-
-//   int lower;
-//   int upper;
-//   int greedy;
-//   enum BodyEmptyType emptiness;
-//   struct _Node* head_exact;
-//   struct _Node* next_head_exact;
-//   int include_referred;  /* include called node. don't eliminate even if {0} */
-//   MemStatusType empty_status_mem;
-// } QuantNode;
+const QuantNode = struct {
+    node_type: NodeType,
+    status: isize,
+    parent: *Node,
+    body: *Node,
+    lower: isize,
+    upper: isize,
+    greedy: isize,
+    emptiness: BodyEmptyType,
+    head_exact: *Node,
+    next_head_exact: *Node,
+    // TODO(slimsag): may be boolean?
+    include_referred: isize, /// include called node. don't eliminate even if {0}
+    empty_status_mem: MemStatusType,
+};
 
 // typedef struct {
 //   NodeType node_type;
@@ -151,43 +117,36 @@ const StrNode = struct {
 // } BagNode;
 
 // #ifdef USE_CALL
-
 // typedef struct {
 //   int           offset;
 //   struct _Node* target;
 // } UnsetAddr;
-
 // typedef struct {
 //   int        num;
 //   int        alloc;
 //   UnsetAddr* us;
 // } UnsetAddrList;
-
 // typedef struct {
 //   NodeType node_type;
 //   int status;
 //   struct _Node* parent;
 //   struct _Node* body; /* to BagNode : BAG_MEMORY */
-
 //   int     by_number;
 //   int     called_gnum;
 //   UChar*  name;
 //   UChar*  name_end;
 //   int     entry_count;
 // } CallNode;
-
 // #endif
 
-// typedef struct {
-//   NodeType node_type;
-//   int status;
-//   struct _Node* parent;
-
-//   int  back_num;
-//   int  back_static[NODE_BACKREFS_SIZE];
-//   int* back_dynamic;
-//   int  nest_level;
-// } BackRefNode;
+const BackRefNode = struct {
+    node_type: NodeType,
+    status: isize,
+    parent: *Node,
+    back_static: [NODE_BACKREFS_SIZE]int,
+    back_dynamic: []isize,
+    nest_level: int,
+};
 
 // typedef struct {
 //   NodeType node_type;
@@ -516,7 +475,7 @@ pub const Node = struct {
     }
 
     pub fn newMemory(allocator: *Allocator, is_named: bool) !*Node {
-        const node = try Node.newBag(allocator, Bag.memory);
+        const node = try Node.newBag(allocator, BagType.memory);
         if (is_named) {
             //     NODE_STATUS_ADD(node, NAMED_GROUP);
         }
@@ -524,7 +483,7 @@ pub const Node = struct {
     }
 
     pub fn newOption(allocator: *Allocator, option: Option) !*Node {
-        const node = try Node.newBag(allocator, Bag.option);
+        const node = try Node.newBag(allocator, BagType.option);
         //   BAG_(node)->o.options = option;
         return node;
     }
