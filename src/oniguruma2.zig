@@ -225,26 +225,24 @@ pub const CaseFoldMin = CaseFold.InternalMultiChar;
 // #define ONIGENC_MBC_CASE_FOLD_MAXLEN    18
 // /* 18: 6(max-byte) * 3(case-fold chars) */
 
-// /* character types */
-// typedef enum {
-//   ONIGENC_CTYPE_NEWLINE = 0,
-//   ONIGENC_CTYPE_ALPHA   = 1,
-//   ONIGENC_CTYPE_BLANK   = 2,
-//   ONIGENC_CTYPE_CNTRL   = 3,
-//   ONIGENC_CTYPE_DIGIT   = 4,
-//   ONIGENC_CTYPE_GRAPH   = 5,
-//   ONIGENC_CTYPE_LOWER   = 6,
-//   ONIGENC_CTYPE_PRINT   = 7,
-//   ONIGENC_CTYPE_PUNCT   = 8,
-//   ONIGENC_CTYPE_SPACE   = 9,
-//   ONIGENC_CTYPE_UPPER   = 10,
-//   ONIGENC_CTYPE_XDIGIT  = 11,
-//   ONIGENC_CTYPE_WORD    = 12,
-//   ONIGENC_CTYPE_ALNUM   = 13,  /* alpha || digit */
-//   ONIGENC_CTYPE_ASCII   = 14
-// } OnigEncCtype;
-
-// #define ONIGENC_MAX_STD_CTYPE  ONIGENC_CTYPE_ASCII
+/// character types
+const EncCtype = enum {
+    NewLine,
+    Alpha,
+    Blank,
+    CNTRL,
+    Digit,
+    Graph,
+    Lower,
+    Print,
+    Punct,
+    Space,
+    Upper,
+    XDigit,
+    Word,
+    Alnum, /// alpha || digit
+    ASCII,
+};
 
 
 // #define onig_enc_len(enc,p,end)        ONIGENC_MBC_ENC_LEN(enc,p)
@@ -408,6 +406,66 @@ pub const Option = enum(u32) {
     pub fn off(self: Option, regopt: Option) callconv(.Inline) bool {
         return self &= ~regopt;
     }
+
+    pub fn withSingleLine(self: Option) callconv(.Inline) Option {
+        return self & Option.SingleLine;
+    }
+
+    pub fn withMultiLine(self: Option) callconv(.Inline) Option {
+        return self & Option.MultiLine;
+    }
+
+    pub fn withIgnoreCase(self: Option) callconv(.Inline) Option {
+        return self & Option.IgnoreCase;
+    }
+
+    pub fn withExtend(self: Option) callconv(.Inline) Option {
+        return self & Option.Extend;
+    }
+
+    pub fn withWordASCII(self: Option) callconv(.Inline) Option {
+        return self & (Option.WordIsASCII | Option.POSIXIsASCII);
+    }
+
+    pub fn withDigitASCII(self: Option) callconv(.Inline) Option {
+        return self & (Option.DigitIsASCII | Option.POSIXIsASCII);
+    }
+
+    pub fn withSpaceASCII(self: Option) callconv(.Inline) Option {
+        return self & (Option.SpaceIsASCII | Option.POSIXIsASCII);
+    }
+
+    pub fn withPosixASCII(self: Option) callconv(.Inline) Option {
+        return self & Option.POSIXIsASCII;
+    }
+
+    pub fn withTextSegmentWord(self: Option) callconv(.Inline) Option {
+        return self & Option.TextSegmentWord;
+    }
+
+    pub fn withIsASCIIModeCType(self: Option, ctype: isize) callconv(.Inline) Option {
+        // #define OPTON_IS_ASCII_MODE_CTYPE(ctype, options) \
+        //   ((ctype) >= 0 && \
+        //   (((ctype) < ONIGENC_CTYPE_ASCII  && OPTON_POSIX_ASCII(options)) ||\
+        //    ((ctype) == ONIGENC_CTYPE_WORD  && OPTON_WORD_ASCII(options))  ||\
+        //    ((ctype) == ONIGENC_CTYPE_DIGIT && OPTON_DIGIT_ASCII(options)) ||\
+        //    ((ctype) == ONIGENC_CTYPE_SPACE && OPTON_SPACE_ASCII(options))))
+        if (ctype < 0) {
+            return 0;
+        } else if (ctype < EncCType.ASCII) {
+            return self.withPosixASCII();
+        } else if (ctype == EncCType.Word) {
+            return self.withWordASCII();
+        } else if (ctype == EncCType.Digit) {
+            return self.withDigitASCII();
+        } else if (ctype == EncCType.Space) {
+            return self.withSpaceASCII();
+        }
+        return 0;
+    }
+
+
+
 };
 
 /// Syntax
