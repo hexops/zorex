@@ -295,7 +295,7 @@ pub const Node = struct {
     //   return 0;
     // }
 
-    pub fn newList(allocator: *Allocator, left: *Node, right: *Node) !*Node {
+    pub fn newList(allocator: *Allocator, left: *Node, right: ?*Node) !*Node {
         const node = try Node.new(allocator);
         node.setType(NodeType.List);
         node.car().* = left;
@@ -418,8 +418,7 @@ pub const Node = struct {
     // }
     // #endif
 
-    // TODO(slimsag): by_number may be a boolean
-    pub fn newQuantifier(allocator: *Allocator, lower: isize, upper: isize, by_number: isize) !*Node {
+    pub fn newQuantifier(allocator: *Allocator, lower: isize, upper: isize, by_number: bool) !*Node {
         const node = try Node.new(allocator);
         node.setType(NodeType.Quant);
         node.quant().lower = lower;
@@ -430,8 +429,9 @@ pub const Node = struct {
         node.quant().next_head_exact = null;
         node.quant().include_referred = 0;
         node.quant().empty_status_mem = 0;
-        //   if (by_number != 0)
-        //     NODE_STATUS_ADD(node, BY_NUMBER);
+        if (by_number) {
+            //     NODE_STATUS_ADD(node, BY_NUMBER);
+        }
         return node;
     }
 
@@ -506,8 +506,9 @@ pub const Node = struct {
             }
         },
         NodeType.List, NodeType.Alt => {
-            //     onig_node_free(NODE_CAR(node));
-            //     node = NODE_CDR(node);
+            var node = self;
+            node.car().*.deinit(allocator);
+            node = node.cdr().*.?;
             //     while (IS_NOT_NULL(node)) {
             //       Node* next = NODE_CDR(node);
             //       onig_node_free(NODE_CAR(node));
@@ -675,16 +676,18 @@ pub const Node = struct {
                 headp = &headp.*.cdr().*.?;
             }
             if (tok.type != term) {
-                //     if (term == TK_SUBEXP_CLOSE)
-                //       return ONIGERR_END_PATTERN_WITH_UNMATCHED_PARENTHESIS;
-                //     else
-                //       return ONIGERR_PARSER_BUG;
+                if (term == TokenSym.SubExpClose) {
+                    //       return ONIGERR_END_PATTERN_WITH_UNMATCHED_PARENTHESIS;
+                } else {
+                    //       return ONIGERR_PARSER_BUG;
+                }
             }
         } else {
-            //     if (term == TK_SUBEXP_CLOSE)
-            //       return ONIGERR_END_PATTERN_WITH_UNMATCHED_PARENTHESIS;
-            //     else
-            //       return ONIGERR_PARSER_BUG;
+            if (term == TokenSym.SubExpClose) {
+                //       return ONIGERR_END_PATTERN_WITH_UNMATCHED_PARENTHESIS;
+            } else {
+                //       return ONIGERR_PARSER_BUG;
+            }
         }
 
         env.options = save_options;
@@ -694,42 +697,34 @@ pub const Node = struct {
     }
 
     pub fn prs_branch(allocator: *Allocator, top: **Node, tok: *PToken, term: TokenSym, src: *[]const u8, env: *ParseEnv, group_head: bool) !TokenSym {
-        //   int r;
-        //   Node *node, **headp;
-
         top.* = undefined;
         try env.incParseDepth();
 
+        var headp: **Node = undefined;
         var node: *Node = undefined;
         errdefer node.deinit(allocator); // TODO(slimsag): this is awkward/sketchy
-        const r = try Node.prs_exp(allocator, &node, tok, term, src, env, group_head);
+        var r = try Node.prs_exp(allocator, &node, tok, term, src, env, group_head);
         if (r == TokenSym.EOT or r == term or r == TokenSym.Alt) {
             top.* = node;
         } else {
-            //     *top = node_new_list(node, NULL);
-            //     if (IS_NULL(*top)) {
-            //       onig_node_free(node);
-            //       return ONIGERR_MEMORY;
-            //     }
+            top.* = try Node.newList(allocator, node, null);
 
-            //     headp = &(NODE_CDR(*top));
-            //     while (r != TK_EOT && r != term && r != TK_ALT) {
-            //       r = prs_exp(&node, tok, term, src, end, env, FALSE);
-            //       if (r < 0) {
-            //         onig_node_free(node);
-            //         return r;
-            //       }
-
-            //       if (NODE_TYPE(node) == NODE_LIST) {
-            //         *headp = node;
-            //         while (IS_NOT_NULL(NODE_CDR(node))) node = NODE_CDR(node);
-            //         headp = &(NODE_CDR(node));
-            //       }
-            //       else {
-            //         *headp = node_new_list(node, NULL);
-            //         headp = &(NODE_CDR(*headp));
-            //       }
-            //     }
+            headp = &(top.*.cdr().*.?);
+            while (r != TokenSym.EOT and r != term and r != TokenSym.Alt) {
+                r = try Node.prs_exp(allocator, &node, tok, term, src, env, false);
+                if (node.getType() == NodeType.List) {
+                    headp.* = node;
+                    //         while (IS_NOT_NULL(NODE_CDR(node))) node = NODE_CDR(node);
+                    //         headp = &(NODE_CDR(node));
+                    while (node.cdr().*) | cdrPtr | {
+                        node = cdrPtr;
+                    }
+                    headp = &(node.cdr().*.?);
+                } else {
+                    headp.* = try Node.newList(allocator, node, null);
+                    headp = &(headp.*.cdr().*.?);
+                }
+            }
         }
         try env.decParseDepth();
         return r;
