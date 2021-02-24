@@ -258,21 +258,19 @@ pub const Node = struct {
         node.setType(NodeType.CType);
         node.ctype().type = type;
         node.ctype().not = not;
-        //   CTYPE_(node)->ascii_mode = OPTON_IS_ASCII_MODE_CTYPE(type, options);
+        node.ctype().ascii_mode = options.withIsASCIIModeCType(type);
         return node;
     }
 
-    // static Node*
-    // node_new_anychar(OnigOptionType options)
-    // {
-    //   Node* node;
-    //   node = node_new_ctype(CTYPE_ANYCHAR, FALSE, options);
-    //   CHECK_NULL_RETURN(node);
-    //   if (OPTON_MULTILINE(options))
-    //     NODE_STATUS_ADD(node, MULTILINE);
-    //   return node;
-    // }
+    pub fn newAnyChar(allocator: *Allocator, options: Option) !*Node {
+        const node = try Node.newCType(allocator, CType.AnyChar, false, options);
+        if (option.on(Option.MultiLine)) {
+            //     NODE_STATUS_ADD(node, MULTILINE);
+        }
+        return node;
+    }
 
+    // TODO(slimsag): seems unnecessary? Maybe just as an alias?
     // static int
     // node_new_no_newline(Node** node, ParseEnv* env)
     // {
@@ -283,6 +281,7 @@ pub const Node = struct {
     //   return 0;
     // }
 
+    // TODO(slimsag): seems unnecessary? Maybe just as an alias?
     // static int
     // node_new_true_anychar(Node** node)
     // {
@@ -306,7 +305,7 @@ pub const Node = struct {
         self.str().flag = 0;
         self.str().s = &self.str().buf;
         self.str().capacity = 0;
-
+        // TODO(slimsag): simple string concatenation?
         //   try = onig_node_str_cat(node, s, end);
     }
 
@@ -321,17 +320,16 @@ pub const Node = struct {
         return node;
     }
 
-    pub fn newAnchorWithOptions(allocator: *Allocator, options: Option) !*Node {
+    pub fn newAnchorWithOptions(allocator: *Allocator, type: isize, options: Option) !*Node {
         const node = try Node.newAnchor(allocator);
-
+        const wordIsASCII = options.on(Option.WordIsASCII) or options.on(Option.POSIXIsASCII);
         //   int ascii_mode = OPTON_WORD_ASCII(options) && IS_WORD_ANCHOR_TYPE(type) ? 1 : 0;
-        //   ANCHOR_(node)->ascii_mode = ascii_mode;
-        //   if (type == ANCR_TEXT_SEGMENT_BOUNDARY ||
-        //       type == ANCR_NO_TEXT_SEGMENT_BOUNDARY) {
-        //     if (OPTON_TEXT_SEGMENT_WORD(options))
-        //       NODE_STATUS_ADD(node, TEXT_SEGMENT_WORD);
-        //   }
-
+        node.anchor().ascii_mode = wordIsASCII and type.isWordAnchorType();
+        if (type == Ancr.TextSegmentBoundary or type == Ancr.NoTextSegmentBoundary) {
+            if (options.on(Option.TextSegmentWord)) {
+                //       NODE_STATUS_ADD(node, TEXT_SEGMENT_WORD);
+            }
+        }
         return node;
     }
 

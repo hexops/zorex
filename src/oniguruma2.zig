@@ -423,11 +423,11 @@ pub const Option = enum(u32) {
         return self & Option.Extend;
     }
 
-    pub fn withWordASCII(self: Option) callconv(.Inline) Option {
+    pub fn withWordIsASCII(self: Option) callconv(.Inline) Option {
         return self & (Option.WordIsASCII | Option.POSIXIsASCII);
     }
 
-    pub fn withDigitASCII(self: Option) callconv(.Inline) Option {
+    pub fn withDigitIsASCII(self: Option) callconv(.Inline) Option {
         return self & (Option.DigitIsASCII | Option.POSIXIsASCII);
     }
 
