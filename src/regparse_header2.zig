@@ -159,7 +159,7 @@ const AnchorNode = struct {
     char_min_len: usize,
     char_max_len: usize,
     ascii_mode: bool,
-    lead_node: *Node,
+    lead_node: ?*Node,
 };
 
 const ConsAltNode = struct {
@@ -259,8 +259,8 @@ pub const Node = struct {
     pub fn newCType(allocator: *Allocator, type: isize, not: isize, options: Option) !*Node {
         const node = try Node.new(allocator);
         node.setType(NodeType.CType);
-        //   CTYPE_(node)->ctype   = type;
-        //   CTYPE_(node)->not     = not;
+        node.ctype().type = type;
+        node.ctype().not = not;
         //   CTYPE_(node)->ascii_mode = OPTON_IS_ASCII_MODE_CTYPE(type, options);
         return node;
     }
@@ -306,9 +306,9 @@ pub const Node = struct {
 
     pub fn setString(self: *Node, s: []const u8) !void {
         self.setType(NodeType.String);
-        self.u.?.str.flag = 0;
-        self.u.?.str.s = &self.u.?.str.buf;
-        self.u.?.str.capacity = 0;
+        self.str().flag = 0;
+        self.str().s = &self.str().buf;
+        self.str().capacity = 0;
 
         //   try = onig_node_str_cat(node, s, end);
     }
@@ -316,11 +316,11 @@ pub const Node = struct {
     pub fn newAnchor(allocator: *Allocator, type: isize) !*Node {
         const node = try Node.new(allocator);
         node.setType(NodeType.Anchor);
-        //   ANCHOR_(node)->type       = type;
-        //   ANCHOR_(node)->char_min_len = 0;
-        //   ANCHOR_(node)->char_max_len = INFINITE_LEN;
-        //   ANCHOR_(node)->ascii_mode = 0;
-        //   ANCHOR_(node)->lead_node  = NULL_NODE;
+        node.anchor().type = type;
+        node.anchor().char_min_len = 0;
+        node.anchor().char_max_len = INFINITE_LEN;
+        node.anchor().ascii_mode = 0;
+        node.anchor().lead_node = null;
         return node;
     }
 
@@ -425,14 +425,14 @@ pub const Node = struct {
     pub fn newQuantifier(allocator: *Allocator, lower: isize, upper: isize, by_number: isize) !*Node {
         const node = try Node.new(allocator);
         node.setType(NodeType.Quant);
-        //   QUANT_(node)->lower            = lower;
-        //   QUANT_(node)->upper            = upper;
-        //   QUANT_(node)->greedy           = 1;
-        //   QUANT_(node)->emptiness        = BODY_IS_NOT_EMPTY;
-        //   QUANT_(node)->head_exact       = NULL_NODE;
-        //   QUANT_(node)->next_head_exact  = NULL_NODE;
-        //   QUANT_(node)->include_referred = 0;
-        //   QUANT_(node)->empty_status_mem = 0;
+        node.quant().lower = lower;
+        node.quant().upper = upper;
+        node.quant().greedy = 1;
+        node.quant().emptiness = BODY_IS_NOT_EMPTY;
+        node.quant().head_exact = null;
+        node.quant().next_head_exact = null;
+        node.quant().include_referred = 0;
+        node.quant().empty_status_mem = 0;
         //   if (by_number != 0)
         //     NODE_STATUS_ADD(node, BY_NUMBER);
         return node;
@@ -441,25 +441,22 @@ pub const Node = struct {
     pub fn newBag(allocator: *Allocator, type: Bag) !*Node {
         const node = try Node.new(allocator);
         node.setType(NodeType.Bag); // TODO(slimsag): NodeType.Bag should have lowercase Bag
-        //   BAG_(node)->type = type;
-        //   switch (type) {
-        //   case BAG_MEMORY:
-        //     BAG_(node)->m.regnum       =  0;
-        //     BAG_(node)->m.called_addr  = -1;
-        //     BAG_(node)->m.entry_count  =  1;
-        //     BAG_(node)->m.called_state =  0;
-        //     break;
-        //   case BAG_OPTION:
-        //     BAG_(node)->o.options =  0;
-        //     break;
-        //   case BAG_STOP_BACKTRACK:
-        //     break;
-        //   case BAG_IF_ELSE:
-        //     BAG_(node)->te.Then = 0;
-        //     BAG_(node)->te.Else = 0;
-        //     break;
-        //   }
-        //   BAG_(node)->opt_count = 0;
+        node.bag().type = type;
+        switch (type) {
+        BagType.memory => {
+            node.bag().u.?.regnum = 0;
+            node.bag().u.?.called_addr = -1;
+            node.bag().u.?.entry_count = 0;
+            node.bag().u.?.called_state = 0;
+        },
+        BagType.option => node.bag().u.?.options = 0,
+        BagType.stopBacktrack => {},
+        BagType.ifElse => {
+            node.bag().u.?.te.then = 0;
+            node.bag().u.?.te.els = 0;
+        },
+        }
+        node.bag().opt_count = 0;
         return node;
     }
 
@@ -467,8 +464,8 @@ pub const Node = struct {
     pub fn newBagIfElse(allocator: *Allocator, cond: *Node, then: *Node, els: *Node) !*Node {
         const node = try Node.newBag(allocator);
         //   NODE_BODY(n) = cond;
-        //   BAG_(n)->te.Then = Then;
-        //   BAG_(n)->te.Else = Else;
+        node.bag().u.?.te.then = then;
+        node.bag().u.?.te.els = els;
         return node;
     }
 
@@ -482,7 +479,7 @@ pub const Node = struct {
 
     pub fn newOption(allocator: *Allocator, option: Option) !*Node {
         const node = try Node.newBag(allocator, BagType.option);
-        //   BAG_(node)->o.options = option;
+        node.bag().u.?.o.options = option;
         return node;
     }
 
@@ -565,6 +562,16 @@ pub const Node = struct {
         }
     }
 
+    pub fn str(self: *Node) callconv(.Inline) *StrNode { return &self.u.?.str; }
+    pub fn cclass(self: *Node) callconv(.Inline) *CClassNode { return &self.u.?.cclass; }
+    pub fn ctype(self: *Node) callconv(.Inline) *CTypeNode { return &self.u.?.ctype; }
+    pub fn backRef(self: *Node) callconv(.Inline) *BackRefNode { return &self.u.?.backRefNode; }
+    pub fn quant(self: *Node) callconv(.Inline) *QuantNode { return &self.u.?.quant; }
+    pub fn bag(self: *Node) callconv(.Inline) *BagNode { return &self.u.?.bag; }
+    pub fn anchor(self: *Node) callconv(.Inline) *AnchorNode { return &self.u.?.anchor; }
+    pub fn cons(self: *Node) callconv(.Inline) *ConsAltNode { return &self.u.?.cons; }
+    pub fn call(self: *Node) callconv(.Inline) *CallNode { return &self.u.?.call; }
+    pub fn gimmick(self: *Node) callconv(.Inline) *GimmickNode { return &self.u.?.gimmick; }
 
     pub fn parseTree(allocator: *Allocator, self: *Node, pattern: []const u8, reg: *Regex, env: *ParseEnv) !void {
         // TODO(slimsag):
@@ -1170,17 +1177,6 @@ pub const Node = struct {
 // #define NODE_BIT_ALT        NODE_TYPE2BIT(NODE_ALT)
 // #define NODE_BIT_CALL       NODE_TYPE2BIT(NODE_CALL)
 // #define NODE_BIT_GIMMICK    NODE_TYPE2BIT(NODE_GIMMICK)
-
-// #define STR_(node)         (&((node)->u.str))
-// #define CCLASS_(node)      (&((node)->u.cclass))
-// #define CTYPE_(node)       (&((node)->u.ctype))
-// #define BACKREF_(node)     (&((node)->u.backref))
-// #define QUANT_(node)       (&((node)->u.quant))
-// #define BAG_(node)         (&((node)->u.bag))
-// #define ANCHOR_(node)      (&((node)->u.anchor))
-// #define CONS_(node)        (&((node)->u.cons))
-// #define CALL_(node)        (&((node)->u.call))
-// #define GIMMICK_(node)     (&((node)->u.gimmick))
 
 // #define NODE_CAR(node)     (CONS_(node)->car)
 // #define NODE_CDR(node)     (CONS_(node)->cdr)
