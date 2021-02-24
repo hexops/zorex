@@ -1292,22 +1292,41 @@ pub const ParseEnv = struct {
     num_call: isize,
     num_mem: isize,
     num_named: isize,
-//   int              mem_alloc;
+    mem_alloc: isize,
 //   MemEnv           mem_env_static[PARSEENV_MEMENV_SIZE];
 //   MemEnv*          mem_env_dynamic;
-//   int              backref_num;
-//   int              keep_num;
-//   int              id_num;
-//   int              save_alloc_num;
-//   SaveItem*        saves;
-// #ifdef USE_CALL
-//   UnsetAddrList*   unset_addr_list;
-//   int              has_call_zero;
-// #endif
-//   unsigned int     parse_depth;
-// #ifdef ONIG_DEBUG_PARSE
-//   unsigned int     max_parse_depth;
-// #endif
+    backref_num: isize,
+    keep_num: isize,
+    id_num: isize,
+    save_alloc_num: isize,
+//    saves: *SaveItem,
+    // #ifdef USE_CALL
+    //   UnsetAddrList*   unset_addr_list;
+    //   int              has_call_zero;
+    // #endif
+    parse_depth: usize,
+    // #ifdef ONIG_DEBUG_PARSE
+    //   unsigned int     max_parse_depth;
+    // #endif
+
+    pub fn incParseDepth(self: *ParseEnv) !void {
+        if (config.DebugParse) {
+            self.parse_depth += 1;
+            //   if (env->max_parse_depth < (d)) env->max_parse_depth = d;\
+            if (self.parse_depth > ParseDepthLimit) {
+                //     return ONIGERR_PARSE_DEPTH_LIMIT_OVER;\
+            }
+        } else {
+            self.parse_depth += 1;
+            if (self.parse_depth > ParseDepthLimit) {
+                //     return ONIGERR_PARSE_DEPTH_LIMIT_OVER;\
+            }
+        }
+    }
+
+    pub fn decParseDepth(self: *ParseEnv) !void {
+        self.parse_depth -= 1;
+    }
 };
 
 // extern int    onig_renumber_name_table P_((regex_t* reg, GroupNumMap* map));
