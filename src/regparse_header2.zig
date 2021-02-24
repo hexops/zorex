@@ -85,36 +85,34 @@ const QuantNode = struct {
     empty_status_mem: MemStatusType,
 };
 
-// typedef struct {
-//   NodeType node_type;
-//   int status;
-//   struct _Node* parent;
-//   struct _Node* body;
-
-//   enum BagType type;
-//   union {
-//     struct {
-//       int regnum;
-//       AbsAddrType called_addr;
-//       int entry_count;
-//       int called_state;
-//     } m;
-//     struct {
-//       OnigOptionType options;
-//     } o;
-//     struct {
-//       /* body is condition */
-//       struct _Node* Then;
-//       struct _Node* Else;
-//     } te;
-//   };
-//   /* for multiple call reference */
-//   OnigLen min_len;   /* min length (byte) */
-//   OnigLen max_len;   /* max length (byte) */
-//   OnigLen min_char_len;
-//   OnigLen max_char_len;
-//   int opt_count;     /* referenced count in optimize_nodes() */
-// } BagNode;
+const BagNode = struct{
+    node_type: NodeType,
+    status: isize,
+    parent: *Node,
+    body: *Node,
+    u: union {
+        m: struct {
+            regnum: isize,
+            called_addr: AbsAddrType,
+            entry_count: isize,
+            called_state: isize,
+        },
+        o: struct {
+            options: Option,
+        },
+        te: struct {
+            /// body is condition
+            then: *Node,
+            els: *Node,
+        },
+    },
+    /// for multiple call reference
+    min_len: usize, /// max length (byte)
+    max_len: usize, /// max length (byte)
+    min_char_len: usize,
+    max_char_len: usize,
+    opt_count: isize, /// reference count in optimize_nodes()
+};
 
 // #ifdef USE_CALL
 // typedef struct {
@@ -148,48 +146,44 @@ const BackRefNode = struct {
     nest_level: int,
 };
 
-// typedef struct {
-//   NodeType node_type;
-//   int status;
-//   struct _Node* parent;
-//   struct _Node* body;
+const AnchorNode = struct {
+    node_type: NodeType,
+    status: isize,
+    parent: *Node,
+    body: *Node,
+    type: isize,
+    char_min_len: usize,
+    char_max_len: usize,
+    ascii_mode: bool,
+    lead_node: *Node,
+};
 
-//   int type;
-//   OnigLen char_min_len;
-//   OnigLen char_max_len;
-//   int ascii_mode;
-//   struct _Node* lead_node;
-// } AnchorNode;
+const ConsAltNode = struct {
+    node_type: NodeType,
+    status: isize,
+    parent: *Node,
+    car: *Node,
+    cdr: *Node,
+};
 
-// typedef struct {
-//   NodeType node_type;
-//   int status;
-//   struct _Node* parent;
+const CTypeNode = struct {
+    node_type: NodeType,
+    status: isize,
+    parent: *Node,
+    ctype: isize,
+    not: isize,
+    ascii_mode: isize,
+};
 
-//   struct _Node* car;
-//   struct _Node* cdr;
-// } ConsAltNode;
-
-// typedef struct {
-//   NodeType node_type;
-//   int status;
-//   struct _Node* parent;
-
-//   int ctype;
-//   int not;
-//   int ascii_mode;
-// } CtypeNode;
-
-// typedef struct {
-//   NodeType node_type;
-//   int status;
-//   struct _Node* parent;
-
-//   enum GimmickType type;
-//   int  detail_type;
-//   int  num;
-//   int  id;
-// } GimmickNode;
+const GimmickNode = struct {
+    node_type: NodeType,
+    status: isize,
+    parent: *Node,
+    type: GimmickType,
+    detail_type: isize,
+    num: isize,
+    id: isize,
+};
 
 pub const NodeBase = union {
     base: struct {
