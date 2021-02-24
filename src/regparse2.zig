@@ -1,6 +1,7 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 const ParseEnv = @import("regparse_header2.zig").ParseEnv;
+const DEFAULT_PARSE_DEPTH_LIMIT = @import("regint2.zig").DEFAULT_PARSE_DEPTH_LIMIT;
 
 // /**********************************************************************
 //   regparse.c -  Oniguruma (regular expression library)
@@ -201,7 +202,7 @@ const ParseEnv = @import("regparse_header2.zig").ParseEnv;
 //   return 0;
 // }
 
-// static unsigned int ParseDepthLimit = DEFAULT_PARSE_DEPTH_LIMIT;
+pub const ParseDepthLimit = DEFAULT_PARSE_DEPTH_LIMIT;
 
 // extern unsigned int
 // onig_get_parse_depth_limit(void)
@@ -218,24 +219,6 @@ const ParseEnv = @import("regparse_header2.zig").ParseEnv;
 //     ParseDepthLimit = depth;
 //   return 0;
 // }
-
-// #ifdef ONIG_DEBUG_PARSE
-// #define INC_PARSE_DEPTH(d) do {\
-//   (d)++;\
-//   if (env->max_parse_depth < (d)) env->max_parse_depth = d;\
-//   if ((d) > ParseDepthLimit) \
-//     return ONIGERR_PARSE_DEPTH_LIMIT_OVER;\
-// } while (0)
-// #else
-// #define INC_PARSE_DEPTH(d) do {\
-//   (d)++;\
-//   if ((d) > ParseDepthLimit) \
-//     return ONIGERR_PARSE_DEPTH_LIMIT_OVER;\
-// } while (0)
-// #endif
-
-// #define DEC_PARSE_DEPTH(d)  (d)--
-
 
 // static int
 // bbuf_init(BBuf* buf, int size)

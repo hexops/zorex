@@ -7,6 +7,7 @@ const Regex = @import("regcomp2.zig").Regex;
 const PToken = @import("regparse2.zig").PToken;
 const TokenSym = @import("regparse2.zig").TokenSym;
 const fetchToken = @import("regparse2.zig").fetchToken;
+const ParseDepthLimit = @import("regparse2.zig").ParseDepthLimit;
 const BitSet = @import("regint2.zig").BitSet;
 const BBuf = @import("regint2.zig").BBuf;
 const MemStatusType = @import("regint2.zig").MemStatusType;
@@ -325,7 +326,6 @@ pub const Node = struct {
     pub fn newAnchorWithOptions(allocator: *Allocator, type: isize, options: Option) !*Node {
         const node = try Node.newAnchor(allocator);
         const wordIsASCII = options.on(Option.WordIsASCII) or options.on(Option.POSIXIsASCII);
-        //   int ascii_mode = OPTON_WORD_ASCII(options) && IS_WORD_ANCHOR_TYPE(type) ? 1 : 0;
         node.anchor().ascii_mode = wordIsASCII and type.isWordAnchorType();
         if (type == Ancr.TextSegmentBoundary or type == Ancr.NoTextSegmentBoundary) {
             if (options.on(Option.TextSegmentWord)) {
@@ -655,7 +655,7 @@ pub const Node = struct {
     pub fn prs_alts(allocator: *Allocator, top: **Node, tok: *PToken, term: TokenSym, src: *[]const u8, env: *ParseEnv, group_head: bool) !TokenSym {
         //   int r;
         top.* = undefined;
-        //   INC_PARSE_DEPTH(env->parse_depth);
+        try env.incParseDepth();
         const save_options = env.options;
 
         var node: *Node = undefined;
@@ -688,7 +688,8 @@ pub const Node = struct {
         }
 
         env.options = save_options;
-        //   DEC_PARSE_DEPTH(env->parse_depth);
+        try env.decParseDepth();
+        try env.decParseDepth();
         return r;
     }
 
@@ -697,7 +698,7 @@ pub const Node = struct {
         //   Node *node, **headp;
 
         top.* = undefined;
-        //   INC_PARSE_DEPTH(env->parse_depth);
+        try env.incParseDepth();
 
         var node: *Node = undefined;
         errdefer node.deinit(allocator); // TODO(slimsag): this is awkward/sketchy
@@ -730,7 +731,7 @@ pub const Node = struct {
             //       }
             //     }
         }
-        //   DEC_PARSE_DEPTH(env->parse_depth);
+        try env.decParseDepth();
         return r;
     }
 

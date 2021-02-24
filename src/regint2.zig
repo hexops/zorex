@@ -97,7 +97,7 @@ const NameTable = @import("regparse2.zig").NameTable;
 // /* enabled by configure --enable-posix-api=yes */
 // /* #define USE_POSIX_API */
 
-const DEFAULT_PARSE_DEPTH_LIMIT =          4096;
+pub const DEFAULT_PARSE_DEPTH_LIMIT =          4096;
 const INIT_MATCH_STACK_SIZE =               160;
 const DEFAULT_MATCH_STACK_LIMIT_SIZE =        0; /// unlimited
 const DEFAULT_RETRY_LIMIT_IN_MATCH =   10000000;
