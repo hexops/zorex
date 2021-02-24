@@ -9,6 +9,7 @@ const BitSet = @import("regint2.zig").BitSet;
 const BBuf = @import("regint2.zig").BBuf;
 const MemStatusType = @import("regint2.zig").MemStatusType;
 const AbsAddrType = @import("regint2.zig").AbsAddrType;
+const config = @import("config.zig");
 
 const NODE_STRING_MARGIN = 16;
 const NODE_STRING_BUF_SIZE = 24;  /// sizeof(CClassNode) - sizeof(int)*4
@@ -51,8 +52,6 @@ pub const BodyEmptyType = enum {
     mayBeEmptyMem,
     mayBeEmptyRec,
 };
-
-// struct _Node;
 
 const StrNode = struct {
     node_type: NodeType,
@@ -167,7 +166,7 @@ const ConsAltNode = struct {
     status: isize,
     parent: *Node,
     car: *Node,
-    cdr: *Node,
+    cdr: ?*Node,
 };
 
 const CTypeNode = struct {
@@ -216,9 +215,9 @@ pub const Node = struct {
     pub fn new(allocator: *Allocator) !*Node {
         const node = try allocator.create(Node);
         node.* = std.mem.zeroes(Node);
-        // #ifdef DEBUG_NODE_FREE
-        //   fprintf(stderr, "node_new: %p\n", node);
-        // #endif
+        if (config.DebugNodeFree) {
+            //   fprintf(stderr, "node_new: %p\n", node);
+        }
         return node;
     }
 
@@ -236,8 +235,8 @@ pub const Node = struct {
     pub fn newAlt(allocator: *Allocator, left: *Node, right: ?*Node) !*Node {
         const node = try Node.new(allocator);
         node.setType(NodeType.Alt);
-    //   NODE_CAR(node)  = left;
-    //   NODE_CDR(node) = right;
+        node.car().* = left;
+        node.cdr().* = left;
         return node;
     }
 
@@ -299,8 +298,8 @@ pub const Node = struct {
     pub fn newList(allocator: *Allocator, left: *Node, right: *Node) !*Node {
         const node = try Node.new(allocator);
         node.setType(NodeType.List);
-    //   NODE_CAR(node)  = left;
-    //   NODE_CDR(node) = right;
+        node.car().* = left;
+        node.cdr().* = right;
         return node;
     }
 
@@ -486,8 +485,8 @@ pub const Node = struct {
     pub fn newGroup(allocator: *Allocator, content: *Node) !*Node {
         const node = try Node.new(allocator);
         node.setType(NodeType.List);
-        //   NODE_CAR(node) = content;
-        //   NODE_CDR(node) = NULL_NODE;
+        node.car().* = content;
+        node.cdr().* = null;
         return node;
     }
 
@@ -572,6 +571,9 @@ pub const Node = struct {
     pub fn cons(self: *Node) callconv(.Inline) *ConsAltNode { return &self.u.?.cons; }
     pub fn call(self: *Node) callconv(.Inline) *CallNode { return &self.u.?.call; }
     pub fn gimmick(self: *Node) callconv(.Inline) *GimmickNode { return &self.u.?.gimmick; }
+
+    pub fn car(self: *Node) callconv(.Inline) **Node { return &self.u.?.cons.car; }
+    pub fn cdr(self: *Node) callconv(.Inline) *?*Node { return &self.u.?.cons.cdr; }
 
     pub fn parseTree(allocator: *Allocator, self: *Node, pattern: []const u8, reg: *Regex, env: *ParseEnv) !void {
         // TODO(slimsag):
@@ -1177,9 +1179,6 @@ pub const Node = struct {
 // #define NODE_BIT_ALT        NODE_TYPE2BIT(NODE_ALT)
 // #define NODE_BIT_CALL       NODE_TYPE2BIT(NODE_CALL)
 // #define NODE_BIT_GIMMICK    NODE_TYPE2BIT(NODE_GIMMICK)
-
-// #define NODE_CAR(node)     (CONS_(node)->car)
-// #define NODE_CDR(node)     (CONS_(node)->cdr)
 
 // #define CTYPE_ANYCHAR      -1
 // #define NODE_IS_ANYCHAR(node) \
