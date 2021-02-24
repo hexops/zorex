@@ -4863,7 +4863,8 @@ pub const PToken = struct {
 //   return tok->type;
 // }
 
-pub fn fetchToken(tok: *PToken, src: *[]const u8, env: *ParseEnv) !void {
+pub fn fetchToken(tok: *PToken, src: *[]const u8, env: *ParseEnv) !TokenSym {
+    return TokenSym.EOT; // TODO(slimsag): remove line
 //   int r;
 //   OnigCodePoint code;
 //   OnigCodePoint c;

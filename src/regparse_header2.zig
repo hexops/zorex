@@ -614,12 +614,11 @@ pub const Node = struct {
         //     Node* zero_node;
         //     r = make_call_zero_body(*root, env, &zero_node);
         //     if (r != 0) return r;
-
         //     *root = zero_node;
         //   }
         // #endif
 
-        //   reg->num_mem = env->num_mem;
+        reg.re_pattern_buffer.num_mem = env.num_mem;
 
         // #ifdef USE_CALLOUT
         //   ext = reg->extp;
@@ -648,56 +647,44 @@ pub const Node = struct {
 
     pub fn prs_regexp(allocator: *Allocator, top: **Node, src: *[]const u8, env: *ParseEnv) !TokenSym {
         var tok = PToken.init();
-        try fetchToken(&tok, src, env);
+        _ = try fetchToken(&tok, src, env);
         return try Node.prs_alts(allocator, top, &tok, TokenSym.EOT, src, env, false);
     }
 
     /// term_tok: TokenSym.EOT or TokenSym.SubExpClose
     pub fn prs_alts(allocator: *Allocator, top: **Node, tok: *PToken, term: TokenSym, src: *[]const u8, env: *ParseEnv, group_head: bool) !TokenSym {
         //   int r;
-        //   Node *node, **headp;
-        //   OnigOptionType save_options;
-
         top.* = undefined;
         //   INC_PARSE_DEPTH(env->parse_depth);
         const save_options = env.options;
 
         var node: *Node = undefined;
+        var headp: **Node = undefined;
         errdefer node.deinit(allocator); // TODO(slimsag): this is awkward/sketchy
-        const r = try Node.prs_branch(allocator, &node, tok, term, src, env, group_head);
+        var r = try Node.prs_branch(allocator, &node, tok, term, src, env, group_head);
         if (r == term) {
             top.* = node; // TODO(slimsag): this style of returns is nasty
         } else if (r == TokenSym.Alt) {
             top.* = try Node.newAlt(allocator, node, null);
-
-        //     headp = &(NODE_CDR(*top));
-        //     while (r == TK_ALT) {
-        //       r = fetch_token(tok, src, end, env);
-        //       if (r < 0) return r;
-        //       r = prs_branch(&node, tok, term, src, end, env, FALSE);
-        //       if (r < 0) {
-        //         onig_node_free(node);
-        //         return r;
-        //       }
-        //       *headp = onig_node_new_alt(node, NULL);
-        //       if (IS_NULL(*headp)) {
-        //         onig_node_free(node);
-        //         onig_node_free(*top);
-        //         return ONIGERR_MEMORY;
-        //       }
-
-        //       headp = &(NODE_CDR(*headp));
-        //     }
-
-        //     if (tok->type != (enum TokenSyms )term)
-        //       goto err;
+            errdefer top.*.deinit(allocator);
+            headp = &(top.*.cdr().*.?);
+            while (r == TokenSym.Alt) {
+                r = try fetchToken(tok, src, env);
+                r = try Node.prs_branch(allocator, &node, tok, term, src, env, false);
+                headp.* = try Node.newAlt(allocator, node, null);
+                headp = &headp.*.cdr().*.?;
+            }
+            if (tok.type != term) {
+                //     if (term == TK_SUBEXP_CLOSE)
+                //       return ONIGERR_END_PATTERN_WITH_UNMATCHED_PARENTHESIS;
+                //     else
+                //       return ONIGERR_PARSER_BUG;
+            }
         } else {
-        //     onig_node_free(node);
-        //   err:
-        //     if (term == TK_SUBEXP_CLOSE)
-        //       return ONIGERR_END_PATTERN_WITH_UNMATCHED_PARENTHESIS;
-        //     else
-        //       return ONIGERR_PARSER_BUG;
+            //     if (term == TK_SUBEXP_CLOSE)
+            //       return ONIGERR_END_PATTERN_WITH_UNMATCHED_PARENTHESIS;
+            //     else
+            //       return ONIGERR_PARSER_BUG;
         }
 
         env.options = save_options;
