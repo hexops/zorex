@@ -4,7 +4,7 @@ const Operation = @import("regint2.zig").Operation;
 const RePatternBuffer = @import("regint2.zig").RePatternBuffer;
 const Option = @import("oniguruma2.zig").Option;
 const Syntax = @import("oniguruma2.zig").Syntax;
-const CaseFold = @import("oniguruma2.zig").CaseFold;
+const CaseFoldType = @import("oniguruma2.zig").CaseFoldType;
 const config = @import("config.zig");
 const Node = @import("regparse_header2.zig").Node;
 const NodeBase = @import("regparse_header2.zig").NodeBase;
@@ -7292,7 +7292,7 @@ pub const Regex = struct {
 
     const Self = @This();
 
-    pub fn init(allocator: *Allocator, option: Option, case_fold_flag: CaseFold, syntax: *Syntax) !*Self {
+    pub fn init(allocator: *Allocator, option: Option, case_fold_flag: CaseFoldType, syntax: *Syntax) !*Self {
         // TODO(slimsag):
         //   if ((option & (ONIG_OPTION_DONT_CAPTURE_GROUP|ONIG_OPTION_CAPTURE_GROUP))
         //       == (ONIG_OPTION_DONT_CAPTURE_GROUP|ONIG_OPTION_CAPTURE_GROUP)) {
@@ -7618,7 +7618,7 @@ pub const Regex = struct {
 // }
 
 pub fn New(allocator: *Allocator, pattern: []const u8, option: Option, syntax: *Syntax) !*Regex {
-    const reg = try Regex.init(allocator, option, CaseFold.Default, syntax);
+    const reg = try Regex.init(allocator, option, CaseFoldType.Default, syntax);
     errdefer reg.deinit();
     try reg.compile(pattern);
     return reg;

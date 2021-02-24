@@ -91,14 +91,14 @@
 
 // TODO(slimsag): candidate for removal.
 /// Case fold flags
-pub const CaseFold = enum(u32) {
+pub const CaseFoldType = enum(u32) {
     Default = 0,
     ASCIIOnly = 1,
     InternalMultiChar = 1 << 30,
 };
 
 // TODO(slimsag): candidate for removal?
-pub const CaseFoldMin = CaseFold.InternalMultiChar;
+pub const CaseFoldMin = CaseFoldType.InternalMultiChar;
 
 // #define ONIGENC_MAX_COMP_CASE_FOLD_CODE_LEN       3
 // #define ONIGENC_GET_CASE_FOLD_CODES_MAX_NUM      13

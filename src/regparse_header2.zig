@@ -1,6 +1,8 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 const Option = @import("oniguruma2.zig").Option;
+const CaseFoldType = @import("oniguruma2.zig").CaseFoldType;
+const Syntax = @import("oniguruma2.zig").Syntax;
 const Regex = @import("regcomp2.zig").Regex;
 const PToken = @import("regparse2.zig").PToken;
 const TokenSym = @import("regparse2.zig").TokenSym;
@@ -590,13 +592,11 @@ pub const Node = struct {
 
         // TODO(slimsag):
         //   scan_env_clear(env);
-        //   env->options        = reg->options;
-        //   env->case_fold_flag = reg->case_fold_flag;
-        //   env->enc            = reg->enc;
-        //   env->syntax         = reg->syntax;
-        //   env->pattern        = (UChar* )pattern;
-        //   env->pattern_end    = (UChar* )end;
-        //   env->reg            = reg;
+        env.options = reg.re_pattern_buffer.options;
+        env.case_fold_flag = reg.re_pattern_buffer.case_fold_flag;
+        env.syntax = reg.re_pattern_buffer.syntax;
+        env.pattern = pattern;
+        env.reg = reg;
 
         self.* = std.mem.zeroes(Node);
 
@@ -1294,20 +1294,17 @@ pub const Node = struct {
 
 pub const ParseEnv = struct {
     options: Option,
-//   OnigCaseFoldType case_fold_flag;
-//   OnigEncoding     enc;
-//   OnigSyntaxType*  syntax;
-//   MemStatusType    cap_history;
-//   MemStatusType    backtrack_mem; /* backtrack/recursion */
-//   MemStatusType    backrefed_mem;
-//   UChar*           pattern;
-//   UChar*           pattern_end;
-//   UChar*           error;
-//   UChar*           error_end;
-//   regex_t*         reg;       /* for reg->names only */
-//   int              num_call;
-//   int              num_mem;
-//   int              num_named;
+    case_fold_flag: CaseFoldType,
+    syntax: ?*Syntax,
+    cap_history: MemStatusType,
+    backtrack_mem: MemStatusType, /// backtrack/recursion
+    backrefed_mem: MemStatusType,
+    pattern: []const u8,
+    err: []u8,
+    reg: ?*Regex, /// for reg.names only
+    num_call: isize,
+    num_mem: isize,
+    num_named: isize,
 //   int              mem_alloc;
 //   MemEnv           mem_env_static[PARSEENV_MEMENV_SIZE];
 //   MemEnv*          mem_env_dynamic;

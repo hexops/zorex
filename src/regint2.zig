@@ -1,7 +1,7 @@
 const std = @import("std");
 const Option = @import("oniguruma2.zig").Option;
 const Syntax = @import("oniguruma2.zig").Syntax;
-const CaseFold = @import("oniguruma2.zig").CaseFold;
+const CaseFoldType = @import("oniguruma2.zig").CaseFoldType;
 const NameTable = @import("regparse2.zig").NameTable;
 
 
@@ -1008,7 +1008,7 @@ pub const RePatternBuffer = struct{
 
     options: Option,
     syntax: ?*Syntax,
-    case_fold_flag: CaseFold,
+    case_fold_flag: CaseFoldType,
     name_table: ?*NameTable,
 
     /// optimization info (string search, char-map and anchors)
