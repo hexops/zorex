@@ -970,14 +970,14 @@ pub const Operation = struct {
 // #endif
 // } RegexExt;
 
-// typedef struct {
-//   int lower;
-//   int upper;
-//   union {
-//     Operation* pcode; /* address of repeated body */
-//     int offset;
-//   } u;
-// } RepeatRange;
+const RepeatRange = struct {
+    lower: isize,
+    upper: isize,
+    u: union {
+        pcode: *Operation, /// address of repeated body
+        offset: isize,
+    }
+};
 
 pub const RePatternBuffer = struct{
     /// common members of BBuf(bytes-buffer)
@@ -993,21 +993,18 @@ pub const RePatternBuffer = struct{
     // TODO(slimsag): if allocated earlier, could be a non-optional field
     ops: ?std.ArrayList(Operation),
 
-    // TODO(slimsag):
-    //   unsigned char* string_pool;
-    //   unsigned char* string_pool_end;
+    string_pool: []u8,
 
     num_mem: isize, /// used memory(...) num counted from 1
     num_repeat: isize, /// OP_REPEAT/OP_REPEAT_NG id-counter
     num_empty_check: isize, /// OP_EMPTY_CHECK_START/END id counter
     num_call: isize, /// number of subexp call
-    // TODO(slimsag):
-    //   MemStatusType  capture_history;  /* (?@...) flag (1-31) */
-    //   MemStatusType  push_mem_start;   /* need backtrack flag */
-    //   MemStatusType  push_mem_end;     /* need backtrack flag */
-    //   int            stack_pop_level;
-    //   int            repeat_range_alloc;
-    //   RepeatRange*   repeat_range;
+    capture_history: MemStatusType, /// (?@...) flag (1-31)
+    push_mem_start: MemStatusType, /// need backtrack flag
+    push_mem_end: MemStatusType, /// need backtrack flag
+    stack_pop_level: isize,
+    repeat_range_alloc: isize,
+    repeat_range: ?*RepeatRange,
 
     options: Option,
     syntax: ?*Syntax,

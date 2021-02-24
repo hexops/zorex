@@ -57,7 +57,7 @@ const StrNode = struct {
     node_type: NodeType,
     status: isize,
     parent: *Node,
-    s: []u8,
+    s: ?[]u8,
     flag: usize,
     buf: [NODE_STRING_BUF_SIZE]u8,
     capacity: isize, /// (allocated size - 1) or 0: use buf[]
@@ -497,11 +497,11 @@ pub const Node = struct {
     fn deinit_body(self: *Node, allocator: *Allocator) void {
         switch (self.getType()) {
         NodeType.String => {
-            //     if (STR_(node)->capacity != 0 &&
-            //         IS_NOT_NULL(STR_(node)->s) && STR_(node)->s != STR_(node)->buf) {
-            //       xfree(STR_(node)->s);
-            //     }
-            //     break;
+            if (self.str().capacity != 0
+                and self.str().s != null
+                and std.mem.eql(u8, self.str().s.?, &self.str().buf)) {
+                    allocator.free(self.str().s.?);
+            }
         },
         NodeType.List, NodeType.Alt => {
             //     onig_node_free(NODE_CAR(node));
@@ -572,20 +572,16 @@ pub const Node = struct {
     pub fn cdr(self: *Node) callconv(.Inline) *?*Node { return &self.u.?.cons.cdr; }
 
     pub fn parseTree(allocator: *Allocator, self: *Node, pattern: []const u8, reg: *Regex, env: *ParseEnv) !void {
-        // TODO(slimsag):
         // #ifdef USE_CALLOUT
         //   RegexExt* ext;
         // #endif
 
-        // TODO(slimsag):
-        //reg.re_pattern_buffer.string_pool = 0;
-        //reg.re_pattern_buffer.string_pool_end = 0;
+        reg.re_pattern_buffer.string_pool = "";
         reg.re_pattern_buffer.num_mem = 0;
         reg.re_pattern_buffer.num_repeat = 0;
         reg.re_pattern_buffer.num_empty_check = 0;
-        // TODO(slimsag):
-        //reg.re_pattern_buffer.repeat_range_alloc = 0;
-        //reg.re_pattern_buffer.repeat_range = null;
+        reg.re_pattern_buffer.repeat_range_alloc = 0;
+        reg.re_pattern_buffer.repeat_range = null;
 
         if (reg.re_pattern_buffer.name_table) | name_table | {
             name_table.deinit(allocator);
