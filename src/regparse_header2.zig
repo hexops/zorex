@@ -613,7 +613,7 @@ pub const Node = struct {
         var p = pattern;
         var root = self;
         _ = try Node.prs_regexp(allocator, &root, &p, env);
-        // TODO(slimsag): root needs to be returned somewhere
+        self.* = root.*; // "return" root node
 
         // #ifdef USE_CALL
         //   if (env->has_call_zero != 0) {
