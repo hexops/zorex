@@ -348,8 +348,8 @@ const NameTable = @import("regparse2.zig").NameTable;
 //   OPTIMIZE_MAP                    /* char map */
 // };
 
-// /* bit status */
-// typedef unsigned int  MemStatusType;
+/// bit status
+pub const MemStatusType = usize;
 
 // #define MEM_STATUS_BITS_NUM          (sizeof(MemStatusType) * 8)
 // #define MEM_STATUS_CLEAR(stats)      (stats) = 0
@@ -415,21 +415,21 @@ const NameTable = @import("regparse2.zig").NameTable;
 // #define OPTON_NOT_END_STRING(option)      ((option) & ONIG_OPTION_NOT_END_STRING)
 // #define OPTON_NOT_BEGIN_POSITION(option)  ((option) & ONIG_OPTION_NOT_BEGIN_POSITION)
 
+pub const INFINITE_REPEAT =        -1;
 
-// #define INFINITE_REPEAT         -1
-// #define IS_INFINITE_REPEAT(n)   ((n) == INFINITE_REPEAT)
-
-// /* bitset */
-// #define BITS_PER_BYTE      8
-// #define SINGLE_BYTE_SIZE   (1 << BITS_PER_BYTE)
-// #define BITS_IN_ROOM       32   /* 4 * BITS_PER_BYTE */
-// #define BITSET_REAL_SIZE   (SINGLE_BYTE_SIZE / BITS_IN_ROOM)
+/// bitset
+pub const BITS_PER_BYTE    =  8;
+pub const SINGLE_BYTE_SIZE =  (1 << BITS_PER_BYTE);
+pub const BITS_IN_ROOM     =  32;   /// 4 * BITS_PER_BYTE
+pub const BITSET_REAL_SIZE =  (SINGLE_BYTE_SIZE / BITS_IN_ROOM);
 
 // typedef uint32_t  Bits;
 // typedef Bits      BitSet[BITSET_REAL_SIZE];
 // typedef Bits*     BitSetRef;
+pub const Bits = u32;
+pub const BitSet = [BITSET_REAL_SIZE]Bits;
 
-// #define SIZE_BITSET  sizeof(BitSet)
+pub const SIZE_BITSET = @sizeOf(Bitset);
 
 // #define BITSET_CLEAR(bs) do {\
 //   int i;\
@@ -444,6 +444,8 @@ const NameTable = @import("regparse2.zig").NameTable;
 // #define BITSET_CLEAR_BIT(bs, pos)   BS_ROOM(bs,pos) &= ~(BS_BIT(pos))
 // #define BITSET_INVERT_BIT(bs, pos)  BS_ROOM(bs,pos) ^= BS_BIT(pos)
 
+// TODO(slimsag): replace with std.ArrayBuffer?
+pub const BBuf = struct {};
 // /* bytes buffer */
 // typedef struct _BBuf {
 //   UChar* p;
@@ -676,16 +678,16 @@ pub const OpCode = enum(u32) {
 //   WORD_BOUNDARY = 1,
 // };
 
-// typedef int RelAddrType;
-// typedef int AbsAddrType;
-// typedef int LengthType;
-// typedef int RelPositionType;
-// typedef int RepeatNumType;
-// typedef int MemNumType;
-// typedef void* PointerType;
-// typedef int SaveType;
-// typedef int UpdateVarType;
-// typedef int ModeType;
+pub const RelAddrType = isize;
+pub const AbsAddrType = isize;
+pub const LengthType = isize;
+pub const RelPositionType = isize;
+pub const RepeatNumType = isize;
+pub const MemNumType = isize;
+pub const PointerType = c_void;
+pub const SaveType = isize;
+pub const UpdateVarType = isize;
+pub const ModeType = isize;
 
 // #define SIZE_OPCODE           1
 // #define SIZE_RELADDR          sizeof(RelAddrType)

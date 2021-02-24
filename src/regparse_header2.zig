@@ -5,6 +5,10 @@ const Regex = @import("regcomp2.zig").Regex;
 const PToken = @import("regparse2.zig").PToken;
 const TokenSym = @import("regparse2.zig").TokenSym;
 const fetchToken = @import("regparse2.zig").fetchToken;
+const BitSet = @import("regint2.zig").BitSet;
+const BBuf = @import("regint2.zig").BBuf;
+const MemStatusType = @import("regint2.zig").MemStatusType;
+const AbsAddrType = @import("regint2.zig").AbsAddrType;
 
 const NODE_STRING_MARGIN = 16;
 const NODE_STRING_BUF_SIZE = 24;  /// sizeof(CClassNode) - sizeof(int)*4
@@ -141,9 +145,9 @@ const BackRefNode = struct {
     node_type: NodeType,
     status: isize,
     parent: *Node,
-    back_static: [NODE_BACKREFS_SIZE]int,
+    back_static: [NODE_BACKREFS_SIZE]isize,
     back_dynamic: []isize,
-    nest_level: int,
+    nest_level: isize,
 };
 
 const AnchorNode = struct {
@@ -193,17 +197,17 @@ pub const NodeBase = union {
         body: *Node,
     },
     str: StrNode,
-    //     CClassNode    cclass;
-    //     QuantNode     quant;
-    //     BagNode       bag;
-    //     BackRefNode   backref;
-    //     AnchorNode    anchor;
-    //     ConsAltNode   cons;
-    //     CtypeNode     ctype;
+    cclass: CClassNode,
+    quant: QuantNode,
+    bag: BagNode,
+    backRefNode: BackRefNode,
+    anchor: AnchorNode,
+    cons: ConsAltNode,
+    ctype: CTypeNode,
     // #ifdef USE_CALL
     //     CallNode      call;
     // #endif
-    //     GimmickNode   gimmick;
+    gimmick: GimmickNode,
 };
 
 pub const Node = struct {
