@@ -6547,7 +6547,7 @@ pub fn fetchToken(tok: *PToken, src: *[]const u8, env: *ParseEnv) !void {
 //           prev_cc = cc;
 //           cc = &work_cc;
 //         }
-//         initialize_cclass(cc);
+//         initialize_cclass(cc); // TODO(slimsag): cc.init();
 //       }
 //       break;
 

@@ -69,7 +69,13 @@ const CClassNode = struct {
     parent: *Node,
     flags: usize,
     bs: BitSet,
-    mbuf: *BBuf, /// multi-byte info or NULL
+    mbuf: ?*BBuf, /// multi-byte info or NULL
+
+    pub fn init(self: *CClassNode) void {
+        //   BITSET_CLEAR(cc->bs);
+        self.flags = 0;
+        self.mbuf = null;
+    }
 };
 
 const QuantNode = struct {
@@ -240,18 +246,10 @@ pub const Node = struct {
         return node;
     }
 
-    // static void
-    // initialize_cclass(CClassNode* cc)
-    // {
-    //   BITSET_CLEAR(cc->bs);
-    //   cc->flags = 0;
-    //   cc->mbuf  = NULL;
-    // }
-
     pub fn newCClass(allocator: *Allocator) !*Node {
         const node = try Node.new(allocator);
         node.setType(NodeType.CClass);
-        //   initialize_cclass(CCLASS_(node));
+        node.cclass().init();
         return node;
     }
 
