@@ -30,7 +30,7 @@ const CaseFoldCodeItem = struct {
     code: [ENC_MAX_COMP_CASE_FOLD_CODE_LEN]CodePoint,
 };
 
-const MetaCharTable = struct {
+pub const MetaCharTable = struct {
     esc: CodePoint,
     anyChar: CodePoint,
     anyTime: CodePoint,
@@ -315,137 +315,6 @@ pub const Option = enum(u32) {
         return 0;
     }
 };
-
-/// Syntax
-pub const Syntax = struct {
-    op: usize,
-    op2: usize,
-    behavior: usize,
-    options: Option, /// default option
-    meta_char_table: MetaCharTable,
-
-    /// Default syntax
-    pub const Default: *Syntax = undefined;
-};
-
-const SyntaxASIS = Syntax{};
-const SyntaxPosixBasic = Syntax{};
-const SyntaxEmacs = Syntax{};
-const SyntaxGrep = Syntax{};
-const SyntaxGnuRegex = Syntax{};
-const SyntaxJava = Syntax{};
-const SyntaxPerl = Syntax{};
-const SyntaxPerlNG = Syntax{};
-const SyntaxRuby = Syntax{};
-const SyntaxPython = Syntax{};
-const SyntaxOniguruma = Syntax{};
-
-/// predefined syntaxes (see regsyntax.zig)
-const SYNTAX_ASIS = &SyntaxASIS;
-const SYNTAX_POSIX_BASIC = &SyntaxPosixBasic;
-const SYNTAX_EMACS = &SyntaxEmacs;
-const SYNTAX_GREP = &SyntaxGrep;
-const SYNTAX_GNU_REGEX = &SyntaxGnuRegex;
-const SYNTAX_JAVA = &SyntaxJava;
-const SYNTAX_PERL = &SyntaxPerl;
-const SYNTAX_PERL_NG = &SyntaxPerlNG;
-const SYNTAX_RUBY = &SyntaxRuby;
-const SYNTAX_PYTHON = &SyntaxPython;
-const SYNTAX_ONIGURUMA = &SyntaxOniguruma;
-
-// /* syntax (operators) */
-// #define ONIG_SYN_OP_VARIABLE_META_CHARACTERS    (1U<<0)
-// #define ONIG_SYN_OP_DOT_ANYCHAR                 (1U<<1)   /* . */
-// #define ONIG_SYN_OP_ASTERISK_ZERO_INF           (1U<<2)   /* * */
-// #define ONIG_SYN_OP_ESC_ASTERISK_ZERO_INF       (1U<<3)
-// #define ONIG_SYN_OP_PLUS_ONE_INF                (1U<<4)   /* + */
-// #define ONIG_SYN_OP_ESC_PLUS_ONE_INF            (1U<<5)
-// #define ONIG_SYN_OP_QMARK_ZERO_ONE              (1U<<6)   /* ? */
-// #define ONIG_SYN_OP_ESC_QMARK_ZERO_ONE          (1U<<7)
-// #define ONIG_SYN_OP_BRACE_INTERVAL              (1U<<8)   /* {lower,upper} */
-// #define ONIG_SYN_OP_ESC_BRACE_INTERVAL          (1U<<9)   /* \{lower,upper\} */
-// #define ONIG_SYN_OP_VBAR_ALT                    (1U<<10)   /* | */
-// #define ONIG_SYN_OP_ESC_VBAR_ALT                (1U<<11)  /* \| */
-// #define ONIG_SYN_OP_LPAREN_SUBEXP               (1U<<12)  /* (...)   */
-// #define ONIG_SYN_OP_ESC_LPAREN_SUBEXP           (1U<<13)  /* \(...\) */
-// #define ONIG_SYN_OP_ESC_AZ_BUF_ANCHOR           (1U<<14)  /* \A, \Z, \z */
-// #define ONIG_SYN_OP_ESC_CAPITAL_G_BEGIN_ANCHOR  (1U<<15)  /* \G     */
-// #define ONIG_SYN_OP_DECIMAL_BACKREF             (1U<<16)  /* \num   */
-// #define ONIG_SYN_OP_BRACKET_CC                  (1U<<17)  /* [...]  */
-// #define ONIG_SYN_OP_ESC_W_WORD                  (1U<<18)  /* \w, \W */
-// #define ONIG_SYN_OP_ESC_LTGT_WORD_BEGIN_END     (1U<<19)  /* \<. \> */
-// #define ONIG_SYN_OP_ESC_B_WORD_BOUND            (1U<<20)  /* \b, \B */
-// #define ONIG_SYN_OP_ESC_S_WHITE_SPACE           (1U<<21)  /* \s, \S */
-// #define ONIG_SYN_OP_ESC_D_DIGIT                 (1U<<22)  /* \d, \D */
-// #define ONIG_SYN_OP_LINE_ANCHOR                 (1U<<23)  /* ^, $   */
-// #define ONIG_SYN_OP_POSIX_BRACKET               (1U<<24)  /* [:xxxx:] */
-// #define ONIG_SYN_OP_QMARK_NON_GREEDY            (1U<<25)  /* ??,*?,+?,{n,m}? */
-// #define ONIG_SYN_OP_ESC_CONTROL_CHARS           (1U<<26)  /* \n,\r,\t,\a ... */
-// #define ONIG_SYN_OP_ESC_C_CONTROL               (1U<<27)  /* \cx  */
-// #define ONIG_SYN_OP_ESC_OCTAL3                  (1U<<28)  /* \OOO */
-// #define ONIG_SYN_OP_ESC_X_HEX2                  (1U<<29)  /* \xHH */
-// #define ONIG_SYN_OP_ESC_X_BRACE_HEX8            (1U<<30)  /* \x{7HHHHHHH} */
-// #define ONIG_SYN_OP_ESC_O_BRACE_OCTAL           (1U<<31)  /* \o{1OOOOOOOOOO} */
-
-// #define ONIG_SYN_OP2_ESC_CAPITAL_Q_QUOTE        (1U<<0)  /* \Q...\E */
-// #define ONIG_SYN_OP2_QMARK_GROUP_EFFECT         (1U<<1)  /* (?...) */
-// #define ONIG_SYN_OP2_OPTION_PERL                (1U<<2)  /* (?imsx),(?-imsx) */
-// #define ONIG_SYN_OP2_OPTION_RUBY                (1U<<3)  /* (?imx), (?-imx)  */
-// #define ONIG_SYN_OP2_PLUS_POSSESSIVE_REPEAT     (1U<<4)  /* ?+,*+,++ */
-// #define ONIG_SYN_OP2_PLUS_POSSESSIVE_INTERVAL   (1U<<5)  /* {n,m}+   */
-// #define ONIG_SYN_OP2_CCLASS_SET_OP              (1U<<6)  /* [...&&..[..]..] */
-// #define ONIG_SYN_OP2_QMARK_LT_NAMED_GROUP       (1U<<7)  /* (?<name>...) */
-// #define ONIG_SYN_OP2_ESC_K_NAMED_BACKREF        (1U<<8)  /* \k<name> */
-// #define ONIG_SYN_OP2_ESC_G_SUBEXP_CALL          (1U<<9)  /* \g<name>, \g<n> */
-// #define ONIG_SYN_OP2_ATMARK_CAPTURE_HISTORY     (1U<<10) /* (?@..),(?@<x>..) */
-// #define ONIG_SYN_OP2_ESC_CAPITAL_C_BAR_CONTROL  (1U<<11) /* \C-x */
-// #define ONIG_SYN_OP2_ESC_CAPITAL_M_BAR_META     (1U<<12) /* \M-x */
-// #define ONIG_SYN_OP2_ESC_V_VTAB                 (1U<<13) /* \v as VTAB */
-// #define ONIG_SYN_OP2_ESC_U_HEX4                 (1U<<14) /* \uHHHH */
-// #define ONIG_SYN_OP2_ESC_GNU_BUF_ANCHOR         (1U<<15) /* \`, \' */
-// #define ONIG_SYN_OP2_ESC_P_BRACE_CHAR_PROPERTY  (1U<<16) /* \p{...}, \P{...} */
-// #define ONIG_SYN_OP2_ESC_P_BRACE_CIRCUMFLEX_NOT (1U<<17) /* \p{^..}, \P{^..} */
-// /* #define ONIG_SYN_OP2_CHAR_PROPERTY_PREFIX_IS (1U<<18) */
-// #define ONIG_SYN_OP2_ESC_H_XDIGIT               (1U<<19) /* \h, \H */
-// #define ONIG_SYN_OP2_INEFFECTIVE_ESCAPE         (1U<<20) /* \ */
-// #define ONIG_SYN_OP2_QMARK_LPAREN_IF_ELSE       (1U<<21) /* (?(n)) (?(...)...|...) */
-// #define ONIG_SYN_OP2_ESC_CAPITAL_K_KEEP         (1U<<22) /* \K */
-// #define ONIG_SYN_OP2_ESC_CAPITAL_R_GENERAL_NEWLINE (1U<<23) /* \R \r\n else [\x0a-\x0d] */
-// #define ONIG_SYN_OP2_ESC_CAPITAL_N_O_SUPER_DOT  (1U<<24) /* \N (?-m:.), \O (?m:.) */
-// #define ONIG_SYN_OP2_QMARK_TILDE_ABSENT_GROUP   (1U<<25) /* (?~...) */
-// #define ONIG_SYN_OP2_ESC_X_Y_GRAPHEME_CLUSTER   (1U<<26) /* obsoleted: use next */
-// #define ONIG_SYN_OP2_ESC_X_Y_TEXT_SEGMENT       (1U<<26) /* \X \y \Y */
-// #define ONIG_SYN_OP2_QMARK_PERL_SUBEXP_CALL     (1U<<27) /* (?R), (?&name)... */
-// #define ONIG_SYN_OP2_QMARK_BRACE_CALLOUT_CONTENTS (1U<<28) /* (?{...}) (?{{...}}) */
-// #define ONIG_SYN_OP2_ASTERISK_CALLOUT_NAME      (1U<<29) /* (*name) (*name{a,..}) */
-// #define ONIG_SYN_OP2_OPTION_ONIGURUMA           (1U<<30) /* (?imxWDSPy) */
-// #define ONIG_SYN_OP2_QMARK_CAPITAL_P_NAME       (1U<<31) /* (?P<name>...) (?P=name) */
-
-// /* syntax (behavior) */
-// #define ONIG_SYN_CONTEXT_INDEP_ANCHORS           (1U<<31) /* not implemented */
-// #define ONIG_SYN_CONTEXT_INDEP_REPEAT_OPS        (1U<<0)  /* ?, *, +, {n,m} */
-// #define ONIG_SYN_CONTEXT_INVALID_REPEAT_OPS      (1U<<1)  /* error or ignore */
-// #define ONIG_SYN_ALLOW_UNMATCHED_CLOSE_SUBEXP    (1U<<2)  /* ...)... */
-// #define ONIG_SYN_ALLOW_INVALID_INTERVAL          (1U<<3)  /* {??? */
-// #define ONIG_SYN_ALLOW_INTERVAL_LOW_ABBREV       (1U<<4)  /* {,n} => {0,n} */
-// #define ONIG_SYN_STRICT_CHECK_BACKREF            (1U<<5)  /* /(\1)/,/\1()/ ..*/
-// #define ONIG_SYN_DIFFERENT_LEN_ALT_LOOK_BEHIND   (1U<<6)  /* (?<=a|bc) */
-// #define ONIG_SYN_CAPTURE_ONLY_NAMED_GROUP        (1U<<7)  /* see doc/RE */
-// #define ONIG_SYN_ALLOW_MULTIPLEX_DEFINITION_NAME (1U<<8)  /* (?<x>)(?<x>) */
-// #define ONIG_SYN_FIXED_INTERVAL_IS_GREEDY_ONLY   (1U<<9)  /* a{n}?=(?:a{n})? */
-// #define ONIG_SYN_ISOLATED_OPTION_CONTINUE_BRANCH (1U<<10) /* ..(?i)...|... */
-// #define ONIG_SYN_VARIABLE_LEN_LOOK_BEHIND        (1U<<11)  /* (?<=a+|..) */
-// #define ONIG_SYN_PYTHON                          (1U<<12)  /* \UHHHHHHHH */
-
-// /* syntax (behavior) in char class [...] */
-// #define ONIG_SYN_NOT_NEWLINE_IN_NEGATIVE_CC      (1U<<20) /* [^...] */
-// #define ONIG_SYN_BACKSLASH_ESCAPE_IN_CC          (1U<<21) /* [..\w..] etc.. */
-// #define ONIG_SYN_ALLOW_EMPTY_RANGE_IN_CC         (1U<<22)
-// #define ONIG_SYN_ALLOW_DOUBLE_RANGE_OP_IN_CC     (1U<<23) /* [0-9-a]=[0-9\-a] */
-// #define ONIG_SYN_ALLOW_INVALID_CODE_END_OF_RANGE_IN_CC (1U<<26)
-// /* syntax (behavior) warning */
-// #define ONIG_SYN_WARN_CC_OP_NOT_ESCAPED          (1U<<24) /* [,-,] */
-// #define ONIG_SYN_WARN_REDUNDANT_NESTED_REPEAT    (1U<<25) /* (?:a*)+ */
 
 // /* meta character specifiers (onig_set_meta_char()) */
 // #define ONIG_META_CHAR_ESCAPE               0

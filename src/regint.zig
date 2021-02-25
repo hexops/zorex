@@ -1,8 +1,8 @@
 const std = @import("std");
-const Option = @import("oniguruma2.zig").Option;
-const Syntax = @import("oniguruma2.zig").Syntax;
-const CaseFoldType = @import("oniguruma2.zig").CaseFoldType;
-const NameTable = @import("regparse2.zig").NameTable;
+const Option = @import("oniguruma.zig").Option;
+const Syntax = @import("regsyntax.zig").Syntax;
+const CaseFoldType = @import("oniguruma.zig").CaseFoldType;
+const NameTable = @import("regparse.zig").NameTable;
 
 // /* for debug */
 // /* #define ONIG_DEBUG_PARSE */

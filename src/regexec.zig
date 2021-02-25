@@ -1,6 +1,6 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const ReRegisters = @import("oniguruma2.zig").ReRegisters;
+const ReRegisters = @import("oniguruma.zig").ReRegisters;
 
 // #define IS_MBC_WORD_ASCII_MODE(enc,s,end,mode) \
 //   ((mode) == 0 ? ONIGENC_IS_MBC_WORD(enc,s,end) : ONIGENC_IS_MBC_WORD_ASCII(enc,s,end))

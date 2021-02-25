@@ -1,7 +1,7 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const ParseEnv = @import("regparse_header2.zig").ParseEnv;
-const DEFAULT_PARSE_DEPTH_LIMIT = @import("regint2.zig").DEFAULT_PARSE_DEPTH_LIMIT;
+const ParseEnv = @import("regparse_header.zig").ParseEnv;
+const DEFAULT_PARSE_DEPTH_LIMIT = @import("regint.zig").DEFAULT_PARSE_DEPTH_LIMIT;
 
 
 const INIT_TAG_NAMES_ALLOC_NUM = 5;
