@@ -4,7 +4,6 @@ const zorex = @import("main.zig");
 
 var nsucc: usize = 0;
 var nfail: usize = 0;
-var nerror: usize = 0;
 
 var err_file: std.fs.File = undefined;
 var region: *zorex.Region = undefined;
@@ -20,27 +19,10 @@ fn xx(
 ) void {
     const allocator = std.heap.page_allocator;
     const reg = zorex.New(allocator, pattern, zorex.Option.Default, zorex.Syntax.Default) catch |err| {
-        //     char s[ONIG_MAX_ERROR_MESSAGE_LEN];
-
-        //     if (error_no == 0) {
-        //       onig_error_code_to_str((UChar* )s, r, &einfo);
-        //       fprintf(err_file, "ERROR: %s  /%s/  #%d\n", s, pattern, line_no);
-        //       nerror++;
-        //     }
-        //     else {
-        //       if (r == error_no) {
-        //         fprintf(stdout, "OK(ERROR): /%s/ %d  #%d\n", pattern, r, line_no);
-        //         nsucc++;
-        //       }
-        //       else {
-        //         fprintf(stdout, "FAIL(ERROR): /%s/ '%s', %d, %d  #%d\n", pattern, str,
-        //                 error_no, r, line_no);
-        //         nfail++;
-        //       }
-        //     }
-
-        //     return ;
-        return;
+        std.debug.print("ERROR: {} /{s}/\n", .{err, pattern});
+        nfail += 1;
+        // TODO(slimsag): check if err == error_no (expected error)
+        unreachable; // so we get a line number in our test.
     };
     defer reg.deinit();
 
@@ -121,14 +103,13 @@ fn e(pattern: []const u8, str: []const u8, error_no: isize) void {
 test "utf8" {
     const allocator = std.heap.page_allocator;
 
-    err_file = std.io.getStdOut();
     region = try zorex.Region.init(allocator);
     defer region.deinit(allocator);
 
     x2("", "", 0, 0);
-    // x2("^", "", 0, 0);
-    // x2("^a", "\na", 1, 2);
-    // x2("$", "", 0, 0);
+    x2("^", "", 0, 0);
+    x2("^a", "\na", 1, 2);
+    x2("$", "", 0, 0);
     // x2("$\\O", "bb\n", 2, 3);
     // x2("\\G", "", 0, 0);
     // x2("\\A", "", 0, 0);
@@ -1633,10 +1614,8 @@ test "utf8" {
     // // TODO(slimsag)
     // //   e("^*", "abc", ONIGERR_TARGET_OF_REPEAT_OPERATOR_INVALID);
 
-    // TODO(slimsag): translate %4d format string.
-    try err_file.writer().print("\nRESULT   SUCC: {d:4},  FAIL: {},  ERROR: {}\n", .{ nsucc, nfail, nerror });
+    std.debug.print("\nRESULT   SUCC: {d:4},  FAIL: {}\n", .{ nsucc, nfail });
     testing.expectEqual(nfail, 0);
-    testing.expectEqual(nerror, 0);
 
     // TODO(slimsag)
     //   onig_end();
