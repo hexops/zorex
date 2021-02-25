@@ -59,7 +59,7 @@ pub const BodyEmptyType = enum {
 const StrNode = struct {
     node_type: NodeType,
     status: isize,
-    parent: *Node,
+    parent: ?*Node,
     s: ?[]u8,
     flag: usize,
     buf: [NODE_STRING_BUF_SIZE]u8,
@@ -69,16 +69,10 @@ const StrNode = struct {
 const CClassNode = struct {
     node_type: NodeType,
     status: isize,
-    parent: *Node,
+    parent: ?*Node,
     flags: usize,
     bs: BitSet,
     mbuf: ?*BBuf, /// multi-byte info or NULL
-
-    pub fn init(self: *CClassNode) void {
-        //   BITSET_CLEAR(cc->bs);
-        self.flags = 0;
-        self.mbuf = null;
-    }
 };
 
 const QuantNode = struct {
@@ -173,7 +167,7 @@ const AnchorNode = struct {
 const ConsAltNode = struct {
     node_type: NodeType,
     status: isize,
-    parent: *Node,
+    parent: ?*Node,
     car: *Node,
     cdr: ?*Node,
 };
@@ -181,7 +175,7 @@ const ConsAltNode = struct {
 const CTypeNode = struct {
     node_type: NodeType,
     status: isize,
-    parent: *Node,
+    parent: ?*Node,
     ctype: isize,
     not: isize,
     ascii_mode: isize,
@@ -190,20 +184,29 @@ const CTypeNode = struct {
 const GimmickNode = struct {
     node_type: NodeType,
     status: isize,
-    parent: *Node,
+    parent: ?*Node,
     type: GimmickType,
     detail_type: isize,
     num: isize,
     id: isize,
 };
 
-pub const NodeBase = union {
-    base: struct {
-        node_type: NodeType,
-        status: isize,
-        parent: *Node,
-        body: *Node,
-    },
+pub const NodeBaseTag = enum {
+    str,
+    cclass,
+    quant,
+    bag,
+    backRefNode,
+    anchor,
+    cons,
+    ctype,
+    // #ifdef USE_CALL
+    //call,
+    // #endif
+    gimmick,
+};
+
+pub const NodeBase = union(NodeBaseTag) {
     str: StrNode,
     cclass: CClassNode,
     quant: QuantNode,
@@ -243,25 +246,45 @@ pub const Node = struct {
 
     pub fn newAlt(allocator: *Allocator, left: *Node, right: ?*Node) !*Node {
         const node = try Node.new(allocator);
-        node.setType(NodeType.Alt);
-        node.car().* = left;
-        node.cdr().* = left;
+        node.u = NodeBase{
+            .cons = ConsAltNode{
+                .node_type = NodeType.Alt,
+                .status = 0,
+                .parent = null,
+                .car = left,
+                .cdr = right,
+            },
+        };
         return node;
     }
 
     pub fn newCClass(allocator: *Allocator) !*Node {
         const node = try Node.new(allocator);
-        node.setType(NodeType.CClass);
-        node.cclass().init();
+        node.u = NodeBase{
+            .cclass = CClassNode{
+                .node_type = NodeType.CClass,
+                .status = 0,
+                .parent = null,
+                .flags = 0,
+                .bs = 0,
+                .mbuf = null,
+            },
+        };
         return node;
     }
 
     pub fn newCType(allocator: *Allocator, type: isize, not: isize, options: Option) !*Node {
         const node = try Node.new(allocator);
-        node.setType(NodeType.CType);
-        node.ctype().type = type;
-        node.ctype().not = not;
-        node.ctype().ascii_mode = options.withIsASCIIModeCType(type);
+        node.u = NodeBase{
+            .ctype = CTypeNode{
+                .node_type = NodeType.Alt,
+                .status = 0,
+                .parent = null,
+                .ctype = type,
+                .not = not,
+                .ascii_mode = options.withIsASCIIModeCType(type),
+            }
+        };
         return node;
     }
 
@@ -297,29 +320,50 @@ pub const Node = struct {
 
     pub fn newList(allocator: *Allocator, left: *Node, right: ?*Node) !*Node {
         const node = try Node.new(allocator);
-        node.setType(NodeType.List);
-        node.car().* = left;
-        node.cdr().* = right;
+        node.u = NodeBase{
+            .cons = ConsAltNode{
+                .node_type = NodeType.List,
+                .status = 0,
+                .parent = null,
+                .car = left,
+                .cdr = right,
+            },
+        };
         return node;
     }
 
     pub fn setString(self: *Node, s: []const u8) !void {
-        self.setType(NodeType.String);
-        self.str().flag = 0;
-        self.str().s = &self.str().buf;
-        self.str().capacity = 0;
+        //self.setType(NodeType.String);
+        var strNode = StrNode{
+                .node_type = NodeType.String,
+                .status =  0,
+                .parent = null,
+                .s = null,
+                .buf = std.mem.zeroes([24]u8),
+                .flag = 0,
+                .capacity = 0, // TODO(slimsag): not needed? slice indicates this
+        };
+        strNode.s = &strNode.buf;
+        self.u = NodeBase{.str = strNode};
         // TODO(slimsag): simple string concatenation?
         //   try = onig_node_str_cat(node, s, end);
     }
 
     pub fn newAnchor(allocator: *Allocator, type: isize) !*Node {
         const node = try Node.new(allocator);
-        node.setType(NodeType.Anchor);
-        node.anchor().type = type;
-        node.anchor().char_min_len = 0;
-        node.anchor().char_max_len = INFINITE_LEN;
-        node.anchor().ascii_mode = 0;
-        node.anchor().lead_node = null;
+        node.u = NodeBase{
+            .anchor = AnchorNode{
+                .node_type = NodeType.Anchor,
+                .status = 0,
+                .parent = null,
+                .body = null,
+                .type = type,
+                .char_min_len = 0,
+                .char_max_len = INFINITE_LEN,
+                .ascii_mode = 0,
+                .lead_node = null,
+            },
+        };
         return node;
     }
 
@@ -420,15 +464,22 @@ pub const Node = struct {
 
     pub fn newQuantifier(allocator: *Allocator, lower: isize, upper: isize, by_number: bool) !*Node {
         const node = try Node.new(allocator);
-        node.setType(NodeType.Quant);
-        node.quant().lower = lower;
-        node.quant().upper = upper;
-        node.quant().greedy = 1;
-        node.quant().emptiness = BODY_IS_NOT_EMPTY;
-        node.quant().head_exact = null;
-        node.quant().next_head_exact = null;
-        node.quant().include_referred = 0;
-        node.quant().empty_status_mem = 0;
+        node.u = NodeBase{
+            .quant = QuantNode{
+                .node_type = NodeType.Quant,
+                .status = 0,
+                .parent = null,
+                .body = null,
+                .lower = lower,
+                .upper = upper,
+                .greedy = 1,
+                .emptiness = BODY_IS_NOT_EMPTY,
+                .head_exact = null,
+                .next_head_exact = null,
+                .include_referred = 0,
+                .empty_status_mem = 0,
+            },
+        };
         if (by_number) {
             //     NODE_STATUS_ADD(node, BY_NUMBER);
         }
@@ -437,8 +488,21 @@ pub const Node = struct {
 
     pub fn newBag(allocator: *Allocator, type: Bag) !*Node {
         const node = try Node.new(allocator);
-        node.setType(NodeType.Bag); // TODO(slimsag): NodeType.Bag should have lowercase Bag
-        node.bag().type = type;
+        node.u = NodeBase{
+            .bag = BagNode{
+                .node_type = NodeType.Quant,
+                .type = type,
+                .status = 0,
+                .parent = null,
+                .body = null,
+                .u = null,
+                .min_len = 0,
+                .max_len = 0,
+                .min_char_len = 0,
+                .max_char_len = 0,
+                .opt_count = 0,
+            },
+        };
         switch (type) {
         BagType.memory => {
             node.bag().u.?.regnum = 0;
@@ -453,7 +517,6 @@ pub const Node = struct {
             node.bag().u.?.te.els = 0;
         },
         }
-        node.bag().opt_count = 0;
         return node;
     }
 
@@ -508,14 +571,13 @@ pub const Node = struct {
         NodeType.List, NodeType.Alt => {
             var node = self;
             node.car().*.deinit(allocator);
-            node = node.cdr().*.?;
-            //     while (IS_NOT_NULL(node)) {
-            //       Node* next = NODE_CDR(node);
-            //       onig_node_free(NODE_CAR(node));
-            //       xfree(node);
-            //       node = next;
-            //     }
-            //     break;
+            //node = node.cdr().*;
+            //while (node != null) {
+                //       Node* next = NODE_CDR(node);
+                //       onig_node_free(NODE_CAR(node));
+                //       xfree(node);
+                //       node = next;
+            //}
         },
         NodeType.CClass => {
             //     {
@@ -632,7 +694,17 @@ pub const Node = struct {
 
     pub fn getType(self: *Node) callconv(.Inline) NodeType {
         if (self.u) |u| {
-            return u.base.node_type;
+            switch (u) {
+            NodeBaseTag.str => return u.str.node_type,
+            NodeBaseTag.cclass => return u.cclass.node_type,
+            NodeBaseTag.quant => return u.quant.node_type,
+            NodeBaseTag.bag => return u.bag.node_type,
+            NodeBaseTag.backRefNode => return u.backRefNode.node_type,
+            NodeBaseTag.anchor => return u.anchor.node_type,
+            NodeBaseTag.cons => return u.cons.node_type,
+            NodeBaseTag.ctype => return u.ctype.node_type,
+            NodeBaseTag.gimmick => return u.gimmick.node_type,
+            }
         }
         unreachable;
     }
@@ -692,7 +764,6 @@ pub const Node = struct {
 
         env.options = save_options;
         try env.decParseDepth();
-        try env.decParseDepth();
         return r;
     }
 
@@ -714,6 +785,7 @@ pub const Node = struct {
                 r = try Node.prs_exp(allocator, &node, tok, term, src, env, false);
                 if (node.getType() == NodeType.List) {
                     headp.* = node;
+                    // TODO(slimsag): *could* be wrong, needs testing.
                     //         while (IS_NOT_NULL(NODE_CDR(node))) node = NODE_CDR(node);
                     //         headp = &(NODE_CDR(node));
                     while (node.cdr().*) | cdrPtr | {
@@ -741,7 +813,7 @@ pub const Node = struct {
             group = 0;
             np.* = undefined;
 
-            //parse_depth = env.parse_depth;
+            parse_depth = env.parse_depth;
 
             if (tok.type == TokenSym.Alt or tok.type == TokenSym.EOT or tok.type == term) {
                 np.* = try Node.newEmpty(allocator);

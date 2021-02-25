@@ -3,47 +3,10 @@ const Allocator = std.mem.Allocator;
 const ParseEnv = @import("regparse_header2.zig").ParseEnv;
 const DEFAULT_PARSE_DEPTH_LIMIT = @import("regint2.zig").DEFAULT_PARSE_DEPTH_LIMIT;
 
-// /**********************************************************************
-//   regparse.c -  Oniguruma (regular expression library)
-// **********************************************************************/
-// /*-
-//  * Copyright (c) 2002-2021  K.Kosako
-//  * All rights reserved.
-//  *
-//  * Redistribution and use in source and binary forms, with or without
-//  * modification, are permitted provided that the following conditions
-//  * are met:
-//  * 1. Redistributions of source code must retain the above copyright
-//  *    notice, this list of conditions and the following disclaimer.
-//  * 2. Redistributions in binary form must reproduce the above copyright
-//  *    notice, this list of conditions and the following disclaimer in the
-//  *    documentation and/or other materials provided with the distribution.
-//  *
-//  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
-//  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-//  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-//  * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
-//  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-//  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
-//  * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-//  * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-//  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-//  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
-//  * SUCH DAMAGE.
-//  */
 
-// #ifdef DEBUG_NODE_FREE
-// #ifndef NEED_TO_INCLUDE_STDIO
-// #define NEED_TO_INCLUDE_STDIO
-// #endif
-// #endif
+const INIT_TAG_NAMES_ALLOC_NUM = 5;
 
-// #include "regparse.h"
-// #include "st.h"
-
-// #define INIT_TAG_NAMES_ALLOC_NUM   5
-
-// #define WARN_BUFSIZE    256
+const WARN_BUFSIZE   = 256;
 
 // #define CASE_FOLD_IS_APPLIED_INSIDE_NEGATIVE_CCLASS
 
@@ -143,19 +106,19 @@ const DEFAULT_PARSE_DEPTH_LIMIT = @import("regint2.zig").DEFAULT_PARSE_DEPTH_LIM
 
 // OnigSyntaxType*  OnigDefaultSyntax = ONIG_SYNTAX_ONIGURUMA;
 
-// typedef enum {
-//   CS_VALUE,
-//   CS_RANGE,
-//   CS_COMPLETE,
-//   CS_START
-// } CSTATE;
+const CSTATE = enum{
+  CS_VALUE,
+  CS_RANGE,
+  CS_COMPLETE,
+  CS_START
+};
 
-// typedef enum {
-//   CV_UNDEF,
-//   CV_SB,
-//   CV_MB,
-//   CV_CPROP
-// } CVAL;
+const CVAL = enum {
+  CV_UNDEF,
+  CV_SB,
+  CV_MB,
+  CV_CPROP
+};
 
 // extern void onig_null_warn(const char* s ARG_UNUSED) { }
 
@@ -189,9 +152,9 @@ const DEFAULT_PARSE_DEPTH_LIMIT = @import("regint2.zig").DEFAULT_PARSE_DEPTH_LIM
 //   (*onig_warn)(s);
 // }
 
-// #define DEFAULT_MAX_CAPTURE_NUM   32767
+const DEFAULT_MAX_CAPTURE_NUM =  32767;
 
-// static int MaxCaptureNum = DEFAULT_MAX_CAPTURE_NUM;
+const MaxCaptureNum = DEFAULT_MAX_CAPTURE_NUM;
 
 // extern int
 // onig_set_capture_num_limit(int num)
