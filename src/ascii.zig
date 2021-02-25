@@ -40,15 +40,16 @@ export fn init() {
     // #endif /* USE_CALLOUT */
 }
 
-// static int
-// ascii_is_code_ctype(OnigCodePoint code, unsigned int ctype)
-// {
-//   if (code < 128)
-//     return ONIGENC_IS_ASCII_CODE_CTYPE(code, ctype);
-//   else
-//     return FALSE;
-// }
+fn asciiIsCodeCType(code: CodePoint, ctype: usize) {
+    if (code < 128) {
+        // TODO(slimsag)
+        //     return ONIGENC_IS_ASCII_CODE_CTYPE(code, ctype);
+    } else {
+        return false;
+    }
+}
 
+// TODO(slimsag)
 // OnigEncodingType OnigEncodingASCII = {
 //   onigenc_single_byte_mbc_enc_len,
 //   "US-ASCII",  /* name */
