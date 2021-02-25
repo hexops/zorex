@@ -1,93 +1,8 @@
-// #ifndef ONIGURUMA_H
-// #define ONIGURUMA_H
-// /**********************************************************************
-//   oniguruma.h - Oniguruma (regular expression library)
-// **********************************************************************/
-// /*-
-//  * Copyright (c) 2002-2021  K.Kosako
-//  * All rights reserved.
-//  *
-//  * Redistribution and use in source and binary forms, with or without
-//  * modification, are permitted provided that the following conditions
-//  * are met:
-//  * 1. Redistributions of source code must retain the above copyright
-//  *    notice, this list of conditions and the following disclaimer.
-//  * 2. Redistributions in binary form must reproduce the above copyright
-//  *    notice, this list of conditions and the following disclaimer in the
-//  *    documentation and/or other materials provided with the distribution.
-//  *
-//  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
-//  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-//  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-//  * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
-//  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-//  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
-//  * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-//  * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-//  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-//  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
-//  * SUCH DAMAGE.
-//  */
 
-// #ifdef __cplusplus
-// extern "C" {
-// #endif
+const CodePoint = usize;
+const CType = usize;
 
-// #define ONIGURUMA
-// #define ONIGURUMA_VERSION_MAJOR   6
-// #define ONIGURUMA_VERSION_MINOR   9
-// #define ONIGURUMA_VERSION_TEENY   6
-
-// #define ONIGURUMA_VERSION_INT     60906
-
-// #ifndef P_
-// #if defined(__STDC__) || defined(_WIN32)
-// # define P_(args) args
-// #else
-// # define P_(args) ()
-// #endif
-// #endif
-
-// #ifndef PV_
-// # define PV_(args) args
-// #endif
-
-// #ifndef ONIG_STATIC
-// #ifndef ONIG_EXTERN
-// #if defined(_WIN32) && !defined(__GNUC__)
-// #if defined(ONIGURUMA_EXPORT)
-// #define ONIG_EXTERN   extern __declspec(dllexport)
-// #else
-// #define ONIG_EXTERN   extern __declspec(dllimport)
-// #endif
-// #endif
-// #endif
-
-// #ifndef ONIG_EXTERN
-// #define ONIG_EXTERN   extern
-// #endif
-// #else
-// #define ONIG_EXTERN   extern
-// #endif
-
-// #ifndef ONIG_VARIADIC_FUNC_ATTR
-// #define ONIG_VARIADIC_FUNC_ATTR
-// #endif
-
-// /* PART: character encoding */
-
-// #ifndef ONIG_ESCAPE_UCHAR_COLLISION
-// #define UChar OnigUChar
-// #endif
-
-// typedef unsigned int   OnigCodePoint;
-// typedef unsigned char  OnigUChar;
-// typedef unsigned int   OnigCtype;
-// typedef unsigned int   OnigLen;
-
-// #define ONIG_INFINITE_DISTANCE  ~((OnigLen )0)
-
-
+const INFINITE_DISTANCE = ~(@intCast(usize, 0));
 
 // TODO(slimsag): candidate for removal.
 /// Case fold flags
@@ -100,30 +15,31 @@ pub const CaseFoldType = enum(u32) {
 // TODO(slimsag): candidate for removal?
 pub const CaseFoldMin = CaseFoldType.InternalMultiChar;
 
-// #define ONIGENC_MAX_COMP_CASE_FOLD_CODE_LEN       3
-// #define ONIGENC_GET_CASE_FOLD_CODES_MAX_NUM      13
-// /* 13 => Unicode:0x1ffc */
+const ENC_MAX_COMP_CASE_FOLD_CODE_LEN      = 3;
+const ENC_GET_CASE_FOLD_CODES_MAX_NUM     = 13 ; /// 13 => Unicode:0x1ffc
 
-// /* code range */
+// TODO(slimsag)
+/// code range
 // #define ONIGENC_CODE_RANGE_NUM(range)     ((int )range[0])
 // #define ONIGENC_CODE_RANGE_FROM(range,i)  range[((i)*2) + 1]
 // #define ONIGENC_CODE_RANGE_TO(range,i)    range[((i)*2) + 2]
 
-// typedef struct {
-//   int byte_len;  /* argument(original) character(s) byte length */
-//   int code_len;  /* number of code */
-//   OnigCodePoint code[ONIGENC_MAX_COMP_CASE_FOLD_CODE_LEN];
-// } OnigCaseFoldCodeItem;
+const CaseFoldCodeItem = struct {
+    byte_len: isize, /// argument(original) character(s) byte length
+    code_len: isize, /// number of code
+    code: [ENC_MAX_COMP_CASE_FOLD_CODE_LEN]CodePoint,
+};
 
-// typedef struct {
-//   OnigCodePoint esc;
-//   OnigCodePoint anychar;
-//   OnigCodePoint anytime;
-//   OnigCodePoint zero_or_one_time;
-//   OnigCodePoint one_or_more_time;
-//   OnigCodePoint anychar_anytime;
-// } OnigMetaCharTableType;
+const MetaCharTableType = struct {
+    esc: CodePoint,
+    anyChar: CodePoint,
+    anyTime: CodePoint,
+    zeroOrOneTime: CodePoint,
+    oneOrMoreTime: CodePoint,
+    anyCharAnyTime: CodePoint,
+};
 
+// TODO(slimsag)
 // typedef int (*OnigApplyAllCaseFoldFunc)(OnigCodePoint from, OnigCodePoint* to, int to_len, void* arg);
 
 // typedef struct OnigEncodingTypeST {
