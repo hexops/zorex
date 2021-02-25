@@ -11,131 +11,23 @@ const NodeBase = @import("regparse_header2.zig").NodeBase;
 const NodeType = @import("regparse_header2.zig").NodeType;
 const ParseEnv = @import("regparse_header2.zig").ParseEnv;
 
-// /**********************************************************************
-//   regcomp.c -  Oniguruma (regular expression library)
-// **********************************************************************/
-// /*-
-//  * Copyright (c) 2002-2021  K.Kosako
-//  * All rights reserved.
-//  *
-//  * Redistribution and use in source and binary forms, with or without
-//  * modification, are permitted provided that the following conditions
-//  * are met:
-//  * 1. Redistributions of source code must retain the above copyright
-//  *    notice, this list of conditions and the following disclaimer.
-//  * 2. Redistributions in binary form must reproduce the above copyright
-//  *    notice, this list of conditions and the following disclaimer in the
-//  *    documentation and/or other materials provided with the distribution.
-//  *
-//  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
-//  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-//  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-//  * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
-//  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-//  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
-//  * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-//  * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-//  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-//  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
-//  * SUCH DAMAGE.
-//  */
-
-// #include "regparse.h"
-
 // #define NODE_IS_REAL_IGNORECASE(node) \
 //   (NODE_IS_IGNORECASE(node) && !NODE_STRING_IS_CRUDE(node))
 
-// typedef struct {
-//   OnigLen min;
-//   OnigLen max;
-// } MinMaxLen;
+const MinMaxLen = struct {
+    min: usize,
+    max: usize,
+};
 
-// typedef struct {
-//   OnigLen min;
-//   OnigLen max;
-//   int min_is_sure;
-// } MinMaxCharLen;
+const MinMaxCharLen = struct {
+    min: usize,
+    max: usize,
+    min_is_sure: bool,
+};
 
-// OnigCaseFoldType OnigDefaultCaseFoldFlag = ONIGENC_CASE_FOLD_MIN;
+const DefaultCaseFoldFlag = EncCaseFoldMin;
 
 // static OnigLen node_min_byte_len(Node* node, ParseEnv* env);
-
-// #if 0
-// typedef struct {
-//   int  n;
-//   int  alloc;
-//   int* v;
-// } int_stack;
-
-// static int
-// make_int_stack(int_stack** rs, int init_size)
-// {
-//   int_stack* s;
-//   int* v;
-
-//   *rs = 0;
-
-//   s = xmalloc(sizeof(*s));
-//   if (IS_NULL(s)) return ONIGERR_MEMORY;
-
-//   v = (int* )xmalloc(sizeof(int) * init_size);
-//   if (IS_NULL(v)) {
-//     xfree(s);
-//     return ONIGERR_MEMORY;
-//   }
-
-//   s->n = 0;
-//   s->alloc = init_size;
-//   s->v = v;
-
-//   *rs = s;
-//   return ONIG_NORMAL;
-// }
-
-// static void
-// free_int_stack(int_stack* s)
-// {
-//   if (IS_NOT_NULL(s)) {
-//     if (IS_NOT_NULL(s->v))
-//       xfree(s->v);
-//     xfree(s);
-//   }
-// }
-
-// static int
-// int_stack_push(int_stack* s, int v)
-// {
-//   if (s->n >= s->alloc) {
-//     int new_size = s->alloc * 2;
-//     int* nv = (int* )xrealloc(s->v, sizeof(int) * new_size);
-//     if (IS_NULL(nv)) return ONIGERR_MEMORY;
-
-//     s->alloc = new_size;
-//     s->v = nv;
-//   }
-
-//   s->v[s->n] = v;
-//   s->n++;
-//   return ONIG_NORMAL;
-// }
-
-// static int
-// int_stack_pop(int_stack* s)
-// {
-//   int v;
-
-// #ifdef ONIG_DEBUG
-//   if (s->n <= 0) {
-//     fprintf(DBGFP, "int_stack_pop: fail empty. %p\n", s);
-//     return 0;
-//   }
-// #endif
-
-//   v = s->v[s->n];
-//   s->n--;
-//   return v;
-// }
-// #endif
 
 // static int
 // ops_expand(regex_t* reg, int n)
