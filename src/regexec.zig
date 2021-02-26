@@ -1,6 +1,8 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 const ReRegisters = @import("oniguruma.zig").ReRegisters;
+const Regex = @import("regcomp.zig").Regex;
+pub const Option = @import("oniguruma.zig").Option;
 
 // #define IS_MBC_WORD_ASCII_MODE(enc,s,end,mode) \
 //   ((mode) == 0 ? ONIGENC_IS_MBC_WORD(enc,s,end) : ONIGENC_IS_MBC_WORD_ASCII(enc,s,end))
@@ -37,53 +39,44 @@ const ReRegisters = @import("oniguruma.zig").ReRegisters;
 // } CalloutData;
 // #endif
 
-// struct OnigMatchParamStruct {
-//   unsigned int    match_stack_limit;
-// #ifdef USE_RETRY_LIMIT
-//   unsigned long   retry_limit_in_match;
-//   unsigned long   retry_limit_in_search;
-// #endif
-// #ifdef USE_CALLOUT
-//   OnigCalloutFunc progress_callout_of_contents;
-//   OnigCalloutFunc retraction_callout_of_contents;
-//   int             match_at_call_counter;
-//   void*           callout_user_data;
-//   CalloutData*    callout_data;
-//   int             callout_data_alloc_num;
-// #endif
-// };
+const MatchParam = struct {
+    match_stack_limit: usize,
+    // #ifdef USE_RETRY_LIMIT
+    //   unsigned long   retry_limit_in_match;
+    //   unsigned long   retry_limit_in_search;
+    // #endif
+    // #ifdef USE_CALLOUT
+    //   OnigCalloutFunc progress_callout_of_contents;
+    //   OnigCalloutFunc retraction_callout_of_contents;
+    //   int             match_at_call_counter;
+    //   void*           callout_user_data;
+    //   CalloutData*    callout_data;
+    //   int             callout_data_alloc_num;
+    // #endif
+};
 
-// extern int
-// onig_set_match_stack_limit_size_of_match_param(OnigMatchParam* param,
-//                                                unsigned int limit)
-// {
-//   param->match_stack_limit = limit;
-//   return ONIG_NORMAL;
-// }
+// TODO(slimsag): candidate for removal?
+fn setMatchStackLimitSizeOfMatchParam(param: *MatchParam, limit: usize) void {
+    param.match_stack_limit = limit;
+}
 
-// extern int
-// onig_set_retry_limit_in_match_of_match_param(OnigMatchParam* param,
-//                                              unsigned long limit)
-// {
-// #ifdef USE_RETRY_LIMIT
-//   param->retry_limit_in_match = limit;
-//   return ONIG_NORMAL;
-// #else
-//   return ONIG_NO_SUPPORT_CONFIG;
-// #endif
-// }
+fn setRetryLimitInMatchOfMatchParam(param: *MatchParam, limit: usize) !void {
+    // #ifdef USE_RETRY_LIMIT
+    //   param->retry_limit_in_match = limit;
+    //   return ONIG_NORMAL;
+    // #else
+    //   return ONIG_NO_SUPPORT_CONFIG;
+    // #endif
+}
 
-// extern int
-// onig_set_retry_limit_in_search_of_match_param(OnigMatchParam* param,
-//                                               unsigned long limit)
-// {
-// #ifdef USE_RETRY_LIMIT
-//   param->retry_limit_in_search = limit;
-//   return ONIG_NORMAL;
-// #else
-//   return ONIG_NO_SUPPORT_CONFIG;
-// #endif
-// }
+fn setRetryLimitInSearchOfMatchParam(param: *MatchParam) void {
+    // #ifdef USE_RETRY_LIMIT
+    //   param->retry_limit_in_search = limit;
+    //   return ONIG_NORMAL;
+    // #else
+    //   return ONIG_NO_SUPPORT_CONFIG;
+    // #endif
+}
 
 // extern int
 // onig_set_progress_callout_of_match_param(OnigMatchParam* param, OnigCalloutFunc f)
@@ -118,49 +111,47 @@ const ReRegisters = @import("oniguruma.zig").ReRegisters;
 // #endif
 // }
 
-
-// typedef struct {
-//   void* stack_p;
-//   int   stack_n;
-//   OnigOptionType options;
-//   OnigRegion*    region;
-//   int            ptr_num;
-//   const UChar*   start;   /* search start position (for \G: BEGIN_POSITION) */
-//   unsigned int   match_stack_limit;
-// #ifdef USE_RETRY_LIMIT
-//   unsigned long  retry_limit_in_match;
-//   unsigned long  retry_limit_in_search;
-//   unsigned long  retry_limit_in_search_counter;
-// #endif
-//   OnigMatchParam* mp;
-// #ifdef USE_FIND_LONGEST_SEARCH_ALL_OF_RANGE
-//   int    best_len;      /* for ONIG_OPTION_FIND_LONGEST */
-//   UChar* best_s;
-// #endif
-// #ifdef USE_CALL
-//   unsigned long  subexp_call_in_search_counter;
-// #endif
-// } MatchArg;
-
+const MatchArg = struct {
+    //   void* stack_p;
+    //   int   stack_n;
+    options: Option,
+    region: *Region,
+    //   int            ptr_num;
+    //   const UChar*   start;   /* search start position (for \G: BEGIN_POSITION) */
+    //   unsigned int   match_stack_limit;
+    // #ifdef USE_RETRY_LIMIT
+    //   unsigned long  retry_limit_in_match;
+    //   unsigned long  retry_limit_in_search;
+    //   unsigned long  retry_limit_in_search_counter;
+    // #endif
+    //   OnigMatchParam* mp;
+    // #ifdef USE_FIND_LONGEST_SEARCH_ALL_OF_RANGE
+    //   int    best_len;      /* for ONIG_OPTION_FIND_LONGEST */
+    //   UChar* best_s;
+    // #endif
+    // #ifdef USE_CALL
+    //   unsigned long  subexp_call_in_search_counter;
+    // #endif
+};
 
 // #if defined(ONIG_DEBUG_COMPILE) || defined(ONIG_DEBUG_MATCH)
 
-// /* arguments type */
-// typedef enum {
-//   ARG_SPECIAL = -1,
-//   ARG_NON     =  0,
-//   ARG_RELADDR =  1,
-//   ARG_ABSADDR =  2,
-//   ARG_LENGTH  =  3,
-//   ARG_MEMNUM  =  4,
-//   ARG_OPTION  =  5,
-//   ARG_MODE    =  6
-// } OpArgType;
+/// arguments type
+const ArgType = enum {
+   ARG_SPECIAL = -1,
+   ARG_NON     =  0,
+   ARG_RELADDR =  1,
+   ARG_ABSADDR =  2,
+   ARG_LENGTH  =  3,
+   ARG_MEMNUM  =  4,
+   ARG_OPTION  =  5,
+   ARG_MODE    =  6
+};
 
-// typedef struct {
-//   short int opcode;
-//   char*     name;
-// } OpInfoType;
+const OpInfoType = struct {
+    opcode: i16,
+    name: []const u8,
+};
 
 // static OpInfoType OpInfo[] = {
 //   { OP_FINISH,         "finish"},
@@ -5294,30 +5285,33 @@ pub const Region = struct {
 // }
 
 
+// TODO(slimsag): note str, end, start, range are replaces by fact that
+// str is a slice.
+//
 // extern int
 // onig_search(regex_t* reg, const UChar* str, const UChar* end,
 //             const UChar* start, const UChar* range, OnigRegion* region,
 //             OnigOptionType option)
-// {
-//   int r;
-//   OnigMatchParam mp;
-//   const UChar* data_range;
+pub fn search(reg: *Regex, str: []const u8, region: *Region, option: Option) !void {
+    var mp: MatchParam = std.mem.zeroes(MatchParam);
+    //   onig_initialize_match_param(&mp);
 
-//   onig_initialize_match_param(&mp);
+    // TODO(slimsag): not needed due to slice.
+    //
+    // The following is an expanded code of searchWithParam()
+    //   if (range > start)
+    //     data_range = range;
+    //   else
+    //     data_range = end;
+    //
+    //   r = search_in_range(reg, str, end, start, range, data_range, region,
+    //                       option, &mp);
 
-//   /* The following is an expanded code of onig_search_with_param()  */
-//   if (range > start)
-//     data_range = range;
-//   else
-//     data_range = end;
+    try searchInRange(reg, str, region, option, &mp);
 
-//   r = search_in_range(reg, str, end, start, range, data_range, region,
-//                       option, &mp);
-
-//   onig_free_match_param_content(&mp);
-//   return r;
-
-// }
+    //   onig_free_match_param_content(&mp);
+    return;
+}
 
 // static int
 // search_in_range(regex_t* reg, const UChar* str, const UChar* end,
@@ -5325,345 +5319,347 @@ pub const Region = struct {
 //                 const UChar* data_range, /* subject string range */
 //                 OnigRegion* region,
 //                 OnigOptionType option, OnigMatchParam* mp)
-// {
-//   int r;
-//   UChar *s;
-//   MatchArg msa;
-//   const UChar *orig_start = start;
+fn searchInRange(reg: *Regex, str: []const u8, region: *Region, option: Option, mp: *MatchParam) !void {
+    return;
+    //   int r;
+    //   UChar *s;
+    //   MatchArg msa;
+    //   const UChar *orig_start = start;
 
-// #ifdef ONIG_DEBUG_SEARCH
-//   fprintf(DBGFP,
-//      "onig_search (entry point): str: %p, end: %d, start: %d, range: %d\n",
-//      str, (int )(end - str), (int )(start - str), (int )(range - str));
-// #endif
+    // #ifdef ONIG_DEBUG_SEARCH
+    //   fprintf(DBGFP,
+    //      "onig_search (entry point): str: %p, end: %d, start: %d, range: %d\n",
+    //      str, (int )(end - str), (int )(start - str), (int )(range - str));
+    // #endif
 
-//   ADJUST_MATCH_PARAM(reg, mp);
+    //   ADJUST_MATCH_PARAM(reg, mp);
 
-// #ifndef USE_POSIX_API
-//   if (OPTON_POSIX_REGION(option)) {
-//     r = ONIGERR_INVALID_ARGUMENT;
-//     goto finish_no_msa;
-//   }
-// #endif
+    // #ifndef USE_POSIX_API
+    //   if (OPTON_POSIX_REGION(option)) {
+    //     r = ONIGERR_INVALID_ARGUMENT;
+    //     goto finish_no_msa;
+    //   }
+    // #endif
 
-//   if (region
-// #ifdef USE_POSIX_API
-//       && ! OPTON_POSIX_REGION(option)
-// #endif
-//       ) {
-//     r = onig_region_resize_clear(region, reg->num_mem + 1);
-//     if (r != 0) goto finish_no_msa;
-//   }
+    //   if (region
+    // #ifdef USE_POSIX_API
+    //       && ! OPTON_POSIX_REGION(option)
+    // #endif
+    //       ) {
+    //     r = onig_region_resize_clear(region, reg->num_mem + 1);
+    //     if (r != 0) goto finish_no_msa;
+    //   }
 
-//   if (start > end || start < str) goto mismatch_no_msa;
+    //   if (start > end || start < str) goto mismatch_no_msa;
 
-//   if (OPTON_CHECK_VALIDITY_OF_STRING(option)) {
-//     if (! ONIGENC_IS_VALID_MBC_STRING(reg->enc, str, end)) {
-//       r = ONIGERR_INVALID_WIDE_CHAR_VALUE;
-//       goto finish_no_msa;
-//     }
-//   }
-
-
-// #define MATCH_AND_RETURN_CHECK(upper_range) \
-//   r = match_at(reg, str, end, (upper_range), s, &msa);\
-//   if (r != ONIG_MISMATCH) {\
-//     if (r >= 0) {\
-//       goto match;\
-//     }\
-//     else goto finish; /* error */ \
-//   }
+    //   if (OPTON_CHECK_VALIDITY_OF_STRING(option)) {
+    //     if (! ONIGENC_IS_VALID_MBC_STRING(reg->enc, str, end)) {
+    //       r = ONIGERR_INVALID_WIDE_CHAR_VALUE;
+    //       goto finish_no_msa;
+    //     }
+    //   }
 
 
-//   /* anchor optimize: resume search range */
-//   if (reg->anchor != 0 && str < end) {
-//     UChar *min_semi_end, *max_semi_end;
+    // #define MATCH_AND_RETURN_CHECK(upper_range) \
+    //   r = match_at(reg, str, end, (upper_range), s, &msa);\
+    //   if (r != ONIG_MISMATCH) {\
+    //     if (r >= 0) {\
+    //       goto match;\
+    //     }\
+    //     else goto finish; /* error */ \
+    //   }
 
-//     if (reg->anchor & ANCR_BEGIN_POSITION) {
-//       /* search start-position only */
-//     begin_position:
-//       if (range > start)
-//         range = start + 1;
-//       else
-//         range = start;
-//     }
-//     else if (reg->anchor & ANCR_BEGIN_BUF) {
-//       /* search str-position only */
-//       if (range > start) {
-//         if (start != str) goto mismatch_no_msa;
-//         range = str + 1;
-//       }
-//       else {
-//         if (range <= str) {
-//           start = str;
-//           range = str;
-//         }
-//         else
-//           goto mismatch_no_msa;
-//       }
-//     }
-//     else if (reg->anchor & ANCR_END_BUF) {
-//       min_semi_end = max_semi_end = (UChar* )end;
 
-//     end_buf:
-//       if ((OnigLen )(max_semi_end - str) < reg->anc_dist_min)
-//         goto mismatch_no_msa;
+    //   /* anchor optimize: resume search range */
+    //   if (reg->anchor != 0 && str < end) {
+    //     UChar *min_semi_end, *max_semi_end;
 
-//       if (range > start) {
-//         if (reg->anc_dist_max != INFINITE_LEN &&
-//             min_semi_end - start > reg->anc_dist_max) {
-//           start = min_semi_end - reg->anc_dist_max;
-//           if (start < end)
-//             start = onigenc_get_right_adjust_char_head(reg->enc, str, start);
-//         }
-//         if (max_semi_end - (range - 1) < reg->anc_dist_min) {
-//           if (max_semi_end - str + 1 < reg->anc_dist_min)
-//             goto mismatch_no_msa;
-//           else
-//             range = max_semi_end - reg->anc_dist_min + 1;
-//         }
+    //     if (reg->anchor & ANCR_BEGIN_POSITION) {
+    //       /* search start-position only */
+    //     begin_position:
+    //       if (range > start)
+    //         range = start + 1;
+    //       else
+    //         range = start;
+    //     }
+    //     else if (reg->anchor & ANCR_BEGIN_BUF) {
+    //       /* search str-position only */
+    //       if (range > start) {
+    //         if (start != str) goto mismatch_no_msa;
+    //         range = str + 1;
+    //       }
+    //       else {
+    //         if (range <= str) {
+    //           start = str;
+    //           range = str;
+    //         }
+    //         else
+    //           goto mismatch_no_msa;
+    //       }
+    //     }
+    //     else if (reg->anchor & ANCR_END_BUF) {
+    //       min_semi_end = max_semi_end = (UChar* )end;
 
-//         if (start > range) goto mismatch_no_msa;
-//         /* If start == range, match with empty at end.
-//            Backward search is used. */
-//       }
-//       else {
-//         if (reg->anc_dist_max != INFINITE_LEN &&
-//             min_semi_end - range > reg->anc_dist_max) {
-//           range = min_semi_end - reg->anc_dist_max;
-//         }
-//         if (max_semi_end - start < reg->anc_dist_min) {
-//           if (max_semi_end - str < reg->anc_dist_min)
-//             goto mismatch_no_msa;
-//           else {
-//             start = max_semi_end - reg->anc_dist_min;
-//             start = ONIGENC_LEFT_ADJUST_CHAR_HEAD(reg->enc, str, start);
-//           }
-//         }
-//         if (range > start) goto mismatch_no_msa;
-//       }
-//     }
-//     else if (reg->anchor & ANCR_SEMI_END_BUF) {
-//       UChar* pre_end = ONIGENC_STEP_BACK(reg->enc, str, end, 1);
+    //     end_buf:
+    //       if ((OnigLen )(max_semi_end - str) < reg->anc_dist_min)
+    //         goto mismatch_no_msa;
 
-//       max_semi_end = (UChar* )end;
-//       if (ONIGENC_IS_MBC_NEWLINE(reg->enc, pre_end, end)) {
-//         min_semi_end = pre_end;
+    //       if (range > start) {
+    //         if (reg->anc_dist_max != INFINITE_LEN &&
+    //             min_semi_end - start > reg->anc_dist_max) {
+    //           start = min_semi_end - reg->anc_dist_max;
+    //           if (start < end)
+    //             start = onigenc_get_right_adjust_char_head(reg->enc, str, start);
+    //         }
+    //         if (max_semi_end - (range - 1) < reg->anc_dist_min) {
+    //           if (max_semi_end - str + 1 < reg->anc_dist_min)
+    //             goto mismatch_no_msa;
+    //           else
+    //             range = max_semi_end - reg->anc_dist_min + 1;
+    //         }
 
-// #ifdef USE_CRNL_AS_LINE_TERMINATOR
-//         pre_end = ONIGENC_STEP_BACK(reg->enc, str, pre_end, 1);
-//         if (IS_NOT_NULL(pre_end) &&
-//             ONIGENC_IS_MBC_CRNL(reg->enc, pre_end, end)) {
-//           min_semi_end = pre_end;
-//         }
-// #endif
-//         if (min_semi_end > str && start <= min_semi_end) {
-//           goto end_buf;
-//         }
-//       }
-//       else {
-//         min_semi_end = (UChar* )end;
-//         goto end_buf;
-//       }
-//     }
-//     else if ((reg->anchor & ANCR_ANYCHAR_INF_ML) && range > start) {
-//       goto begin_position;
-//     }
-//   }
-//   else if (str == end) { /* empty string */
-//     static const UChar* address_for_empty_string = (UChar* )"";
+    //         if (start > range) goto mismatch_no_msa;
+    //         /* If start == range, match with empty at end.
+    //            Backward search is used. */
+    //       }
+    //       else {
+    //         if (reg->anc_dist_max != INFINITE_LEN &&
+    //             min_semi_end - range > reg->anc_dist_max) {
+    //           range = min_semi_end - reg->anc_dist_max;
+    //         }
+    //         if (max_semi_end - start < reg->anc_dist_min) {
+    //           if (max_semi_end - str < reg->anc_dist_min)
+    //             goto mismatch_no_msa;
+    //           else {
+    //             start = max_semi_end - reg->anc_dist_min;
+    //             start = ONIGENC_LEFT_ADJUST_CHAR_HEAD(reg->enc, str, start);
+    //           }
+    //         }
+    //         if (range > start) goto mismatch_no_msa;
+    //       }
+    //     }
+    //     else if (reg->anchor & ANCR_SEMI_END_BUF) {
+    //       UChar* pre_end = ONIGENC_STEP_BACK(reg->enc, str, end, 1);
 
-// #ifdef ONIG_DEBUG_SEARCH
-//     fprintf(DBGFP, "onig_search: empty string.\n");
-// #endif
+    //       max_semi_end = (UChar* )end;
+    //       if (ONIGENC_IS_MBC_NEWLINE(reg->enc, pre_end, end)) {
+    //         min_semi_end = pre_end;
 
-//     if (reg->threshold_len == 0) {
-//       start = end = str = address_for_empty_string;
-//       s = (UChar* )start;
+    // #ifdef USE_CRNL_AS_LINE_TERMINATOR
+    //         pre_end = ONIGENC_STEP_BACK(reg->enc, str, pre_end, 1);
+    //         if (IS_NOT_NULL(pre_end) &&
+    //             ONIGENC_IS_MBC_CRNL(reg->enc, pre_end, end)) {
+    //           min_semi_end = pre_end;
+    //         }
+    // #endif
+    //         if (min_semi_end > str && start <= min_semi_end) {
+    //           goto end_buf;
+    //         }
+    //       }
+    //       else {
+    //         min_semi_end = (UChar* )end;
+    //         goto end_buf;
+    //       }
+    //     }
+    //     else if ((reg->anchor & ANCR_ANYCHAR_INF_ML) && range > start) {
+    //       goto begin_position;
+    //     }
+    //   }
+    //   else if (str == end) { /* empty string */
+    //     static const UChar* address_for_empty_string = (UChar* )"";
 
-//       MATCH_ARG_INIT(msa, reg, option, region, start, mp);
-//       MATCH_AND_RETURN_CHECK(end);
-//       goto mismatch;
-//     }
-//     goto mismatch_no_msa;
-//   }
+    // #ifdef ONIG_DEBUG_SEARCH
+    //     fprintf(DBGFP, "onig_search: empty string.\n");
+    // #endif
 
-// #ifdef ONIG_DEBUG_SEARCH
-//   fprintf(DBGFP, "onig_search(apply anchor): end: %d, start: %d, range: %d\n",
-//           (int )(end - str), (int )(start - str), (int )(range - str));
-// #endif
+    //     if (reg->threshold_len == 0) {
+    //       start = end = str = address_for_empty_string;
+    //       s = (UChar* )start;
 
-//   MATCH_ARG_INIT(msa, reg, option, region, orig_start, mp);
+    //       MATCH_ARG_INIT(msa, reg, option, region, start, mp);
+    //       MATCH_AND_RETURN_CHECK(end);
+    //       goto mismatch;
+    //     }
+    //     goto mismatch_no_msa;
+    //   }
 
-//   s = (UChar* )start;
-//   if (range > start) {   /* forward search */
-//     if (reg->optimize != OPTIMIZE_NONE) {
-//       UChar *sch_range, *low, *high;
+    // #ifdef ONIG_DEBUG_SEARCH
+    //   fprintf(DBGFP, "onig_search(apply anchor): end: %d, start: %d, range: %d\n",
+    //           (int )(end - str), (int )(start - str), (int )(range - str));
+    // #endif
 
-//       if (reg->dist_max != 0) {
-//         if (reg->dist_max == INFINITE_LEN)
-//           sch_range = (UChar* )end;
-//         else {
-//           if ((end - range) < reg->dist_max)
-//             sch_range = (UChar* )end;
-//           else {
-//             sch_range = (UChar* )range + reg->dist_max;
-//           }
-//         }
-//       }
-//       else
-//         sch_range = (UChar* )range;
+    //   MATCH_ARG_INIT(msa, reg, option, region, orig_start, mp);
 
-//       if ((end - start) < reg->threshold_len)
-//         goto mismatch;
+    //   s = (UChar* )start;
+    //   if (range > start) {   /* forward search */
+    //     if (reg->optimize != OPTIMIZE_NONE) {
+    //       UChar *sch_range, *low, *high;
 
-//       if (reg->dist_max != INFINITE_LEN) {
-//         do {
-//           if (! forward_search(reg, str, end, s, sch_range, &low, &high))
-//             goto mismatch;
-//           if (s < low) {
-//             s    = low;
-//           }
-//           while (s <= high) {
-//             MATCH_AND_RETURN_CHECK(data_range);
-//             s += enclen(reg->enc, s);
-//           }
-//         } while (s < range);
-//         goto mismatch;
-//       }
-//       else { /* check only. */
-//         if (! forward_search(reg, str, end, s, sch_range, &low, &high))
-//           goto mismatch;
+    //       if (reg->dist_max != 0) {
+    //         if (reg->dist_max == INFINITE_LEN)
+    //           sch_range = (UChar* )end;
+    //         else {
+    //           if ((end - range) < reg->dist_max)
+    //             sch_range = (UChar* )end;
+    //           else {
+    //             sch_range = (UChar* )range + reg->dist_max;
+    //           }
+    //         }
+    //       }
+    //       else
+    //         sch_range = (UChar* )range;
 
-//         if ((reg->anchor & ANCR_ANYCHAR_INF) != 0 &&
-//             (reg->anchor & (ANCR_LOOK_BEHIND | ANCR_PREC_READ_NOT)) == 0) {
-//           do {
-//             UChar* prev;
+    //       if ((end - start) < reg->threshold_len)
+    //         goto mismatch;
 
-//             MATCH_AND_RETURN_CHECK(data_range);
-//             prev = s;
-//             s += enclen(reg->enc, s);
+    //       if (reg->dist_max != INFINITE_LEN) {
+    //         do {
+    //           if (! forward_search(reg, str, end, s, sch_range, &low, &high))
+    //             goto mismatch;
+    //           if (s < low) {
+    //             s    = low;
+    //           }
+    //           while (s <= high) {
+    //             MATCH_AND_RETURN_CHECK(data_range);
+    //             s += enclen(reg->enc, s);
+    //           }
+    //         } while (s < range);
+    //         goto mismatch;
+    //       }
+    //       else { /* check only. */
+    //         if (! forward_search(reg, str, end, s, sch_range, &low, &high))
+    //           goto mismatch;
 
-//             while (!ONIGENC_IS_MBC_NEWLINE(reg->enc, prev, end) && s < range) {
-//               prev = s;
-//               s += enclen(reg->enc, s);
-//             }
-//           } while (s < range);
-//           goto mismatch;
-//         }
-//       }
-//     }
+    //         if ((reg->anchor & ANCR_ANYCHAR_INF) != 0 &&
+    //             (reg->anchor & (ANCR_LOOK_BEHIND | ANCR_PREC_READ_NOT)) == 0) {
+    //           do {
+    //             UChar* prev;
 
-//     do {
-//       MATCH_AND_RETURN_CHECK(data_range);
-//       s += enclen(reg->enc, s);
-//     } while (s < range);
+    //             MATCH_AND_RETURN_CHECK(data_range);
+    //             prev = s;
+    //             s += enclen(reg->enc, s);
 
-//     if (s == range) { /* because empty match with /$/. */
-//       MATCH_AND_RETURN_CHECK(data_range);
-//     }
-//   }
-//   else {  /* backward search */
-//     if (range < str) goto mismatch;
+    //             while (!ONIGENC_IS_MBC_NEWLINE(reg->enc, prev, end) && s < range) {
+    //               prev = s;
+    //               s += enclen(reg->enc, s);
+    //             }
+    //           } while (s < range);
+    //           goto mismatch;
+    //         }
+    //       }
+    //     }
 
-//     if (orig_start < end)
-//       orig_start += enclen(reg->enc, orig_start); /* is upper range */
+    //     do {
+    //       MATCH_AND_RETURN_CHECK(data_range);
+    //       s += enclen(reg->enc, s);
+    //     } while (s < range);
 
-//     if (reg->optimize != OPTIMIZE_NONE) {
-//       UChar *low, *high, *adjrange, *sch_start;
-//       const UChar *min_range;
+    //     if (s == range) { /* because empty match with /$/. */
+    //       MATCH_AND_RETURN_CHECK(data_range);
+    //     }
+    //   }
+    //   else {  /* backward search */
+    //     if (range < str) goto mismatch;
 
-//       if ((end - range) < reg->threshold_len) goto mismatch;
+    //     if (orig_start < end)
+    //       orig_start += enclen(reg->enc, orig_start); /* is upper range */
 
-//       if (range < end)
-//         adjrange = ONIGENC_LEFT_ADJUST_CHAR_HEAD(reg->enc, str, range);
-//       else
-//         adjrange = (UChar* )end;
+    //     if (reg->optimize != OPTIMIZE_NONE) {
+    //       UChar *low, *high, *adjrange, *sch_start;
+    //       const UChar *min_range;
 
-//       if (end - range > reg->dist_min)
-//         min_range = range + reg->dist_min;
-//       else
-//         min_range = end;
+    //       if ((end - range) < reg->threshold_len) goto mismatch;
 
-//       if (reg->dist_max != INFINITE_LEN) {
-//         do {
-//           if (end - s > reg->dist_max)
-//             sch_start = s + reg->dist_max;
-//           else {
-//             sch_start = onigenc_get_prev_char_head(reg->enc, str, end);
-//           }
+    //       if (range < end)
+    //         adjrange = ONIGENC_LEFT_ADJUST_CHAR_HEAD(reg->enc, str, range);
+    //       else
+    //         adjrange = (UChar* )end;
 
-//           if (backward_search(reg, str, end, sch_start, min_range, adjrange,
-//                               &low, &high) <= 0)
-//             goto mismatch;
+    //       if (end - range > reg->dist_min)
+    //         min_range = range + reg->dist_min;
+    //       else
+    //         min_range = end;
 
-//           if (s > high)
-//             s = high;
+    //       if (reg->dist_max != INFINITE_LEN) {
+    //         do {
+    //           if (end - s > reg->dist_max)
+    //             sch_start = s + reg->dist_max;
+    //           else {
+    //             sch_start = onigenc_get_prev_char_head(reg->enc, str, end);
+    //           }
 
-//           while (PTR_GE(s, low)) {
-//             MATCH_AND_RETURN_CHECK(orig_start);
-//             s = onigenc_get_prev_char_head(reg->enc, str, s);
-//           }
-//         } while (PTR_GE(s, range));
-//         goto mismatch;
-//       }
-//       else { /* check only. */
-//         sch_start = onigenc_get_prev_char_head(reg->enc, str, end);
+    //           if (backward_search(reg, str, end, sch_start, min_range, adjrange,
+    //                               &low, &high) <= 0)
+    //             goto mismatch;
 
-//         if (backward_search(reg, str, end, sch_start, min_range, adjrange,
-//                             &low, &high) <= 0) goto mismatch;
-//       }
-//     }
+    //           if (s > high)
+    //             s = high;
 
-//     do {
-//       MATCH_AND_RETURN_CHECK(orig_start);
-//       s = onigenc_get_prev_char_head(reg->enc, str, s);
-//     } while (PTR_GE(s, range));
-//   }
+    //           while (PTR_GE(s, low)) {
+    //             MATCH_AND_RETURN_CHECK(orig_start);
+    //             s = onigenc_get_prev_char_head(reg->enc, str, s);
+    //           }
+    //         } while (PTR_GE(s, range));
+    //         goto mismatch;
+    //       }
+    //       else { /* check only. */
+    //         sch_start = onigenc_get_prev_char_head(reg->enc, str, end);
 
-//  mismatch:
-// #ifdef USE_FIND_LONGEST_SEARCH_ALL_OF_RANGE
-//   if (OPTON_FIND_LONGEST(reg->options)) {
-//     if (msa.best_len >= 0) {
-//       s = msa.best_s;
-//       goto match;
-//     }
-//   }
-// #endif
-//   r = ONIG_MISMATCH;
+    //         if (backward_search(reg, str, end, sch_start, min_range, adjrange,
+    //                             &low, &high) <= 0) goto mismatch;
+    //       }
+    //     }
 
-//  finish:
-//   MATCH_ARG_FREE(msa);
+    //     do {
+    //       MATCH_AND_RETURN_CHECK(orig_start);
+    //       s = onigenc_get_prev_char_head(reg->enc, str, s);
+    //     } while (PTR_GE(s, range));
+    //   }
 
-//   /* If result is mismatch and no FIND_NOT_EMPTY option,
-//      then the region is not set in match_at(). */
-//   if (OPTON_FIND_NOT_EMPTY(reg->options) && region
-// #ifdef USE_POSIX_API
-//       && !OPTON_POSIX_REGION(option)
-// #endif
-//       ) {
-//     onig_region_clear(region);
-//   }
+    //  mismatch:
+    // #ifdef USE_FIND_LONGEST_SEARCH_ALL_OF_RANGE
+    //   if (OPTON_FIND_LONGEST(reg->options)) {
+    //     if (msa.best_len >= 0) {
+    //       s = msa.best_s;
+    //       goto match;
+    //     }
+    //   }
+    // #endif
+    //   r = ONIG_MISMATCH;
 
-// #ifdef ONIG_DEBUG
-//   if (r != ONIG_MISMATCH)
-//     fprintf(DBGFP, "onig_search: error %d\n", r);
-// #endif
-//   return r;
+    //  finish:
+    //   MATCH_ARG_FREE(msa);
 
-//  mismatch_no_msa:
-//   r = ONIG_MISMATCH;
-//  finish_no_msa:
-// #ifdef ONIG_DEBUG
-//   if (r != ONIG_MISMATCH)
-//     fprintf(DBGFP, "onig_search: error %d\n", r);
-// #endif
-//   return r;
+    //   /* If result is mismatch and no FIND_NOT_EMPTY option,
+    //      then the region is not set in match_at(). */
+    //   if (OPTON_FIND_NOT_EMPTY(reg->options) && region
+    // #ifdef USE_POSIX_API
+    //       && !OPTON_POSIX_REGION(option)
+    // #endif
+    //       ) {
+    //     onig_region_clear(region);
+    //   }
 
-//  match:
-//   MATCH_ARG_FREE(msa);
-//   return (int )(s - str);
-// }
+    // #ifdef ONIG_DEBUG
+    //   if (r != ONIG_MISMATCH)
+    //     fprintf(DBGFP, "onig_search: error %d\n", r);
+    // #endif
+    //   return r;
+
+    //  mismatch_no_msa:
+    //   r = ONIG_MISMATCH;
+    //  finish_no_msa:
+    // #ifdef ONIG_DEBUG
+    //   if (r != ONIG_MISMATCH)
+    //     fprintf(DBGFP, "onig_search: error %d\n", r);
+    // #endif
+    //   return r;
+
+    //  match:
+    //   MATCH_ARG_FREE(msa);
+    //   return (int )(s - str);
+    // }
+}
 
 // extern int
 // onig_search_with_param(regex_t* reg, const UChar* str, const UChar* end,
@@ -5730,71 +5726,28 @@ pub const Region = struct {
 //   return n;
 // }
 
-// extern int
-// onig_get_subexp_call_max_nest_level(void)
-// {
-//   return SubexpCallMaxNestLevel;
-// }
+fn setSubExpCallMaxNestLevel(level: isize) void {
+    subExpCallMaxNestLevel = level;
+}
 
-// extern int
-// onig_set_subexp_call_max_nest_level(int level)
-// {
-//   SubexpCallMaxNestLevel = level;
-//   return 0;
-// }
+fn numberOfCaptures(reg: *Regex) isize {
+    return reg.num_mem;
+}
 
-// extern OnigEncoding
-// onig_get_encoding(regex_t* reg)
-// {
-//   return reg->enc;
-// }
+fn numberOfCaptureHistories(reg: *Regex) isize {
+    // #ifdef USE_CAPTURE_HISTORY
+    //   int i, n;
 
-// extern OnigOptionType
-// onig_get_options(regex_t* reg)
-// {
-//   return reg->options;
-// }
-
-// extern  OnigCaseFoldType
-// onig_get_case_fold_flag(regex_t* reg)
-// {
-//   return reg->case_fold_flag;
-// }
-
-// extern OnigSyntaxType*
-// onig_get_syntax(regex_t* reg)
-// {
-//   return reg->syntax;
-// }
-
-// extern int
-// onig_number_of_captures(regex_t* reg)
-// {
-//   return reg->num_mem;
-// }
-
-// extern int
-// onig_number_of_capture_histories(regex_t* reg)
-// {
-// #ifdef USE_CAPTURE_HISTORY
-//   int i, n;
-
-//   n = 0;
-//   for (i = 0; i <= ONIG_MAX_CAPTURE_HISTORY_GROUP; i++) {
-//     if (MEM_STATUS_AT(reg->capture_history, i) != 0)
-//       n++;
-//   }
-//   return n;
-// #else
-//   return 0;
-// #endif
-// }
-
-// extern void
-// onig_copy_encoding(OnigEncoding to, OnigEncoding from)
-// {
-//   *to = *from;
-// }
+    //   n = 0;
+    //   for (i = 0; i <= ONIG_MAX_CAPTURE_HISTORY_GROUP; i++) {
+    //     if (MEM_STATUS_AT(reg->capture_history, i) != 0)
+    //       n++;
+    //   }
+    //   return n;
+    // #else
+    //   return 0;
+    // #endif
+}
 
 // #ifdef USE_REGSET
 
