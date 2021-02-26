@@ -67,9 +67,7 @@ const Encoding = struct {
     index: isize,
 };
 
-const EncodingASCII = Encoding{};
 const EncodingUTF8 = Encoding{};
-const ENCODING_ASCII = &EncodingASCII;
 const ENCODING_UTF8 = &EncodingUTF8;
 
 /// work size

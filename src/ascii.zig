@@ -1,3 +1,4 @@
+const Encoding = @import("oniguruma.zig").Encoding;
 
 export fn init() {
     // #ifdef USE_CALLOUT
@@ -49,27 +50,27 @@ fn asciiIsCodeCType(code: CodePoint, ctype: usize) {
     }
 }
 
-// TODO(slimsag)
-// OnigEncodingType OnigEncodingASCII = {
-//   onigenc_single_byte_mbc_enc_len,
-//   "US-ASCII",  /* name */
-//   1,           /* max enc length */
-//   1,           /* min enc length */
-//   onigenc_is_mbc_newline_0x0a,
-//   onigenc_single_byte_mbc_to_code,
-//   onigenc_single_byte_code_to_mbclen,
-//   onigenc_single_byte_code_to_mbc,
-//   onigenc_ascii_mbc_case_fold,
-//   onigenc_ascii_apply_all_case_fold,
-//   onigenc_ascii_get_case_fold_codes_by_str,
-//   onigenc_minimum_property_name_to_ctype,
-//   ascii_is_code_ctype,
-//   onigenc_not_support_get_ctype_code_range,
-//   onigenc_single_byte_left_adjust_char_head,
-//   onigenc_always_true_is_allowed_reverse_match,
-//   init,
-//   0, /* is_initialized */
-//   onigenc_always_true_is_valid_mbc_string,
-//   ENC_FLAG_ASCII_COMPATIBLE|ENC_FLAG_SKIP_OFFSET_1,
-//   0, 0
-// };
+const EncodingASCII = Encoding{
+    .mbc_enc_len = onigenc_single_byte_mbc_enc_len,
+    .name = "US-ASCII",
+    . max_enc_len = 1,
+    . min_enc_len = 1,
+    .is_mbc_newline = onigenc_is_mbc_newline_0x0a,
+    .mbc_to_code = onigenc_single_byte_mbc_to_code,
+    .code_to_mbclen = onigenc_single_byte_code_to_mbclen,
+    .code_to_mbc = onigenc_single_byte_code_to_mbc,
+    .mbc_case_fold = onigenc_ascii_mbc_case_fold,
+    .apply_all_case_fold = onigenc_ascii_apply_all_case_fold,
+    .get_case_fold_codes_by_str = onigenc_ascii_get_case_fold_codes_by_str,
+    .property_name_to_ctype = onigenc_minimum_property_name_to_ctype,
+    .is_code_ctype = ascii_is_code_ctype,
+    .get_ctype_code_range = onigenc_not_support_get_ctype_code_range,
+    .left_adjust_char_head = onigenc_single_byte_left_adjust_char_head,
+    .is_allowed_reverse_match = onigenc_always_true_is_allowed_reverse_match,
+    .init = init,
+    .is_initialized = 0,
+    .is_valid_mbc_string = onigenc_always_true_is_valid_mbc_string,
+    .flag = ENC_FLAG_ASCII_COMPATIBLE|ENC_FLAG_SKIP_OFFSET_1,
+    .sb_range = 0,
+    .index = 0,
+};
