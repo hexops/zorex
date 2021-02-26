@@ -45,7 +45,7 @@ pub const GimmickType = enum {
     save,
     updateVar,
     // #ifdef USE_CALLOUT
-    //   GIMMICK_CALLOUT    = 3,
+        //   GIMMICK_CALLOUT    = 3,
     // #endif
 };
 
@@ -121,26 +121,26 @@ const BagNode = struct{
 };
 
 // #ifdef USE_CALL
-// typedef struct {
-//   int           offset;
-//   struct _Node* target;
-// } UnsetAddr;
-// typedef struct {
-//   int        num;
-//   int        alloc;
-//   UnsetAddr* us;
-// } UnsetAddrList;
-// typedef struct {
-//   NodeType node_type;
-//   int status;
-//   struct _Node* parent;
-//   struct _Node* body; /* to BagNode : BAG_MEMORY */
-//   int     by_number;
-//   int     called_gnum;
-//   UChar*  name;
-//   UChar*  name_end;
-//   int     entry_count;
-// } CallNode;
+    // typedef struct {
+    //   int           offset;
+    //   struct _Node* target;
+    // } UnsetAddr;
+    // typedef struct {
+    //   int        num;
+    //   int        alloc;
+    //   UnsetAddr* us;
+    // } UnsetAddrList;
+    // typedef struct {
+    //   NodeType node_type;
+    //   int status;
+    //   struct _Node* parent;
+    //   struct _Node* body; /* to BagNode : BAG_MEMORY */
+    //   int     by_number;
+    //   int     called_gnum;
+    //   UChar*  name;
+    //   UChar*  name_end;
+    //   int     entry_count;
+    // } CallNode;
 // #endif
 
 const BackRefNode = struct {
@@ -201,7 +201,7 @@ pub const NodeBaseTag = enum {
     cons,
     ctype,
     // #ifdef USE_CALL
-    //call,
+        //call,
     // #endif
     gimmick,
 };
@@ -216,7 +216,7 @@ pub const NodeBase = union(NodeBaseTag) {
     cons: ConsAltNode,
     ctype: CTypeNode,
     // #ifdef USE_CALL
-    //     CallNode      call;
+        //     CallNode      call;
     // #endif
     gimmick: GimmickNode,
 };
@@ -382,7 +382,7 @@ pub const Node = struct {
     // static Node*
     // node_new_backref(int back_num, int* backrefs, int by_name,
     // #ifdef USE_BACKREF_WITH_LEVEL
-    //                  int exist_level, int nest_level,
+        //                  int exist_level, int nest_level,
     // #endif
     //                  ParseEnv* env)
     // {
@@ -398,10 +398,10 @@ pub const Node = struct {
     //   if (OPTON_IGNORECASE(env->options))
     //     NODE_STATUS_ADD(node, IGNORECASE);
     // #ifdef USE_BACKREF_WITH_LEVEL
-    //   if (exist_level != 0) {
-    //     NODE_STATUS_ADD(node, NEST_LEVEL);
-    //     BACKREF_(node)->nest_level  = nest_level;
-    //   }
+        //   if (exist_level != 0) {
+        //     NODE_STATUS_ADD(node, NEST_LEVEL);
+        //     BACKREF_(node)->nest_level  = nest_level;
+        //   }
     // #endif
     //   for (i = 0; i < back_num; i++) {
     //     if (backrefs[i] <= env->num_mem &&
@@ -431,14 +431,14 @@ pub const Node = struct {
     // static Node*
     // node_new_backref_checker(int back_num, int* backrefs, int by_name,
     // #ifdef USE_BACKREF_WITH_LEVEL
-    //                          int exist_level, int nest_level,
+        //                          int exist_level, int nest_level,
     // #endif
     //                          ParseEnv* env)
     // {
     //   Node* node;
     //   node = node_new_backref(back_num, backrefs, by_name,
     // #ifdef USE_BACKREF_WITH_LEVEL
-    //                           exist_level, nest_level,
+        //                           exist_level, nest_level,
     // #endif
     //                           env);
     //   CHECK_NULL_RETURN(node);
@@ -447,19 +447,19 @@ pub const Node = struct {
     // }
 
     // #ifdef USE_CALL
-    // static Node*
-    // node_new_call(UChar* name, UChar* name_end, int gnum, int by_number)
-    // {
-    //   Node* node = node_new();
-    //   CHECK_NULL_RETURN(node);
-    //   NODE_SET_TYPE(node, NODE_CALL);
-    //   CALL_(node)->by_number   = by_number;
-    //   CALL_(node)->name        = name;
-    //   CALL_(node)->name_end    = name_end;
-    //   CALL_(node)->called_gnum = gnum;
-    //   CALL_(node)->entry_count = 1;
-    //   return node;
-    // }
+        // static Node*
+        // node_new_call(UChar* name, UChar* name_end, int gnum, int by_number)
+        // {
+        //   Node* node = node_new();
+        //   CHECK_NULL_RETURN(node);
+        //   NODE_SET_TYPE(node, NODE_CALL);
+        //   CALL_(node)->by_number   = by_number;
+        //   CALL_(node)->name        = name;
+        //   CALL_(node)->name_end    = name_end;
+        //   CALL_(node)->called_gnum = gnum;
+        //   CALL_(node)->entry_count = 1;
+        //   return node;
+        // }
     // #endif
 
     pub fn newQuantifier(allocator: *Allocator, lower: isize, upper: isize, by_number: bool) !*Node {
@@ -553,7 +553,7 @@ pub const Node = struct {
 
     pub fn deinit(self: *Node, allocator: *Allocator) void {
         // #ifdef DEBUG_NODE_FREE
-        //   fprintf(stderr, "onig_node_free: %p\n", node);
+            //   fprintf(stderr, "onig_node_free: %p\n", node);
         // #endif
         self.deinit_body(allocator);
         allocator.destroy(self);
@@ -638,7 +638,7 @@ pub const Node = struct {
 
     pub fn parseTree(allocator: *Allocator, self: *Node, pattern: []const u8, reg: *Regex, env: *ParseEnv) !void {
         // #ifdef USE_CALLOUT
-        //   RegexExt* ext;
+            //   RegexExt* ext;
         // #endif
 
         reg.re_pattern_buffer.string_pool = "";
@@ -673,21 +673,21 @@ pub const Node = struct {
         self.* = root.*; // "return" root node
 
         // #ifdef USE_CALL
-        //   if (env->has_call_zero != 0) {
-        //     Node* zero_node;
-        //     r = make_call_zero_body(*root, env, &zero_node);
-        //     if (r != 0) return r;
-        //     *root = zero_node;
-        //   }
+            //   if (env->has_call_zero != 0) {
+            //     Node* zero_node;
+            //     r = make_call_zero_body(*root, env, &zero_node);
+            //     if (r != 0) return r;
+            //     *root = zero_node;
+            //   }
         // #endif
 
         reg.re_pattern_buffer.num_mem = env.num_mem;
 
         // #ifdef USE_CALLOUT
-        //   ext = reg->extp;
-        //   if (IS_NOT_NULL(ext) && ext->callout_num > 0) {
-        //     r = setup_ext_callout_list_values(reg);
-        //   }
+            //   ext = reg->extp;
+            //   if (IS_NOT_NULL(ext) && ext->callout_num > 0) {
+            //     r = setup_ext_callout_list_values(reg);
+            //   }
         // #endif
         return;
     }
@@ -934,9 +934,9 @@ pub const Node = struct {
             //       if (len < 0) return len;
             //       len = ONIGENC_CODE_TO_MBC(env->enc, tok->u.code, buf);
             // #ifdef NUMBERED_CHAR_IS_NOT_CASE_AMBIG
-            //       *np = node_new_str_crude(buf, buf + len, env->options);
+                //       *np = node_new_str_crude(buf, buf + len, env->options);
             // #else
-            //       *np = node_new_str_with_options(buf, buf + len, env->options);
+                //       *np = node_new_str_with_options(buf, buf + len, env->options);
             // #endif
             //       CHECK_NULL_RETURN_MEMERR(*np);
             //     }
@@ -1053,8 +1053,8 @@ pub const Node = struct {
             //                   (len > 1 ? tok->u.backref.refs : &(tok->u.backref.ref1)),
             //                   tok->u.backref.by_name,
             // #ifdef USE_BACKREF_WITH_LEVEL
-            //                            tok->u.backref.exist_level,
-            //                            tok->u.backref.level,
+                //                            tok->u.backref.exist_level,
+                //                            tok->u.backref.level,
             // #endif
             //                            env);
             //     CHECK_NULL_RETURN_MEMERR(*np);
@@ -1062,19 +1062,19 @@ pub const Node = struct {
             },
             TokenSym.Call => {
             // #ifdef USE_CALL
-            //   case TK_CALL:
-            //     {
-            //       int gnum = tok->u.call.gnum;
+                //   case TK_CALL:
+                //     {
+                //       int gnum = tok->u.call.gnum;
 
-            //       *np = node_new_call(tok->u.call.name, tok->u.call.name_end,
-            //                           gnum, tok->u.call.by_number);
-            //       CHECK_NULL_RETURN_MEMERR(*np);
-            //       env->num_call++;
-            //       if (tok->u.call.by_number != 0 && gnum == 0) {
-            //         env->has_call_zero = 1;
-            //       }
-            //     }
-            //     break;
+                //       *np = node_new_call(tok->u.call.name, tok->u.call.name_end,
+                //                           gnum, tok->u.call.by_number);
+                //       CHECK_NULL_RETURN_MEMERR(*np);
+                //       env->num_call++;
+                //       if (tok->u.call.by_number != 0 && gnum == 0) {
+                //         env->has_call_zero = 1;
+                //       }
+                //     }
+                //     break;
             // #endif
             },
             TokenSym.Anchor => {
@@ -1369,12 +1369,12 @@ pub const ParseEnv = struct {
     save_alloc_num: isize,
 //    saves: *SaveItem,
     // #ifdef USE_CALL
-    //   UnsetAddrList*   unset_addr_list;
-    //   int              has_call_zero;
+        //   UnsetAddrList*   unset_addr_list;
+        //   int              has_call_zero;
     // #endif
     parse_depth: usize,
     // #ifdef ONIG_DEBUG_PARSE
-    //   unsigned int     max_parse_depth;
+        //   unsigned int     max_parse_depth;
     // #endif
 
     pub fn incParseDepth(self: *ParseEnv) !void {
@@ -1422,11 +1422,9 @@ pub const ParseEnv = struct {
 // extern OnigLen onig_get_tiny_min_len(Node* node, unsigned int inhibit_node_types, int* invalid_node);
 
 // #ifdef USE_CALLOUT
-// extern int onig_global_callout_names_free(void);
+    // extern int onig_global_callout_names_free(void);
 // #endif
 
 // #ifdef ONIG_DEBUG
-// extern int onig_print_names(FILE*, regex_t*);
+    // extern int onig_print_names(FILE*, regex_t*);
 // #endif
-
-// #endif /* REGPARSE_H */

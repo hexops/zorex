@@ -20,16 +20,16 @@ const NameTable = @import("regparse.zig").NameTable;
 //     defined(ONIG_DEBUG_SEARCH) || defined(ONIG_DEBUG_COMPILE) || \
 //     defined(ONIG_DEBUG_MATCH_COUNTER) || defined(ONIG_DEBUG_CALL) || \
 //     defined(ONIG_DEBUG_STATISTICS)
-// #ifndef ONIG_DEBUG
-// #define ONIG_DEBUG
-// #define DBGFP   stderr
-// #endif
+    // #ifndef ONIG_DEBUG
+        // #define ONIG_DEBUG
+        // #define DBGFP   stderr
+    // #endif
 // #endif
 
 // #ifndef ONIG_DISABLE_DIRECT_THREADING
-// #ifdef __GNUC__
-// #define USE_GOTO_LABELS_AS_VALUES
-// #endif
+    // #ifdef __GNUC__
+        // #define USE_GOTO_LABELS_AS_VALUES
+    // #endif
 // #endif
 
 // /* config */
@@ -43,8 +43,8 @@ const NameTable = @import("regparse.zig").NameTable;
 // #define USE_WARNING_REDUNDANT_NESTED_REPEAT_OPERATOR
 // #define USE_RETRY_LIMIT
 // #ifdef USE_GOTO_LABELS_AS_VALUES
-// #define USE_THREADED_CODE
-// #define USE_DIRECT_THREADED_CODE
+    // #define USE_THREADED_CODE
+    // #define USE_DIRECT_THREADED_CODE
 // #endif
 
 // /* internal config */
@@ -73,89 +73,6 @@ const DEFAULT_RETRY_LIMIT_IN_SEARCH =         0; /// unlimited
 const DEFAULT_SUBEXP_CALL_LIMIT_IN_SEARCH =   0; /// unlimited
 const DEFAULT_SUBEXP_CALL_MAX_NEST_LEVEL =   20;
 
-
-// #include "regenc.h"
-
-// #ifndef ONIG_NO_STANDARD_C_HEADERS
-
-// #include <stddef.h>
-// #include <stdarg.h>
-// #include <limits.h>
-// #include <stdlib.h>
-// #include <string.h>
-// #include <ctype.h>
-
-// #ifdef HAVE_STDINT_H
-// #include <stdint.h>
-// #endif
-
-// #if defined(HAVE_ALLOCA_H) && !defined(__GNUC__)
-// #include <alloca.h>
-// #endif
-
-// #ifdef HAVE_SYS_TYPES_H
-// #ifndef __BORLANDC__
-// #include <sys/types.h>
-// #endif
-// #endif
-
-// #ifdef HAVE_INTTYPES_H
-// #include <inttypes.h>
-// #endif
-
-// #if defined(_WIN32) || defined(__BORLANDC__)
-// #include <malloc.h>
-// #endif
-
-// #if defined(ONIG_DEBUG) || defined(NEED_TO_INCLUDE_STDIO)
-// # include <stdio.h>
-// #endif
-
-// #ifdef ONIG_DEBUG_STATISTICS
-// #ifdef USE_TIMEOFDAY
-
-// #ifdef HAVE_SYS_TIME_H
-// #include <sys/time.h>
-// #endif
-// #ifdef HAVE_UNISTD_H
-// #include <unistd.h>
-// #endif
-
-// #else /* USE_TIMEOFDAY */
-
-// #ifdef HAVE_SYS_TIMES_H
-// #include <sys/times.h>
-// #endif
-
-// #endif /* USE_TIMEOFDAY */
-// #endif /* ONIG_DEBUG_STATISTICS */
-
-// /* I don't think these x....'s need to be included in
-//    ONIG_NO_STANDARD_C_HEADERS, but they are required by Issue #170
-//    and do so since there is no problem.
-//  */
-// #ifndef xmemset
-// #define xmemset     memset
-// #endif
-
-// #ifndef xmemcpy
-// #define xmemcpy     memcpy
-// #endif
-
-// #ifndef xmemmove
-// #define xmemmove    memmove
-// #endif
-
-// #endif /* ONIG_NO_STANDARD_C_HEADERS */
-
-
-// #ifdef MIN
-// #undef MIN
-// #endif
-// #ifdef MAX
-// #undef MAX
-// #endif
-
 // #define MIN(a,b) (((a)>(b))?(b):(a))
 // #define MAX(a,b) (((a)<(b))?(b):(a))
 
@@ -166,13 +83,13 @@ const DEFAULT_SUBEXP_CALL_MAX_NEST_LEVEL =   20;
 // #define NULL_UCHARP                   ((UChar* )0)
 
 // #ifdef USE_STRICT_POINTER_COMPARISON
-// #define PTR_GE(p,q)   ((p) != NULL && (p) >= (q))
+    // #define PTR_GE(p,q)   ((p) != NULL && (p) >= (q))
 // #else
-// #define PTR_GE(p,q)   (p) >= (q)
+    // #define PTR_GE(p,q)   (p) >= (q)
 // #endif
 
 // #ifndef ONIG_INT_MAX
-// #define ONIG_INT_MAX    INT_MAX
+    // #define ONIG_INT_MAX    INT_MAX
 // #endif
 
 // #define CHAR_MAP_SIZE              256
@@ -182,7 +99,7 @@ const DEFAULT_SUBEXP_CALL_MAX_NEST_LEVEL =   20;
 
 // /* escape other system UChar definition */
 // #ifdef ONIG_ESCAPE_UCHAR_COLLISION
-// #undef ONIG_ESCAPE_UCHAR_COLLISION
+    // #undef ONIG_ESCAPE_UCHAR_COLLISION
 // #endif
 
 // #define xmalloc    malloc
@@ -210,62 +127,10 @@ const DEFAULT_SUBEXP_CALL_MAX_NEST_LEVEL =   20;
 // /* */
 // #define onig_st_is_member           st_is_member
 
-
-// #if defined(_WIN32) && !defined(__GNUC__)
-
-// #ifndef xalloca
-// #define xalloca  _alloca
-// #endif
-// #ifndef xvsnprintf
-// #define xvsnprintf(buf,size,fmt,args)  _vsnprintf_s(buf,size,_TRUNCATE,fmt,args)
-// #endif
-// #ifndef xsnprintf
-// #define xsnprintf  sprintf_s
-// #endif
-// #ifndef xstrcat
-// #define xstrcat(dest,src,size)  strcat_s(dest,size,src)
-// #endif
-
-// #else
-
-// #ifndef xalloca
-// #define xalloca  alloca
-// #endif
-// #ifndef xvsnprintf
-// #define xvsnprintf  vsnprintf
-// #endif
-// #ifndef xsnprintf
-// #define xsnprintf  snprintf
-// #endif
-// #ifndef xstrcat
-// #define xstrcat(dest,src,size)  strcat(dest,src)
-// #endif
-
-// #endif /* defined(_WIN32) && !defined(__GNUC__) */
-
-
-// #ifdef _WIN32
-// #ifdef _MSC_VER
-
-// #if _MSC_VER < 1300
-// typedef int           intptr_t;
-// typedef unsigned int  uintptr_t;
-// #endif
-
-// #if _MSC_VER < 1600
-// typedef __int32 int32_t;
-// typedef unsigned __int32 uint32_t;
-// typedef __int64 int64_t;
-// typedef unsigned __int64 uint64_t;
-// #endif
-
-// #endif
-// #endif /* _WIN32 */
-
 // #if SIZEOF_VOIDP == SIZEOF_LONG
-// typedef unsigned long hash_data_type;
+    // typedef unsigned long hash_data_type;
 // #elif SIZEOF_VOIDP == SIZEOF_LONG_LONG
-// typedef unsigned long long hash_data_type;
+    // typedef unsigned long long hash_data_type;
 // #endif
 
 // /* strend hash */
@@ -274,29 +139,29 @@ const DEFAULT_SUBEXP_CALL_MAX_NEST_LEVEL =   20;
 
 // #ifdef USE_CALLOUT
 
-// typedef struct {
-//   int             flag;
-//   OnigCalloutOf   of;
-//   int             in;
-//   int             name_id;
-//   const UChar*    tag_start;
-//   const UChar*    tag_end;
-//   OnigCalloutType type;
-//   OnigCalloutFunc start_func;
-//   OnigCalloutFunc end_func;
-//   union {
-//     struct {
-//       const UChar* start;
-//       const UChar* end;
-//     } content;
-//     struct {
-//       int num;
-//       int passed_num;
-//       OnigType  types[ONIG_CALLOUT_MAX_ARGS_NUM];
-//       OnigValue vals[ONIG_CALLOUT_MAX_ARGS_NUM];
-//     } arg;
-//   } u;
-// } CalloutListEntry;
+    // typedef struct {
+    //   int             flag;
+    //   OnigCalloutOf   of;
+    //   int             in;
+    //   int             name_id;
+    //   const UChar*    tag_start;
+    //   const UChar*    tag_end;
+    //   OnigCalloutType type;
+    //   OnigCalloutFunc start_func;
+    //   OnigCalloutFunc end_func;
+    //   union {
+    //     struct {
+    //       const UChar* start;
+    //       const UChar* end;
+    //     } content;
+    //     struct {
+    //       int num;
+    //       int passed_num;
+    //       OnigType  types[ONIG_CALLOUT_MAX_ARGS_NUM];
+    //       OnigValue vals[ONIG_CALLOUT_MAX_ARGS_NUM];
+    //     } arg;
+    //   } u;
+    // } CalloutListEntry;
 
 // #endif
 
@@ -567,22 +432,22 @@ pub const OpCode = enum(u32) {
 //   OP_BACKREF_MULTI,
 //   OP_BACKREF_MULTI_IC,
 // #ifdef USE_BACKREF_WITH_LEVEL
-//   OP_BACKREF_WITH_LEVEL,        /* \k<xxx+n>, \k<xxx-n> */
-//   OP_BACKREF_WITH_LEVEL_IC,     /* \k<xxx+n>, \k<xxx-n> */
+    //   OP_BACKREF_WITH_LEVEL,        /* \k<xxx+n>, \k<xxx-n> */
+    //   OP_BACKREF_WITH_LEVEL_IC,     /* \k<xxx+n>, \k<xxx-n> */
 // #endif
 //   OP_BACKREF_CHECK,             /* (?(n)), (?('name')) */
 // #ifdef USE_BACKREF_WITH_LEVEL
-//   OP_BACKREF_CHECK_WITH_LEVEL,  /* (?(n-level)), (?('name-level')) */
+    //   OP_BACKREF_CHECK_WITH_LEVEL,  /* (?(n-level)), (?('name-level')) */
 // #endif
 //   OP_MEM_START,
 //   OP_MEM_START_PUSH,     /* push back-tracker to stack */
 //   OP_MEM_END_PUSH,       /* push back-tracker to stack */
 // #ifdef USE_CALL
-//   OP_MEM_END_PUSH_REC,   /* push back-tracker to stack */
+    //   OP_MEM_END_PUSH_REC,   /* push back-tracker to stack */
 // #endif
 //   OP_MEM_END,
 // #ifdef USE_CALL
-//   OP_MEM_END_REC,        /* push marker to stack */
+    //   OP_MEM_END_REC,        /* push marker to stack */
 // #endif
 //   OP_FAIL,               /* pop stack and move */
 //   OP_JUMP,
@@ -591,7 +456,7 @@ pub const OpCode = enum(u32) {
 //   OP_POP,
 //   OP_POP_TO_MARK,
 // #ifdef USE_OP_PUSH_OR_JUMP_EXACT
-//   OP_PUSH_OR_JUMP_EXACT1,   /* if match exact then push, else jump. */
+    //   OP_PUSH_OR_JUMP_EXACT1,   /* if match exact then push, else jump. */
 // #endif
 //   OP_PUSH_IF_PEEK_NEXT,     /* if match exact then push, else none. */
 //   OP_REPEAT,                /* {n,m} */
@@ -602,7 +467,7 @@ pub const OpCode = enum(u32) {
 //   OP_EMPTY_CHECK_END,       /* null loop checker end   */
 //   OP_EMPTY_CHECK_END_MEMST, /* null loop checker end (with capture status) */
 // #ifdef USE_CALL
-//   OP_EMPTY_CHECK_END_MEMST_PUSH, /* with capture status and push check-end */
+    //   OP_EMPTY_CHECK_END_MEMST_PUSH, /* with capture status and push check-end */
 // #endif
 //   OP_MOVE,
 //   OP_STEP_BACK_START,
@@ -612,12 +477,12 @@ pub const OpCode = enum(u32) {
 //   OP_SAVE_VAL,
 //   OP_UPDATE_VAR,
 // #ifdef USE_CALL
-//   OP_CALL,                  /* \g<name> */
-//   OP_RETURN,
+    //   OP_CALL,                  /* \g<name> */
+    //   OP_RETURN,
 // #endif
 // #ifdef USE_CALLOUT
-//   OP_CALLOUT_CONTENTS,      /* (?{...}) (?{{...}}) */
-//   OP_CALLOUT_NAME,          /* (*name) (*name[tag](args...)) */
+    //   OP_CALLOUT_CONTENTS,      /* (?{...}) (?{{...}}) */
+    //   OP_CALLOUT_NAME,          /* (*name) (*name[tag](args...)) */
 // #endif
 };
 
@@ -687,7 +552,7 @@ pub const ModeType = isize;
 // #define OPSIZE_POP                     1
 // #define OPSIZE_POP_TO_MARK             1
 // #ifdef USE_OP_PUSH_OR_JUMP_EXACT
-// #define OPSIZE_PUSH_OR_JUMP_EXACT1     1
+    // #define OPSIZE_PUSH_OR_JUMP_EXACT1     1
 // #endif
 // #define OPSIZE_PUSH_IF_PEEK_NEXT       1
 // #define OPSIZE_REPEAT                  1
@@ -716,8 +581,8 @@ pub const ModeType = isize;
 // #define OPSIZE_UPDATE_VAR              1
 
 // #ifdef USE_CALLOUT
-// #define OPSIZE_CALLOUT_CONTENTS        1
-// #define OPSIZE_CALLOUT_NAME            1
+    // #define OPSIZE_CALLOUT_CONTENTS        1
+    // #define OPSIZE_CALLOUT_NAME            1
 // #endif
 
 
@@ -775,10 +640,9 @@ pub const ModeType = isize;
 pub const Operation = struct {
     // TODO(slimsag):
     // #ifdef USE_DIRECT_THREADED_CODE
-    //   const void* opaddr;
+        //   const void* opaddr;
     // #else
-    // #else
-    //   enum OpCode opcode;
+        //   enum OpCode opcode;
     // #endif
     opcode: OpCode,
 };
@@ -786,9 +650,9 @@ pub const Operation = struct {
 // TODO(slimsag):
 // typedef struct {
 // #ifdef USE_DIRECT_THREADED_CODE
-//   const void* opaddr;
+    //   const void* opaddr;
 // #else
-//   enum OpCode opcode;
+    //   enum OpCode opcode;
 // #endif
 //   union {
 //     struct {
@@ -916,13 +780,13 @@ pub const Operation = struct {
 // #endif
 //     } call;
 // #ifdef USE_CALLOUT
-//     struct {
-//       MemNumType num;
-//     } callout_contents;
-//     struct {
-//       MemNumType num;
-//       MemNumType id;
-//     } callout_name;
+    //     struct {
+    //       MemNumType num;
+    //     } callout_contents;
+    //     struct {
+    //       MemNumType num;
+    //       MemNumType id;
+    //     } callout_name;
 // #endif
 //   };
 // } Operation;
@@ -931,10 +795,10 @@ pub const Operation = struct {
 //   const UChar* pattern;
 //   const UChar* pattern_end;
 // #ifdef USE_CALLOUT
-//   void*  tag_table;
-//   int    callout_num;
-//   int    callout_list_alloc;
-//   CalloutListEntry* callout_list;    /* index: callout num */
+    //   void*  tag_table;
+    //   int    callout_num;
+    //   int    callout_list_alloc;
+    //   CalloutListEntry* callout_list;    /* index: callout num */
 // #endif
 // } RegexExt;
 
@@ -951,7 +815,7 @@ pub const RePatternBuffer = struct{
     /// common members of BBuf(bytes-buffer)
     // TODO(slimsag): ?
     // #ifdef USE_DIRECT_THREADED_CODE
-    //   enum OpCode* ocs;
+        //   enum OpCode* ocs;
     // #endif
     // TODO(slimsag): remove later, replaced with ArrayList
     //ops: ?*Operation,
@@ -1018,14 +882,14 @@ pub const RePatternBuffer = struct{
 
 // #ifdef ONIG_DEBUG
 
-// #ifdef ONIG_DEBUG_COMPILE
-// extern void onig_print_compiled_byte_code_list(FILE* f, regex_t* reg);
-// #endif
+    // #ifdef ONIG_DEBUG_COMPILE
+        // extern void onig_print_compiled_byte_code_list(FILE* f, regex_t* reg);
+    // #endif
 
-// #ifdef ONIG_DEBUG_STATISTICS
-// extern void onig_statistics_init P_((void));
-// extern int  onig_print_statistics P_((FILE* f));
-// #endif
+    // #ifdef ONIG_DEBUG_STATISTICS
+        // extern void onig_statistics_init P_((void));
+        // extern int  onig_print_statistics P_((FILE* f));
+    // #endif
 
 // #endif /* ONIG_DEBUG */
 

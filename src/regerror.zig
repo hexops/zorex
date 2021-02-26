@@ -1,10 +1,3 @@
-// #ifndef NEED_TO_INCLUDE_STDIO
-// /* for vsnprintf() */
-// #define NEED_TO_INCLUDE_STDIO
-// #endif
-
-// #include "regint.h"
-
 // extern UChar*
 // onig_error_code_to_format(int code)
 // {

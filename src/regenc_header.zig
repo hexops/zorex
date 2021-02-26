@@ -3,27 +3,6 @@
 //   OnigCodePoint to;
 // } OnigPairCaseFoldCodes;
 
-
-// #ifndef NULL
-// #define NULL   ((void* )0)
-// #endif
-
-// #ifndef TRUE
-// #define TRUE    1
-// #endif
-
-// #ifndef FALSE
-// #define FALSE   0
-// #endif
-
-// #ifndef ARG_UNUSED
-// #if defined(__GNUC__)
-// #  define ARG_UNUSED  __attribute__ ((unused))
-// #else
-// #  define ARG_UNUSED
-// #endif
-// #endif
-
 // #define ONIG_IS_NULL(p)                    (((void*)(p)) == (void*)0)
 // #define ONIG_IS_NOT_NULL(p)                (((void*)(p)) != (void*)0)
 // #define ONIG_CHECK_NULL_RETURN(p)          if (ONIG_IS_NULL(p)) return NULL
@@ -146,7 +125,7 @@
 // extern int onigenc_egcb_is_break_position P_((OnigEncoding enc, UChar* p, UChar* prev, const UChar* start, const UChar* end));
 
 // #ifdef USE_UNICODE_WORD_BREAK
-// extern int onigenc_wb_is_break_position P_((OnigEncoding enc, UChar* p, UChar* prev, const UChar* start, const UChar* end));
+    // extern int onigenc_wb_is_break_position P_((OnigEncoding enc, UChar* p, UChar* prev, const UChar* start, const UChar* end));
 // #endif
 
 // #define UTF16_IS_SURROGATE_FIRST(c)    (((c) & 0xfc) == 0xd8)
@@ -235,5 +214,3 @@
 
 // #define ONIGENC_IS_ASCII_COMPATIBLE_ENCODING(enc)  \
 //   (((enc)->flag & ENC_FLAG_ASCII_COMPATIBLE) != 0)
-
-// #endif /* REGENC_H */

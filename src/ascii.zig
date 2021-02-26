@@ -2,40 +2,40 @@
 export fn init() {
     // #ifdef USE_CALLOUT
 
-    //     int id;
-    //     OnigEncoding enc;
-    //     char* name;
-    //     unsigned int args[4];
-    //     OnigValue    opts[4];
+        //     int id;
+        //     OnigEncoding enc;
+        //     char* name;
+        //     unsigned int args[4];
+        //     OnigValue    opts[4];
 
-    //     enc = ONIG_ENCODING_ASCII;
+        //     enc = ONIG_ENCODING_ASCII;
 
-    //     name = "FAIL";        BC0_P(name, fail);
-    //     name = "MISMATCH";    BC0_P(name, mismatch);
+        //     name = "FAIL";        BC0_P(name, fail);
+        //     name = "MISMATCH";    BC0_P(name, mismatch);
 
-    //     name = "MAX";
-    //     args[0] = ONIG_TYPE_TAG | ONIG_TYPE_LONG;
-    //     args[1] = ONIG_TYPE_CHAR;
-    //     opts[0].c = 'X';
-    //     BC_B_O(name, max, 2, args, 1, opts);
+        //     name = "MAX";
+        //     args[0] = ONIG_TYPE_TAG | ONIG_TYPE_LONG;
+        //     args[1] = ONIG_TYPE_CHAR;
+        //     opts[0].c = 'X';
+        //     BC_B_O(name, max, 2, args, 1, opts);
 
-    //     name = "ERROR";
-    //     args[0] = ONIG_TYPE_LONG; opts[0].l = ONIG_ABORT;
-    //     BC_P_O(name, error, 1, args, 1, opts);
+        //     name = "ERROR";
+        //     args[0] = ONIG_TYPE_LONG; opts[0].l = ONIG_ABORT;
+        //     BC_P_O(name, error, 1, args, 1, opts);
 
-    //     name = "COUNT";
-    //     args[0] = ONIG_TYPE_CHAR; opts[0].c = '>';
-    //     BC_B_O(name, count, 1, args, 1, opts);
+        //     name = "COUNT";
+        //     args[0] = ONIG_TYPE_CHAR; opts[0].c = '>';
+        //     BC_B_O(name, count, 1, args, 1, opts);
 
-    //     name = "TOTAL_COUNT";
-    //     args[0] = ONIG_TYPE_CHAR; opts[0].c = '>';
-    //     BC_B_O(name, total_count, 1, args, 1, opts);
+        //     name = "TOTAL_COUNT";
+        //     args[0] = ONIG_TYPE_CHAR; opts[0].c = '>';
+        //     BC_B_O(name, total_count, 1, args, 1, opts);
 
-    //     name = "CMP";
-    //     args[0] = ONIG_TYPE_TAG | ONIG_TYPE_LONG;
-    //     args[1] = ONIG_TYPE_STRING;
-    //     args[2] = ONIG_TYPE_TAG | ONIG_TYPE_LONG;
-    //     BC_P(name, cmp, 3, args);
+        //     name = "CMP";
+        //     args[0] = ONIG_TYPE_TAG | ONIG_TYPE_LONG;
+        //     args[1] = ONIG_TYPE_STRING;
+        //     args[2] = ONIG_TYPE_TAG | ONIG_TYPE_LONG;
+        //     BC_P(name, cmp, 3, args);
 
     // #endif /* USE_CALLOUT */
 }
