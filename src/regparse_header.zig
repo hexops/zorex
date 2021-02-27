@@ -292,7 +292,7 @@ pub const Node = struct {
 
     pub fn newAnyChar(allocator: *Allocator, options: Option) !*Node {
         const node = try Node.newCType(allocator, EncCType.AnyChar, false, options);
-        if (options.on(Option.MultiLine)) {
+        if (options.isEnabled(Option.MultiLine)) {
             //     NODE_STATUS_ADD(node, MULTILINE);
         }
         return node;
@@ -356,10 +356,10 @@ pub const Node = struct {
 
     pub fn newAnchorWithOptions(allocator: *Allocator, type: isize, options: Option) !*Node {
         const node = try Node.newAnchor(allocator);
-        const wordIsASCII = options.on(Option.WordIsASCII) or options.on(Option.POSIXIsASCII);
+        const wordIsASCII = options.isEnabled(Option.WordIsASCII) or options.isEnabled(Option.POSIXIsASCII);
         node.anchor().ascii_mode = wordIsASCII and type.isWordAnchorType();
         if (type == Ancr.TextSegmentBoundary or type == Ancr.NoTextSegmentBoundary) {
-            if (options.on(Option.TextSegmentWord)) {
+            if (options.isEnabled(Option.TextSegmentWord)) {
                 //       NODE_STATUS_ADD(node, TEXT_SEGMENT_WORD);
             }
         }
@@ -1384,13 +1384,13 @@ pub const ParseEnv = struct {
     num_mem: isize,
     num_named: isize,
     mem_alloc: isize,
-    mem_env_static: [PARSEENV_MEMENV_SIZE]MemEnv,
-    mem_env_dynamic: *MemEnv,
+    mem_env_static: ?[PARSEENV_MEMENV_SIZE]MemEnv,
+    mem_env_dynamic: ?*MemEnv,
     backref_num: isize,
     keep_num: isize,
     id_num: isize,
     save_alloc_num: isize,
-    saves: *SaveItem,
+    saves: ?*SaveItem,
     // #ifdef USE_CALL
         //   UnsetAddrList*   unset_addr_list;
         //   int              has_call_zero;

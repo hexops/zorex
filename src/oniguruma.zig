@@ -248,48 +248,28 @@ pub const Option = enum(u32) {
     NotEndString = 1 << 22,
     NotBeginPosition = 1 << 23,
 
-    pub fn on(self: Option, regopt: Option) callconv(.Inline) bool {
-        return (self | regopt) > 0;
+    pub fn with(self: Option, opt: Option) callconv(.Inline) Option {
+        return @enumToInt(self) | @enumToInt(opt);
     }
 
-    pub fn off(self: Option, regopt: Option) callconv(.Inline) bool {
-        return (self & ~regopt) > 0;
+    pub fn without(self: Option, opt: Option) callconv(.Inline) Option {
+        return @enumToInt(self) & @enumToInt(~opt);
     }
 
-    pub fn withSingleLine(self: Option) callconv(.Inline) Option {
-        return self & Option.SingleLine;
+    pub fn isEnabled(self: Option, opt: Option) callconv(.Inline) bool {
+        return (@enumToInt(self) & @enumToInt(opt)) > 0;
     }
 
-    pub fn withMultiLine(self: Option) callconv(.Inline) Option {
-        return self & Option.MultiLine;
+    pub fn isEnabledWordIsASCII(self: Option) callconv(.Inline) bool {
+        return self.isEnabled(Option.WordIsASCII) or self.isEnabled(Option.POSIXIsASCII);
     }
 
-    pub fn withIgnoreCase(self: Option) callconv(.Inline) Option {
-        return self & Option.IgnoreCase;
+    pub fn isEnabledDigitIsASCII(self: Option) callconv(.Inline) bool {
+        return self.isEnabled(Option.DigitIsASCII) or self.isEnabled(Option.POSIXIsASCII);
     }
 
-    pub fn withExtend(self: Option) callconv(.Inline) Option {
-        return self & Option.Extend;
-    }
-
-    pub fn withWordIsASCII(self: Option) callconv(.Inline) Option {
-        return self & (Option.WordIsASCII | Option.POSIXIsASCII);
-    }
-
-    pub fn withDigitIsASCII(self: Option) callconv(.Inline) Option {
-        return self & (Option.DigitIsASCII | Option.POSIXIsASCII);
-    }
-
-    pub fn withSpaceASCII(self: Option) callconv(.Inline) Option {
-        return self & (Option.SpaceIsASCII | Option.POSIXIsASCII);
-    }
-
-    pub fn withPosixASCII(self: Option) callconv(.Inline) Option {
-        return self & Option.POSIXIsASCII;
-    }
-
-    pub fn withTextSegmentWord(self: Option) callconv(.Inline) Option {
-        return self & Option.TextSegmentWord;
+    pub fn isEnabledSpaceIsASCII(self: Option) callconv(.Inline) bool {
+        return self.isEnabled(Option.SpaceIsASCII) or self.isEnabled(Option.POSIXIsASCII);
     }
 
     pub fn withIsASCIIModeCType(self: Option, ctype: EncCType) callconv(.Inline) Option {
