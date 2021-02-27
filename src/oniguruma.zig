@@ -416,13 +416,10 @@ const TRAVERSE_CALLBACK_AT_BOTH = ( ONIG_TRAVERSE_CALLBACK_AT_FIRST | ONIG_TRAVE
 
 const ONIG_REGION_NOTPOS =           -1;
 
-// typedef struct re_registers   OnigRegion;
-
-// typedef struct {
-//   OnigEncoding enc;
-//   OnigUChar* par;
-//   OnigUChar* par_end;
-// } OnigErrorInfo;
+const ErrorInfo = struct {
+    enc: Encoding,
+    par: []const u8,
+}
 
 const RepeatRange = struct {
     lower: isize,
@@ -452,64 +449,64 @@ const CompileInfo = struct {
     case_fold_flag: CaseFold,    
 };
 
-// /* types for callout */
-// typedef enum {
-//   ONIG_CALLOUT_IN_PROGRESS   = 1, /* 1<<0 */
-//   ONIG_CALLOUT_IN_RETRACTION = 2  /* 1<<1 */
-// } OnigCalloutIn;
+    // /* types for callout */
+    // typedef enum {
+    //   ONIG_CALLOUT_IN_PROGRESS   = 1, /* 1<<0 */
+    //   ONIG_CALLOUT_IN_RETRACTION = 2  /* 1<<1 */
+    // } OnigCalloutIn;
 
-// #define ONIG_CALLOUT_IN_BOTH  (ONIG_CALLOUT_IN_PROGRESS | ONIG_CALLOUT_IN_RETRACTION)
+    // #define ONIG_CALLOUT_IN_BOTH  (ONIG_CALLOUT_IN_PROGRESS | ONIG_CALLOUT_IN_RETRACTION)
 
-// typedef enum {
-//   ONIG_CALLOUT_OF_CONTENTS = 0,
-//   ONIG_CALLOUT_OF_NAME     = 1
-// } OnigCalloutOf;
+    // typedef enum {
+    //   ONIG_CALLOUT_OF_CONTENTS = 0,
+    //   ONIG_CALLOUT_OF_NAME     = 1
+    // } OnigCalloutOf;
 
-// typedef enum {
-//   ONIG_CALLOUT_TYPE_SINGLE              = 0,
-//   ONIG_CALLOUT_TYPE_START_CALL          = 1,
-//   ONIG_CALLOUT_TYPE_BOTH_CALL           = 2,
-//   ONIG_CALLOUT_TYPE_START_MARK_END_CALL = 3,
-// } OnigCalloutType;
-
-
-// #define ONIG_NON_NAME_ID        -1
-// #define ONIG_NON_CALLOUT_NUM     0
-
-// #define ONIG_CALLOUT_MAX_ARGS_NUM     4
-// #define ONIG_CALLOUT_DATA_SLOT_NUM    5
-
-// struct OnigCalloutArgsStruct;
-// typedef struct OnigCalloutArgsStruct OnigCalloutArgs;
-
-// typedef int (*OnigCalloutFunc)(OnigCalloutArgs* args, void* user_data);
-
-// /* callout function return values (less than -1: error code) */
-// typedef enum {
-//   ONIG_CALLOUT_FAIL     =  1,
-//   ONIG_CALLOUT_SUCCESS  =  0
-// } OnigCalloutResult;
-
-// typedef enum {
-//   ONIG_TYPE_VOID     = 0,
-//   ONIG_TYPE_LONG     = 1<<0,
-//   ONIG_TYPE_CHAR     = 1<<1,
-//   ONIG_TYPE_STRING   = 1<<2,
-//   ONIG_TYPE_POINTER  = 1<<3,
-//   ONIG_TYPE_TAG      = 1<<4,
-// } OnigType;
-
-// typedef union {
-//   long l;
-//   OnigCodePoint c;
-//   struct {
-//     OnigUChar* start;
-//     OnigUChar* end;
-//   } s;
-//   void* p;
-//   int tag;  /* tag -> callout_num */
-// } OnigValue;
+    // typedef enum {
+    //   ONIG_CALLOUT_TYPE_SINGLE              = 0,
+    //   ONIG_CALLOUT_TYPE_START_CALL          = 1,
+    //   ONIG_CALLOUT_TYPE_BOTH_CALL           = 2,
+    //   ONIG_CALLOUT_TYPE_START_MARK_END_CALL = 3,
+    // } OnigCalloutType;
 
 
-// struct OnigMatchParamStruct;
-// typedef struct OnigMatchParamStruct OnigMatchParam;
+    // #define ONIG_NON_NAME_ID        -1
+    // #define ONIG_NON_CALLOUT_NUM     0
+
+    // #define ONIG_CALLOUT_MAX_ARGS_NUM     4
+    // #define ONIG_CALLOUT_DATA_SLOT_NUM    5
+
+    // struct OnigCalloutArgsStruct;
+    // typedef struct OnigCalloutArgsStruct OnigCalloutArgs;
+
+    // typedef int (*OnigCalloutFunc)(OnigCalloutArgs* args, void* user_data);
+
+    // /* callout function return values (less than -1: error code) */
+    // typedef enum {
+    //   ONIG_CALLOUT_FAIL     =  1,
+    //   ONIG_CALLOUT_SUCCESS  =  0
+    // } OnigCalloutResult;
+
+    // typedef enum {
+    //   ONIG_TYPE_VOID     = 0,
+    //   ONIG_TYPE_LONG     = 1<<0,
+    //   ONIG_TYPE_CHAR     = 1<<1,
+    //   ONIG_TYPE_STRING   = 1<<2,
+    //   ONIG_TYPE_POINTER  = 1<<3,
+    //   ONIG_TYPE_TAG      = 1<<4,
+    // } OnigType;
+
+    // typedef union {
+    //   long l;
+    //   OnigCodePoint c;
+    //   struct {
+    //     OnigUChar* start;
+    //     OnigUChar* end;
+    //   } s;
+    //   void* p;
+    //   int tag;  /* tag -> callout_num */
+    // } OnigValue;
+
+
+    // struct OnigMatchParamStruct;
+    // typedef struct OnigMatchParamStruct OnigMatchParam;
