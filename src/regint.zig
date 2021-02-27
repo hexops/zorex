@@ -894,81 +894,79 @@ pub const RePatternBuffer = struct{
 
 // #ifdef USE_CALLOUT
 
-// extern OnigCalloutType onig_get_callout_type_by_name_id(int name_id);
-// extern OnigCalloutFunc onig_get_callout_start_func_by_name_id(int id);
-// extern OnigCalloutFunc onig_get_callout_end_func_by_name_id(int id);
-// extern int             onig_callout_tag_table_free(void* table);
-// extern void            onig_free_reg_callout_list(int n, CalloutListEntry* list);
-// extern CalloutListEntry* onig_reg_callout_list_at(regex_t* reg, int num);
-// extern OnigCalloutFunc onig_get_callout_start_func(regex_t* reg, int callout_num);
+    // extern OnigCalloutType onig_get_callout_type_by_name_id(int name_id);
+    // extern OnigCalloutFunc onig_get_callout_start_func_by_name_id(int id);
+    // extern OnigCalloutFunc onig_get_callout_end_func_by_name_id(int id);
+    // extern int             onig_callout_tag_table_free(void* table);
+    // extern void            onig_free_reg_callout_list(int n, CalloutListEntry* list);
+    // extern CalloutListEntry* onig_reg_callout_list_at(regex_t* reg, int num);
+    // extern OnigCalloutFunc onig_get_callout_start_func(regex_t* reg, int callout_num);
 
-// /* for definition of builtin callout */
-// #define BC0_P(name, func)  do {\
-//   int len = onigenc_str_bytelen_null(enc, (UChar* )name);\
-//   id = onig_set_callout_of_name(enc, ONIG_CALLOUT_TYPE_SINGLE,\
-//                               (UChar* )(name), (UChar* )((name) + len),\
-//                               ONIG_CALLOUT_IN_PROGRESS,\
-//                               onig_builtin_ ## func, 0, 0, 0, 0, 0);\
-//   if (id < 0) return id;\
-// } while(0)
+    // /* for definition of builtin callout */
+    // #define BC0_P(name, func)  do {\
+    //   int len = onigenc_str_bytelen_null(enc, (UChar* )name);\
+    //   id = onig_set_callout_of_name(enc, ONIG_CALLOUT_TYPE_SINGLE,\
+    //                               (UChar* )(name), (UChar* )((name) + len),\
+    //                               ONIG_CALLOUT_IN_PROGRESS,\
+    //                               onig_builtin_ ## func, 0, 0, 0, 0, 0);\
+    //   if (id < 0) return id;\
+    // } while(0)
 
-// #define BC0_R(name, func)  do {\
-//   int len = onigenc_str_bytelen_null(enc, (UChar* )name);\
-//   id = onig_set_callout_of_name(enc, ONIG_CALLOUT_TYPE_SINGLE,\
-//                               (UChar* )(name), (UChar* )((name) + len),\
-//                               ONIG_CALLOUT_IN_RETRACTION,\
-//                               onig_builtin_ ## func, 0, 0, 0, 0, 0);\
-//   if (id < 0) return id;\
-// } while(0)
+    // #define BC0_R(name, func)  do {\
+    //   int len = onigenc_str_bytelen_null(enc, (UChar* )name);\
+    //   id = onig_set_callout_of_name(enc, ONIG_CALLOUT_TYPE_SINGLE,\
+    //                               (UChar* )(name), (UChar* )((name) + len),\
+    //                               ONIG_CALLOUT_IN_RETRACTION,\
+    //                               onig_builtin_ ## func, 0, 0, 0, 0, 0);\
+    //   if (id < 0) return id;\
+    // } while(0)
 
-// #define BC0_B(name, func)  do {\
-//   int len = onigenc_str_bytelen_null(enc, (UChar* )name);\
-//   id = onig_set_callout_of_name(enc, ONIG_CALLOUT_TYPE_SINGLE,\
-//                               (UChar* )(name), (UChar* )((name) + len),\
-//                               ONIG_CALLOUT_IN_BOTH,\
-//                               onig_builtin_ ## func, 0, 0, 0, 0, 0);\
-//   if (id < 0) return id;\
-// } while(0)
+    // #define BC0_B(name, func)  do {\
+    //   int len = onigenc_str_bytelen_null(enc, (UChar* )name);\
+    //   id = onig_set_callout_of_name(enc, ONIG_CALLOUT_TYPE_SINGLE,\
+    //                               (UChar* )(name), (UChar* )((name) + len),\
+    //                               ONIG_CALLOUT_IN_BOTH,\
+    //                               onig_builtin_ ## func, 0, 0, 0, 0, 0);\
+    //   if (id < 0) return id;\
+    // } while(0)
 
-// #define BC_P(name, func, na, ts)  do {\
-//   int len = onigenc_str_bytelen_null(enc, (UChar* )name);\
-//   id = onig_set_callout_of_name(enc, ONIG_CALLOUT_TYPE_SINGLE,\
-//                               (UChar* )(name), (UChar* )((name) + len),\
-//                               ONIG_CALLOUT_IN_PROGRESS,\
-//                                 onig_builtin_ ## func, 0, (na), (ts), 0, 0); \
-//   if (id < 0) return id;\
-// } while(0)
+    // #define BC_P(name, func, na, ts)  do {\
+    //   int len = onigenc_str_bytelen_null(enc, (UChar* )name);\
+    //   id = onig_set_callout_of_name(enc, ONIG_CALLOUT_TYPE_SINGLE,\
+    //                               (UChar* )(name), (UChar* )((name) + len),\
+    //                               ONIG_CALLOUT_IN_PROGRESS,\
+    //                                 onig_builtin_ ## func, 0, (na), (ts), 0, 0); \
+    //   if (id < 0) return id;\
+    // } while(0)
 
-// #define BC_P_O(name, func, nts, ts, nopts, opts)  do {\
-//   int len = onigenc_str_bytelen_null(enc, (UChar* )name);\
-//   id = onig_set_callout_of_name(enc, ONIG_CALLOUT_TYPE_SINGLE,\
-//                            (UChar* )(name), (UChar* )((name) + len),\
-//                            ONIG_CALLOUT_IN_PROGRESS,\
-//                            onig_builtin_ ## func, 0, (nts), (ts), (nopts), (opts));\
-//   if (id < 0) return id;\
-// } while(0)
+    // #define BC_P_O(name, func, nts, ts, nopts, opts)  do {\
+    //   int len = onigenc_str_bytelen_null(enc, (UChar* )name);\
+    //   id = onig_set_callout_of_name(enc, ONIG_CALLOUT_TYPE_SINGLE,\
+    //                            (UChar* )(name), (UChar* )((name) + len),\
+    //                            ONIG_CALLOUT_IN_PROGRESS,\
+    //                            onig_builtin_ ## func, 0, (nts), (ts), (nopts), (opts));\
+    //   if (id < 0) return id;\
+    // } while(0)
 
-// #define BC_B(name, func, na, ts)  do {\
-//   int len = onigenc_str_bytelen_null(enc, (UChar* )name);\
-//   id = onig_set_callout_of_name(enc, ONIG_CALLOUT_TYPE_SINGLE,\
-//                               (UChar* )(name), (UChar* )((name) + len),\
-//                               ONIG_CALLOUT_IN_BOTH,\
-//                               onig_builtin_ ## func, 0, (na), (ts), 0, 0);\
-//   if (id < 0) return id;\
-// } while(0)
+    // #define BC_B(name, func, na, ts)  do {\
+    //   int len = onigenc_str_bytelen_null(enc, (UChar* )name);\
+    //   id = onig_set_callout_of_name(enc, ONIG_CALLOUT_TYPE_SINGLE,\
+    //                               (UChar* )(name), (UChar* )((name) + len),\
+    //                               ONIG_CALLOUT_IN_BOTH,\
+    //                               onig_builtin_ ## func, 0, (na), (ts), 0, 0);\
+    //   if (id < 0) return id;\
+    // } while(0)
 
-// #define BC_B_O(name, func, nts, ts, nopts, opts)  do {\
-//   int len = onigenc_str_bytelen_null(enc, (UChar* )name);\
-//   id = onig_set_callout_of_name(enc, ONIG_CALLOUT_TYPE_SINGLE,\
-//                            (UChar* )(name), (UChar* )((name) + len),\
-//                            ONIG_CALLOUT_IN_BOTH,\
-//                            onig_builtin_ ## func, 0, (nts), (ts), (nopts), (opts));\
-//   if (id < 0) return id;\
-// } while(0)
+    // #define BC_B_O(name, func, nts, ts, nopts, opts)  do {\
+    //   int len = onigenc_str_bytelen_null(enc, (UChar* )name);\
+    //   id = onig_set_callout_of_name(enc, ONIG_CALLOUT_TYPE_SINGLE,\
+    //                            (UChar* )(name), (UChar* )((name) + len),\
+    //                            ONIG_CALLOUT_IN_BOTH,\
+    //                            onig_builtin_ ## func, 0, (nts), (ts), (nopts), (opts));\
+    //   if (id < 0) return id;\
+    // } while(0)
 
 // #endif /* USE_CALLOUT */
 
 
 // typedef int (*ONIGENC_INIT_PROPERTY_LIST_FUNC_TYPE)(void);
-
-// #endif /* REGINT_H */
