@@ -1274,19 +1274,6 @@ pub const Region = struct {
 
 // static unsigned int MatchStackLimit = DEFAULT_MATCH_STACK_LIMIT_SIZE;
 
-// extern unsigned int
-// onig_get_match_stack_limit_size(void)
-// {
-//   return MatchStackLimit;
-// }
-
-// extern int
-// onig_set_match_stack_limit_size(unsigned int size)
-// {
-//   MatchStackLimit = size;
-//   return 0;
-// }
-
 // #ifdef USE_RETRY_LIMIT
 
     // static unsigned long RetryLimitInMatch  = DEFAULT_RETRY_LIMIT_IN_MATCH;
@@ -1348,19 +1335,6 @@ pub const Region = struct {
 
 // #ifdef USE_CALL
     // static unsigned long SubexpCallLimitInSearch = DEFAULT_SUBEXP_CALL_LIMIT_IN_SEARCH;
-
-    // extern unsigned long
-    // onig_get_subexp_call_limit_in_search(void)
-    // {
-    //   return SubexpCallLimitInSearch;
-    // }
-
-    // extern int
-    // onig_set_subexp_call_limit_in_search(unsigned long n)
-    // {
-    //   SubexpCallLimitInSearch = n;
-    //   return 0;
-    // }
 
 // #endif
 

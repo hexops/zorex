@@ -134,16 +134,6 @@ const CVAL = enum {
     // static OnigWarnFunc onig_verb_warn = onig_null_warn;
 // #endif
 
-// extern void onig_set_warn_func(OnigWarnFunc f)
-// {
-//   onig_warn = f;
-// }
-
-// extern void onig_set_verb_warn_func(OnigWarnFunc f)
-// {
-//   onig_verb_warn = f;
-// }
-
 // extern void
 // onig_warning(const char* s)
 // {
@@ -166,12 +156,6 @@ const MaxCaptureNum = DEFAULT_MAX_CAPTURE_NUM;
 // }
 
 pub const ParseDepthLimit = DEFAULT_PARSE_DEPTH_LIMIT;
-
-// extern unsigned int
-// onig_get_parse_depth_limit(void)
-// {
-//   return ParseDepthLimit;
-// }
 
 // extern int
 // onig_set_parse_depth_limit(unsigned int depth)
