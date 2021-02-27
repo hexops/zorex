@@ -75,7 +75,8 @@ const ENC_CODE_TO_MBC_MAXLEN =      7;
 const ENC_MBC_CASE_FOLD_MAXLEN =   18; /// 18: 6(max-byte) * 3(case-fold chars)
 
 /// character types
-const EncCtype = enum {
+pub const EncCType = enum {
+    AnyChar,
     NewLine,
     Alpha,
     Blank,
@@ -248,11 +249,11 @@ pub const Option = enum(u32) {
     NotBeginPosition = 1 << 23,
 
     pub fn on(self: Option, regopt: Option) callconv(.Inline) bool {
-        return self |= regopt;
+        return (self | regopt) > 0;
     }
 
     pub fn off(self: Option, regopt: Option) callconv(.Inline) bool {
-        return self &= ~regopt;
+        return (self & ~regopt) > 0;
     }
 
     pub fn withSingleLine(self: Option) callconv(.Inline) Option {
@@ -291,26 +292,45 @@ pub const Option = enum(u32) {
         return self & Option.TextSegmentWord;
     }
 
-    pub fn withIsASCIIModeCType(self: Option, ctype: isize) callconv(.Inline) Option {
-        // TODO(slimsag): *could* be wrong, needs testing
+    pub fn withIsASCIIModeCType(self: Option, ctype: EncCType) callconv(.Inline) Option {
+        // TODO(slimsag): this is crazy
         // #define OPTON_IS_ASCII_MODE_CTYPE(ctype, options) \
         //   ((ctype) >= 0 && \
         //   (((ctype) < ONIGENC_CTYPE_ASCII  && OPTON_POSIX_ASCII(options)) ||\
         //    ((ctype) == ONIGENC_CTYPE_WORD  && OPTON_WORD_ASCII(options))  ||\
         //    ((ctype) == ONIGENC_CTYPE_DIGIT && OPTON_DIGIT_ASCII(options)) ||\
         //    ((ctype) == ONIGENC_CTYPE_SPACE && OPTON_SPACE_ASCII(options))))
-        if (ctype < 0) {
-            return 0;
-        } else if (ctype < EncCType.ASCII) {
-            return self.withPosixASCII();
-        } else if (ctype == EncCType.Word) {
-            return self.withWordASCII();
-        } else if (ctype == EncCType.Digit) {
-            return self.withDigitASCII();
-        } else if (ctype == EncCType.Space) {
-            return self.withSpaceASCII();
-        }
-        return 0;
+
+        // switch (ctype) {
+        // // EncCType.AnyChar => return Option.Default,
+        // // EncCType.NewLine => ,
+        // // EncCType.Alpha => ,
+        // // EncCType.Blank => ,
+        // // EncCType.CNTRL => ,
+        // // EncCType.Digit => ,
+        // // EncCType.Graph => ,
+        // // EncCType.Lower => ,
+        // // EncCType.Print => ,
+        // // EncCType.Punct => ,
+        // // EncCType.Space => ,
+        // // EncCType.Upper => ,
+        // // EncCType.XDigit => ,
+        // // EncCType.Word => ,
+        // // EncCType.Alnum => ,
+        // // EncCType.ASCII => ,
+        // }
+        // if (ctype <= EncCType.AnyChar) {
+        //     return Option.Default;
+        // } else if (ctype < EncCType.ASCII) {
+        //     return self.withPosixASCII();
+        // } else if (ctype == EncCType.Word) {
+        //     return self.withWordASCII();
+        // } else if (ctype == EncCType.Digit) {
+        //     return self.withDigitASCII();
+        // } else if (ctype == EncCType.Space) {
+        //     return self.withSpaceASCII();
+        // }
+        return Option.Default;
     }
 };
 

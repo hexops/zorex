@@ -486,11 +486,11 @@ pub const OpCode = enum(u32) {
 // #endif
 };
 
-// enum SaveType {
-//   SAVE_KEEP        = 0, /* SAVE S */
-//   SAVE_S           = 1,
-//   SAVE_RIGHT_RANGE = 2,
-// };
+pub const SaveType = enum {
+    SAVE_KEEP        = 0, /// SAVE S
+    SAVE_S           = 1,
+    SAVE_RIGHT_RANGE = 2,
+};
 
 // enum UpdateVarType {
 //   UPDATE_VAR_KEEP_FROM_STACK_LAST     = 0,
@@ -518,7 +518,6 @@ pub const RelPositionType = isize;
 pub const RepeatNumType = isize;
 pub const MemNumType = isize;
 pub const PointerType = c_void;
-pub const SaveType = isize;
 pub const UpdateVarType = isize;
 pub const ModeType = isize;
 

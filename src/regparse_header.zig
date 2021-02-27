@@ -2,6 +2,7 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const Option = @import("oniguruma.zig").Option;
 const CaseFoldType = @import("oniguruma.zig").CaseFoldType;
+const EncCType = @import("oniguruma.zig").EncCType;
 const Syntax = @import("regsyntax.zig").Syntax;
 const Regex = @import("regcomp.zig").Regex;
 const PToken = @import("regparse.zig").PToken;
@@ -12,6 +13,7 @@ const BitSet = @import("regint.zig").BitSet;
 const BBuf = @import("regint.zig").BBuf;
 const MemStatusType = @import("regint.zig").MemStatusType;
 const AbsAddrType = @import("regint.zig").AbsAddrType;
+const SaveType = @import("regint.zig").SaveType;
 const config = @import("config.zig");
 
 const NODE_STRING_MARGIN = 16;
@@ -160,7 +162,7 @@ const AnchorNode = struct {
     type: isize,
     char_min_len: usize,
     char_max_len: usize,
-    ascii_mode: bool,
+    ascii_mode: Option,
     lead_node: ?*Node,
 };
 
@@ -176,9 +178,9 @@ const CTypeNode = struct {
     node_type: NodeType,
     status: isize,
     parent: ?*Node,
-    ctype: isize,
-    not: isize,
-    ascii_mode: isize,
+    ctype: EncCType,
+    not: bool,
+    ascii_mode: Option,
 };
 
 const GimmickNode = struct {
@@ -273,50 +275,36 @@ pub const Node = struct {
         return node;
     }
 
-    pub fn newCType(allocator: *Allocator, type: isize, not: isize, options: Option) !*Node {
+    pub fn newCType(allocator: *Allocator, ctype_value: EncCType, not: bool, options: Option) !*Node {
         const node = try Node.new(allocator);
         node.u = NodeBase{
             .ctype = CTypeNode{
                 .node_type = NodeType.Alt,
                 .status = 0,
                 .parent = null,
-                .ctype = type,
+                .ctype = ctype_value,
                 .not = not,
-                .ascii_mode = options.withIsASCIIModeCType(type),
+                .ascii_mode = options.withIsASCIIModeCType(ctype_value),
             }
         };
         return node;
     }
 
     pub fn newAnyChar(allocator: *Allocator, options: Option) !*Node {
-        const node = try Node.newCType(allocator, CType.AnyChar, false, options);
-        if (option.on(Option.MultiLine)) {
+        const node = try Node.newCType(allocator, EncCType.AnyChar, false, options);
+        if (options.on(Option.MultiLine)) {
             //     NODE_STATUS_ADD(node, MULTILINE);
         }
         return node;
     }
 
-    // TODO(slimsag): seems unnecessary? Maybe just as an alias?
-    // static int
-    // node_new_no_newline(Node** node, ParseEnv* env)
-    // {
-    //   Node* n
-    //   n = node_new_anychar(ONIG_OPTION_NONE);
-    //   CHECK_NULL_RETURN_MEMERR(n);
-    //   *node = n;
-    //   return 0;
-    // }
+    pub fn newNoNewLine(allocator: *Allocator, env: *ParseEnv) !*Node {
+        return try Node.newAnyChar(allocator, Option.Default);
+    }
 
-    // TODO(slimsag): seems unnecessary? Maybe just as an alias?
-    // static int
-    // node_new_true_anychar(Node** node)
-    // {
-    //   Node* n;
-    //   n = node_new_anychar(ONIG_OPTION_MULTILINE);
-    //   CHECK_NULL_RETURN_MEMERR(n);
-    //   *node = n;
-    //   return 0;
-    // }
+    pub fn newTrueAnyChar(allocator: *Allocator) !*Node {
+        return try Node.newAnyChar(allocator, Option.MultiLine);
+    }
 
     pub fn newList(allocator: *Allocator, left: *Node, right: ?*Node) !*Node {
         const node = try Node.new(allocator);
@@ -333,7 +321,6 @@ pub const Node = struct {
     }
 
     pub fn setString(self: *Node, s: []const u8) !void {
-        //self.setType(NodeType.String);
         var strNode = StrNode{
                 .node_type = NodeType.String,
                 .status =  0,
@@ -527,6 +514,56 @@ pub const Node = struct {
         node.bag().u.?.te.then = then;
         node.bag().u.?.te.els = els;
         return node;
+    }
+
+    pub fn newGeneralNewLine(allocator: *Allocator, env: *ParseEnv) !*Node {
+        return Node.new(allocator); // TODO(slimsag): remove this line
+        //   int r;
+        //   int dlen, alen;
+        //   UChar buf[ONIGENC_CODE_TO_MBC_MAXLEN * 2];
+        //   Node* crnl;
+        //   Node* ncc;
+        //   Node* x;
+        //   CClassNode* cc;
+
+        //   dlen = ONIGENC_CODE_TO_MBC(env->enc, 0x0d, buf);
+        //   if (dlen < 0) return dlen;
+        //   alen = ONIGENC_CODE_TO_MBC(env->enc, NEWLINE_CODE, buf + dlen);
+        //   if (alen < 0) return alen;
+
+        //   crnl = node_new_str_crude(buf, buf + dlen + alen, ONIG_OPTION_NONE);
+        //   CHECK_NULL_RETURN_MEMERR(crnl);
+
+        //   ncc = node_new_cclass();
+        //   if (IS_NULL(ncc)) goto err2;
+
+        //   cc = CCLASS_(ncc);
+        //   if (dlen == 1) {
+        //     bitset_set_range(cc->bs, NEWLINE_CODE, 0x0d);
+        //   }
+        //   else {
+        //     r = add_code_range(&(cc->mbuf), env, NEWLINE_CODE, 0x0d);
+        //     if (r != 0) {
+        //     err1:
+        //       onig_node_free(ncc);
+        //     err2:
+        //       onig_node_free(crnl);
+        //       return ONIGERR_MEMORY;
+        //     }
+        //   }
+
+        //   if (ONIGENC_IS_UNICODE_ENCODING(env->enc)) {
+        //     r = add_code_range(&(cc->mbuf), env, 0x85, 0x85);
+        //     if (r != 0) goto err1;
+        //     r = add_code_range(&(cc->mbuf), env, 0x2028, 0x2029);
+        //     if (r != 0) goto err1;
+        //   }
+
+        //   x = node_new_bag_if_else(crnl, NULL_NODE, ncc);
+        //   if (IS_NULL(x)) goto err1;
+
+        //   *node = x;
+        //   return 0;
     }
 
     pub fn newMemory(allocator: *Allocator, is_named: bool) !*Node {
@@ -1101,21 +1138,9 @@ pub const Node = struct {
             //     if (r < 0) return r;
             //     break;
             },
-            TokenSym.GeneralNewLine => {
-            //     r = node_new_general_newline(np, env);
-            //     if (r < 0) return r;
-            //     break;
-            },
-            TokenSym.NoNewLine => {
-            //     r = node_new_no_newline(np, env);
-            //     if (r < 0) return r;
-            //     break;
-            },
-            TokenSym.TrueAnyChar => {
-            //     r = node_new_true_anychar(np);
-            //     if (r < 0) return r;
-            //     break;
-            },
+            TokenSym.GeneralNewLine => np.* = try Node.newGeneralNewLine(allocator, env),
+            TokenSym.NoNewLine => np.* = try Node.newNoNewLine(allocator, env),
+            TokenSym.TrueAnyChar => np.* = try Node.newTrueAnyChar(allocator),
             TokenSym.TextSegment => {
             //     r = make_text_segment(np, env);
             //     if (r < 0) return r;
@@ -1204,9 +1229,9 @@ pub const Node = struct {
     }
 };
 
-// typedef struct {
-//   int new_val;
-// } GroupNumMap;
+const GroupNumMap = struct {
+    new_val: isize,
+};
 
 
 // #define NULL_NODE  ((Node* )0)
@@ -1227,7 +1252,6 @@ pub const Node = struct {
 // #define NODE_BIT_CALL       NODE_TYPE2BIT(NODE_CALL)
 // #define NODE_BIT_GIMMICK    NODE_TYPE2BIT(NODE_GIMMICK)
 
-// #define CTYPE_ANYCHAR      -1
 // #define NODE_IS_ANYCHAR(node) \
 //   (NODE_TYPE(node) == NODE_CTYPE && CTYPE_(node)->ctype == CTYPE_ANYCHAR)
 
@@ -1324,7 +1348,7 @@ pub const Node = struct {
 // #define NODE_CALL_BODY(node)      ((node)->body)
 // #define NODE_ANCHOR_BODY(node)    ((node)->body)
 
-// #define PARSEENV_MEMENV_SIZE  8
+const PARSEENV_MEMENV_SIZE = 8;
 // #define PARSEENV_MEMENV(senv) \
 //  (IS_NOT_NULL((senv)->mem_env_dynamic) ? \
 //     (senv)->mem_env_dynamic : (senv)->mem_env_static)
@@ -1337,15 +1361,14 @@ pub const Node = struct {
 //   id = (env)->id_num++;\
 // } while(0)
 
+const MemEnv = struct {
+    mem_node: *Node,
+    empty_repeat_node: *Node,
+};
 
-// typedef struct {
-//   Node* mem_node;
-//   Node* empty_repeat_node;
-// } MemEnv;
-
-// typedef struct {
-//   enum SaveType type;
-// } SaveItem;
+const SaveItem = struct {
+    type: SaveType,
+};
 
 pub const ParseEnv = struct {
     options: Option,
@@ -1361,13 +1384,13 @@ pub const ParseEnv = struct {
     num_mem: isize,
     num_named: isize,
     mem_alloc: isize,
-//   MemEnv           mem_env_static[PARSEENV_MEMENV_SIZE];
-//   MemEnv*          mem_env_dynamic;
+    mem_env_static: [PARSEENV_MEMENV_SIZE]MemEnv,
+    mem_env_dynamic: *MemEnv,
     backref_num: isize,
     keep_num: isize,
     id_num: isize,
     save_alloc_num: isize,
-//    saves: *SaveItem,
+    saves: *SaveItem,
     // #ifdef USE_CALL
         //   UnsetAddrList*   unset_addr_list;
         //   int              has_call_zero;
