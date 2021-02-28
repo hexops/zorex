@@ -307,22 +307,16 @@ fn nodeListAdd(allocator: *Allocator, list: *Node, x: *Node) !*Node {
     return n;
 }
 
-// static int
-// node_str_node_cat(Node* node, Node* add)
-// {
-//   int r;
-
+fn nodeStrNodeCat(node: *Node, add: *Node) !void {
 //   if (NODE_STATUS(node) != NODE_STATUS(add))
 //     return ONIGERR_TYPE_BUG;
 
-//   if (STR_(node)->flag != STR_(add)->flag)
-//     return ONIGERR_TYPE_BUG;
+    if (node.str().flag != add.str().flag) {
+        unreachable;
+    }
 
-//   r = onig_node_str_cat(node, STR_(add)->s, STR_(add)->end);
-//   if (r != 0) return r;
-
-//   return 0;
-// }
+    return try nodeStrCat(node, add.str().s);
+}
 
 // static void
 // node_conv_to_str_node(Node* node, Node* ref_node)
@@ -357,17 +351,6 @@ fn nodeListAdd(allocator: *Allocator, list: *Node, x: *Node) !*Node {
 //     return d * m;
 //   else
 //     return INFINITE_LEN;
-// }
-
-// static int
-// bitset_is_empty(BitSetRef bs)
-// {
-//   int i;
-
-//   for (i = 0; i < (int )BITSET_REAL_SIZE; i++) {
-//     if (bs[i] != 0) return 0;
-//   }
-//   return 1;
 // }
 
 // #ifdef USE_CALL
