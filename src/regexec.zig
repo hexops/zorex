@@ -305,19 +305,6 @@ const OpInfoType = struct {
 //   fprintf(f, "%s%s%d => %s%d", space1, flag, rel_addr, space2, abs_addr);
 // }
 
-// static int
-// bitset_on_num(BitSetRef bs)
-// {
-//   int i, n;
-
-//   n = 0;
-//   for (i = 0; i < SINGLE_BYTE_SIZE; i++) {
-//     if (BITSET_AT(bs, i)) n++;
-//   }
-
-//   return n;
-// }
-
 
 // #ifdef USE_DIRECT_THREADED_CODE
     // #define GET_OPCODE(reg,index)  (reg)->ocs[index]

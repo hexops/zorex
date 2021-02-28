@@ -146,19 +146,16 @@ const DEFAULT_MAX_CAPTURE_NUM =  32767;
 
 const MaxCaptureNum = DEFAULT_MAX_CAPTURE_NUM;
 
-pub fn setCaptureNumLimit(num: isize) {
+pub fn setCaptureNumLimit(num: isize) void {
     if (num < 0) {
-        unreachable;
+        unreachable; // TODO(slimsag): why not unsigned?
     }
     MaxCaptureNum = num;
 }
 
-pub var ParseDepthLimit = DEFAULT_PARSE_DEPTH_LIMIT;
+pub var ParseDepthLimit: usize = DEFAULT_PARSE_DEPTH_LIMIT;
 
-pub fn setParseDepthLimit(depth: usize) {
-    if (depth < 0) {
-        unreachable;
-    }
+pub fn setParseDepthLimit(depth: usize) void {
     if (depth == 0) {
         ParseDepthLimit = DEFAULT_PARSE_DEPTH_LIMIT;
     } else {
@@ -239,60 +236,6 @@ pub fn setParseDepthLimit(depth: usize) {
 //   }\
 // } while (0)
 
-
-// #define BITSET_IS_EMPTY(bs,empty) do {\
-//   int i;\
-//   empty = 1;\
-//   for (i = 0; i < (int )BITSET_REAL_SIZE; i++) {\
-//     if ((bs)[i] != 0) {\
-//       empty = 0; break;\
-//     }\
-//   }\
-// } while (0)
-
-// static void
-// bitset_set_range(BitSetRef bs, int from, int to)
-// {
-//   int i;
-//   for (i = from; i <= to && i < SINGLE_BYTE_SIZE; i++) {
-//     BITSET_SET_BIT(bs, i);
-//   }
-// }
-
-// static void
-// bitset_invert(BitSetRef bs)
-// {
-//   int i;
-//   for (i = 0; i < (int )BITSET_REAL_SIZE; i++) { bs[i] = ~(bs[i]); }
-// }
-
-// static void
-// bitset_invert_to(BitSetRef from, BitSetRef to)
-// {
-//   int i;
-//   for (i = 0; i < (int )BITSET_REAL_SIZE; i++) { to[i] = ~(from[i]); }
-// }
-
-// static void
-// bitset_and(BitSetRef dest, BitSetRef bs)
-// {
-//   int i;
-//   for (i = 0; i < (int )BITSET_REAL_SIZE; i++) { dest[i] &= bs[i]; }
-// }
-
-// static void
-// bitset_or(BitSetRef dest, BitSetRef bs)
-// {
-//   int i;
-//   for (i = 0; i < (int )BITSET_REAL_SIZE; i++) { dest[i] |= bs[i]; }
-// }
-
-// static void
-// bitset_copy(BitSetRef dest, BitSetRef bs)
-// {
-//   int i;
-//   for (i = 0; i < (int )BITSET_REAL_SIZE; i++) { dest[i] = bs[i]; }
-// }
 
 // extern int
 // onig_strncmp(const UChar* s1, const UChar* s2, int n)

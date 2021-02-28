@@ -8,8 +8,8 @@ const Regex = @import("regcomp.zig").Regex;
 const PToken = @import("regparse.zig").PToken;
 const TokenSym = @import("regparse.zig").TokenSym;
 const fetchToken = @import("regparse.zig").fetchToken;
-const ParseDepthLimit = @import("regparse.zig").ParseDepthLimit;
-const BitSet = @import("regint.zig").BitSet;
+const regparse = @import("regparse.zig");
+const BitSet = @import("bitset.zig").BitSet;
 const BBuf = @import("regint.zig").BBuf;
 const MemStatusType = @import("regint.zig").MemStatusType;
 const AbsAddrType = @import("regint.zig").AbsAddrType;
@@ -1404,12 +1404,12 @@ pub const ParseEnv = struct {
         if (config.DebugParse) {
             self.parse_depth += 1;
             //   if (env->max_parse_depth < (d)) env->max_parse_depth = d;\
-            if (self.parse_depth > ParseDepthLimit) {
+            if (self.parse_depth > regparse.ParseDepthLimit) {
                 //     return ONIGERR_PARSE_DEPTH_LIMIT_OVER;\
             }
         } else {
             self.parse_depth += 1;
-            if (self.parse_depth > ParseDepthLimit) {
+            if (self.parse_depth > regparse.ParseDepthLimit) {
                 //     return ONIGERR_PARSE_DEPTH_LIMIT_OVER;\
             }
         }

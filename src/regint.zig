@@ -250,33 +250,6 @@ pub const MemStatusType = usize;
 
 pub const INFINITE_REPEAT =        -1;
 
-/// bitset
-pub const BITS_PER_BYTE    =  8;
-pub const SINGLE_BYTE_SIZE =  (1 << BITS_PER_BYTE);
-pub const BITS_IN_ROOM     =  32;   /// 4 * BITS_PER_BYTE
-pub const BITSET_REAL_SIZE =  (SINGLE_BYTE_SIZE / BITS_IN_ROOM);
-
-// typedef uint32_t  Bits;
-// typedef Bits      BitSet[BITSET_REAL_SIZE];
-// typedef Bits*     BitSetRef;
-pub const Bits = u32;
-pub const BitSet = [BITSET_REAL_SIZE]Bits;
-
-pub const SIZE_BITSET = @sizeOf(Bitset);
-
-// #define BITSET_CLEAR(bs) do {\
-//   int i;\
-//   for (i = 0; i < (int )BITSET_REAL_SIZE; i++) { (bs)[i] = 0; } \
-// } while (0)
-
-// #define BS_ROOM(bs,pos)            (bs)[(unsigned int )(pos) >> 5]
-// #define BS_BIT(pos)                (1u << ((unsigned int )(pos) & 0x1f))
-
-// #define BITSET_AT(bs, pos)         (BS_ROOM(bs,pos) & BS_BIT(pos))
-// #define BITSET_SET_BIT(bs, pos)     BS_ROOM(bs,pos) |= BS_BIT(pos)
-// #define BITSET_CLEAR_BIT(bs, pos)   BS_ROOM(bs,pos) &= ~(BS_BIT(pos))
-// #define BITSET_INVERT_BIT(bs, pos)  BS_ROOM(bs,pos) ^= BS_BIT(pos)
-
 // TODO(slimsag): replace with std.ArrayBuffer?
 pub const BBuf = struct {};
 // /* bytes buffer */
