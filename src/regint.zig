@@ -789,11 +789,12 @@ pub const RePatternBuffer = struct{
     // #ifdef USE_DIRECT_THREADED_CODE
         //   enum OpCode* ocs;
     // #endif
+
     // TODO(slimsag): remove later, replaced with ArrayList
     //ops: ?*Operation,
-    //ops_curr: ?*Operation,
-    //ops_used: usize, /// used space for ops
-    //ops_alloc: usize, /// allocated space for ops
+    //ops_curr: ?*Operation, // NOTE(slimsag): ops.items[ops.items.len-1] ?
+    //ops_used: usize, /// used space for ops // NOTE(slimsag): ops.items.len
+    //ops_alloc: usize, /// allocated space for ops // NOTE(slimsag): ops.capacity
     // TODO(slimsag): if allocated earlier, could be a non-optional field
     ops: ?std.ArrayList(Operation),
 

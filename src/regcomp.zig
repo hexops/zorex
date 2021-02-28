@@ -29,58 +29,28 @@ const DefaultCaseFoldFlag = EncCaseFoldMin;
 
 // static OnigLen node_min_byte_len(Node* node, ParseEnv* env);
 
-// static int
-// ops_expand(regex_t* reg, int n)
-// {
-// #define MIN_OPS_EXPAND_SIZE   4
+fn opsExpand(allocator: *Allocator, reg: *Regex, n: isize) !void {
+    const new_len = reg.re_pattern_buffer.ops.items.capacity + n;
 
-// #ifdef USE_DIRECT_THREADED_CODE
-    //   enum OpCode* cp;
-// #endif
-//   Operation* p;
-//   size_t size;
+    if (reg.re_pattern_buffer.ops == null) {
+        reg.re_pattern_buffer.ops = std.ArrayList(Operation).initCapacity(allocator, new_len);
+    } else {
+        reg.re_pattern_buffer.ops.?.resize(new_len);
+    }
 
-//   if (n <= 0) n = MIN_OPS_EXPAND_SIZE;
+    if (config.UseDirectThreadedCode) {
+        //   size = sizeof(enum OpCode) * n;
+        //   enum OpCode* cp = (enum OpCode* )xrealloc(reg->ocs, size);
+        //   CHECK_NULL_RETURN_MEMERR(cp);
+        //   reg->ocs = cp;
+    }
+    return;
+}
 
-//   n += reg->ops_alloc;
-
-//   size = sizeof(Operation) * n;
-//   p = (Operation* )xrealloc(reg->ops, size);
-//   CHECK_NULL_RETURN_MEMERR(p);
-//   reg->ops = p;
-
-// #ifdef USE_DIRECT_THREADED_CODE
-    //   size = sizeof(enum OpCode) * n;
-    //   cp = (enum OpCode* )xrealloc(reg->ocs, size);
-    //   CHECK_NULL_RETURN_MEMERR(cp);
-    //   reg->ocs = cp;
-// #endif
-
-//   reg->ops_alloc = n;
-//   if (reg->ops_used == 0)
-//     reg->ops_curr = 0;
-//   else
-//     reg->ops_curr = reg->ops + (reg->ops_used - 1);
-
-//   return ONIG_NORMAL;
-// }
-
-// static int
-// ops_new(regex_t* reg)
-// {
-//   int r;
-
-//   if (reg->ops_used >= reg->ops_alloc) {
-//     r = ops_expand(reg, reg->ops_alloc);
-//     if (r != ONIG_NORMAL) return r;
-//   }
-
-//   reg->ops_curr = reg->ops + reg->ops_used;
-//   reg->ops_used++;
-
-//   xmemset(reg->ops_curr, 0, sizeof(Operation));
-//   return ONIG_NORMAL;
-// }
+fn opsNew(allocator: *Allocator, reg: *Regex) !void {
+    try opsExpand(reg, 0);
+    return;
+}
 
 // static int
 // is_in_string_pool(regex_t* reg, UChar* s)
