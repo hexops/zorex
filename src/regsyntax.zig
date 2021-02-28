@@ -354,16 +354,12 @@ const SyntaxGrep = &Syntax{
 // };
 
 
-
-// extern int
-// onig_set_default_syntax(OnigSyntaxType* syntax)
-// {
-//   if (IS_NULL(syntax))
-//     syntax = ONIG_SYNTAX_ONIGURUMA;
-
-//   OnigDefaultSyntax = syntax;
-//   return 0;
-// }
+fn setDefaultSyntax(syntax: ?*Syntax) {
+    if (syntax == null) {
+        //     syntax = ONIG_SYNTAX_ONIGURUMA;
+    }
+    //   OnigDefaultSyntax = syntax;
+}
 
 // #ifdef USE_VARIABLE_META_CHARS
     // extern int onig_set_meta_char(OnigSyntaxType* enc,
