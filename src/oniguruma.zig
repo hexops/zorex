@@ -419,7 +419,7 @@ const ONIG_REGION_NOTPOS =           -1;
 const ErrorInfo = struct {
     enc: Encoding,
     par: []const u8,
-}
+};
 
 const RepeatRange = struct {
     lower: isize,

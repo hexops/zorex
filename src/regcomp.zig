@@ -266,19 +266,6 @@ const DefaultCaseFoldFlag = EncCaseFoldMin;
 //   return 0;
 // }
 
-// extern OnigCaseFoldType
-// onig_get_default_case_fold_flag(void)
-// {
-//   return OnigDefaultCaseFoldFlag;
-// }
-
-// extern int
-// onig_set_default_case_fold_flag(OnigCaseFoldType case_fold_flag)
-// {
-//   OnigDefaultCaseFoldFlag = case_fold_flag;
-//   return 0;
-// }
-
 // static int
 // len_multiply_cmp(OnigLen x, int y, OnigLen v)
 // {
@@ -5908,42 +5895,41 @@ pub fn reduceStringList(node: *Node) !isize {
     // #error Too big OPT_EXACT_MAXLEN
 // #endif
 
-// typedef struct {
-//   MinMaxLen        mm;
-//   OnigEncoding     enc;
-//   OnigCaseFoldType case_fold_flag;
-//   ParseEnv*        scan_env;
-// } OptEnv;
+const OptEnv = struct {
+    mm: MinMaxLen,
+    enc: Encoding,
+    case_fold_flag: CaseFoldType,
+    scan_env: *ParseEnv,
+};
 
-// typedef struct {
-//   int left;
-//   int right;
-// } OptAnc;
+const OptAnc = struct {
+    left: isize,
+    right: isize,
+};
 
-// typedef struct {
-//   MinMaxLen  mm;   /* position */
-//   OptAnc     anc;
-//   int        reach_end;
-//   int        len;
-//   UChar      s[OPT_EXACT_MAXLEN];
-// } OptStr;
+const OptStr = struct {
+    mm: MinMaxLen, /// position
+    anc: OptAnc,
+    reach_end: isize,
+    len: isize,
+    s: [OPT_EXACT_MAXLEN]u8,
+};
 
-// typedef struct {
-//   MinMaxLen mm;     /* position */
-//   OptAnc    anc;
-//   int       value;  /* weighted value */
-//   UChar     map[CHAR_MAP_SIZE];
-// } OptMap;
+const OptMap = struct {
+    mm: MinMaxLen, /// position
+    anc: OptAnc,
+    value: isize, /// weighted value
+    map: [CHAR_MAP_SIZE]u8,
+};
 
-// typedef struct {
-//   MinMaxLen len;
-//   OptAnc  anc;
-//   OptStr  sb;     /* boundary */
-//   OptStr  sm;     /* middle */
-//   OptStr  spr;    /* prec read (?=...) */
-//   OptMap  map;    /* boundary */
-// } OptNode;
-
+const OptNode = struct {
+    len: MinMaxLen,
+    anc: OptAnc,
+    sb: OptStr, /// boundary
+    sm: OptStr, /// middle
+    spr: OptStr, /// prec read (?=...)
+    map: OptStr, /// boundary
+};
 
 // static int
 // map_position_value(OnigEncoding enc, int i)
@@ -6013,12 +5999,6 @@ pub fn reduceStringList(node: *Node) !isize {
 //   if (d2->min < d1->min) return  1;
 //   if (d2->min > d1->min) return -1;
 //   return 0;
-// }
-
-// static void
-// copy_opt_env(OptEnv* to, OptEnv* from)
-// {
-//   *to = *from;
 // }
 
 // static void

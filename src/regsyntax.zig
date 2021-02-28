@@ -365,60 +365,6 @@ const SyntaxGrep = &Syntax{
 //   return 0;
 // }
 
-// extern void
-// onig_copy_syntax(OnigSyntaxType* to, OnigSyntaxType* from)
-// {
-//   *to = *from;
-// }
-
-// extern void
-// onig_set_syntax_op(OnigSyntaxType* syntax, unsigned int op)
-// {
-//   syntax->op = op;
-// }
-
-// extern void
-// onig_set_syntax_op2(OnigSyntaxType* syntax, unsigned int op2)
-// {
-//   syntax->op2 = op2;
-// }
-
-// extern void
-// onig_set_syntax_behavior(OnigSyntaxType* syntax, unsigned int behavior)
-// {
-//   syntax->behavior = behavior;
-// }
-
-// extern void
-// onig_set_syntax_options(OnigSyntaxType* syntax, OnigOptionType options)
-// {
-//   syntax->options = options;
-// }
-
-// extern unsigned int
-// onig_get_syntax_op(OnigSyntaxType* syntax)
-// {
-//   return syntax->op;
-// }
-
-// extern unsigned int
-// onig_get_syntax_op2(OnigSyntaxType* syntax)
-// {
-//   return syntax->op2;
-// }
-
-// extern unsigned int
-// onig_get_syntax_behavior(OnigSyntaxType* syntax)
-// {
-//   return syntax->behavior;
-// }
-
-// extern OnigOptionType
-// onig_get_syntax_options(OnigSyntaxType* syntax)
-// {
-//   return syntax->options;
-// }
-
 // #ifdef USE_VARIABLE_META_CHARS
     // extern int onig_set_meta_char(OnigSyntaxType* enc,
     //                               unsigned int what, OnigCodePoint code)

@@ -5942,32 +5942,6 @@ fn numberOfCaptureHistories(reg: *Regex) isize {
 
 // #ifdef USE_CALLOUT
 
-    // extern OnigCalloutFunc
-    // onig_get_progress_callout(void)
-    // {
-    //   return DefaultProgressCallout;
-    // }
-
-    // extern int
-    // onig_set_progress_callout(OnigCalloutFunc f)
-    // {
-    //   DefaultProgressCallout = f;
-    //   return ONIG_NORMAL;
-    // }
-
-    // extern OnigCalloutFunc
-    // onig_get_retraction_callout(void)
-    // {
-    //   return DefaultRetractionCallout;
-    // }
-
-    // extern int
-    // onig_set_retraction_callout(OnigCalloutFunc f)
-    // {
-    //   DefaultRetractionCallout = f;
-    //   return ONIG_NORMAL;
-    // }
-
     // extern int
     // onig_get_callout_num_by_callout_args(OnigCalloutArgs* args)
     // {
