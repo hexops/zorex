@@ -146,26 +146,25 @@ const DEFAULT_MAX_CAPTURE_NUM =  32767;
 
 const MaxCaptureNum = DEFAULT_MAX_CAPTURE_NUM;
 
-// extern int
-// onig_set_capture_num_limit(int num)
-// {
-//   if (num < 0) return -1;
+pub fn setCaptureNumLimit(num: isize) {
+    if (num < 0) {
+        unreachable;
+    }
+    MaxCaptureNum = num;
+}
 
-//   MaxCaptureNum = num;
-//   return 0;
-// }
+pub var ParseDepthLimit = DEFAULT_PARSE_DEPTH_LIMIT;
 
-pub const ParseDepthLimit = DEFAULT_PARSE_DEPTH_LIMIT;
-
-// extern int
-// onig_set_parse_depth_limit(unsigned int depth)
-// {
-//   if (depth == 0)
-//     ParseDepthLimit = DEFAULT_PARSE_DEPTH_LIMIT;
-//   else
-//     ParseDepthLimit = depth;
-//   return 0;
-// }
+pub fn setParseDepthLimit(depth: usize) {
+    if (depth < 0) {
+        unreachable;
+    }
+    if (depth == 0) {
+        ParseDepthLimit = DEFAULT_PARSE_DEPTH_LIMIT;
+    } else {
+        ParseDepthLimit = depth;
+    }
+}
 
 // static int
 // bbuf_init(BBuf* buf, int size)
@@ -224,9 +223,6 @@ pub const ParseDepthLimit = DEFAULT_PARSE_DEPTH_LIMIT;
 //     return env->num_mem + 1 + rel_no;
 //   }
 // }
-
-// #define OPTION_ON(v,f)     ((v) |= (f))
-// #define OPTION_OFF(v,f)    ((v) &= ~(f))
 
 // #define OPTION_NEGATE(v,f,negative)    (negative) ? ((v) &= ~(f)) : ((v) |= (f))
 
