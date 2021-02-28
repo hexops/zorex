@@ -59,6 +59,7 @@ fn opsNew(allocator: *Allocator, reg: *Regex) !void {
 // }
 
 fn opsFree(allocator: *Allocator, reg: *Regex) void {
+    return;
     //   int i;
 
     //   if (IS_NULL(reg->ops)) return ;
@@ -251,43 +252,38 @@ fn opsFree(allocator: *Allocator, reg: *Regex) void {
 //     return v == INFINITE_LEN ? 0 : 1;
 // }
 
-// extern int
-// onig_positive_int_multiply(int x, int y)
-// {
-//   if (x == 0 || y == 0) return 0;
+fn positiveIntMultiply(x: isize, y: isize) isize {
+    if (x == 0 or y == 0) { return 0; }
 
-//   if (x < ONIG_INT_MAX / y)
-//     return x * y;
-//   else
-//     return -1;
-// }
+    if (x < INT_MAX / y) {
+        return x * y;
+    }
+    return -1;
+}
 
+fn nodeSwap(a: *Node, b: *Node) void {
+    const c = a.*;
+    a.* = b.*;
+    b.* = c;
 
-// static void
-// node_swap(Node* a, Node* b)
-// {
-//   Node c;
-
-//   c = *a; *a = *b; *b = c;
-
-//   if (NODE_TYPE(a) == NODE_STRING) {
-//     StrNode* sn = STR_(a);
-//     if (sn->capacity == 0) {
-//       int len = (int )(sn->end - sn->s);
-//       sn->s   = sn->buf;
-//       sn->end = sn->s + len;
-//     }
-//   }
-
-//   if (NODE_TYPE(b) == NODE_STRING) {
-//     StrNode* sn = STR_(b);
-//     if (sn->capacity == 0) {
-//       int len = (int )(sn->end - sn->s);
-//       sn->s   = sn->buf;
-//       sn->end = sn->s + len;
-//     }
-//   }
-// }
+    if (a.getType() == NodeType.String) {
+        const sn = a.str();
+        if (sn.capacity == 0) {
+            //       int len = (int )(sn->end - sn->s);
+            //       sn->s   = sn->buf;
+            //       sn->end = sn->s + len;
+        }
+    }
+    if (b.getType() == NodeType.String) {
+        const sn = b.str();
+        if (sn.capacity == 0) {
+            //       int len = (int )(sn->end - sn->s);
+            //       sn->s   = sn->buf;
+            //       sn->end = sn->s + len;
+        }
+    }
+    return;
+}
 
 // static int
 // node_list_len(Node* list)
