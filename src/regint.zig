@@ -865,20 +865,6 @@ pub const RePatternBuffer = struct{
 // #define COP_CURR_OFFSET_BYTES(reg, p)  \
 //   ((int )((char* )(&((reg)->ops_curr->p)) - (char* )((reg)->ops)))
 
-
-// extern void onig_add_end_call(void (*func)(void));
-// extern void onig_warning(const char* s);
-// extern UChar* onig_error_code_to_format P_((int code));
-// extern void ONIG_VARIADIC_FUNC_ATTR onig_snprintf_with_pattern PV_((UChar buf[], int bufsize, OnigEncoding enc, UChar* pat, UChar* pat_end, const UChar *fmt, ...));
-// extern int onig_compile P_((regex_t* reg, const UChar* pattern, const UChar* pattern_end, OnigErrorInfo* einfo));
-// extern int onig_is_code_in_cc_len P_((int enclen, OnigCodePoint code, void* /* CClassNode* */ cc));
-// extern RegexExt* onig_get_regex_ext(regex_t* reg);
-// extern int onig_ext_set_pattern(regex_t* reg, const UChar* pattern, const UChar* pattern_end);
-// extern int onig_positive_int_multiply(int x, int y);
-// extern hash_table_type onig_st_init_strend_table_with_size P_((int size));
-// extern int onig_st_lookup_strend P_((hash_table_type table, const UChar* str_key, const UChar* end_key, hash_data_type *value));
-// extern int onig_st_insert_strend P_((hash_table_type table, const UChar* str_key, const UChar* end_key, hash_data_type value));
-
 // #ifdef ONIG_DEBUG
 
     // #ifdef ONIG_DEBUG_COMPILE

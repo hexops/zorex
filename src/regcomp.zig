@@ -7156,8 +7156,6 @@ const OptNode = struct {
     // static void print_tree P_((FILE* f, Node* node));
 // #endif
 
-// extern int onig_init_for_match_at(regex_t* reg);
-
 pub const Regex = struct {
     re_pattern_buffer: RePatternBuffer,
     allocator: *Allocator,
