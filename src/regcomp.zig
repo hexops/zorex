@@ -285,37 +285,27 @@ fn nodeSwap(a: *Node, b: *Node) void {
     return;
 }
 
-// static int
-// node_list_len(Node* list)
-// {
-//   int len;
+fn nodeListLen(list: *Node) usize {
+    var len = 1;
+    var next = list;
+    while (next.cdr().* != null) |cdr| {
+        next = cdr;
+        len += 1;
+    }
+    return len;
+}
 
-//   len = 1;
-//   while (IS_NOT_NULL(NODE_CDR(list))) {
-//     list = NODE_CDR(list);
-//     len++;
-//   }
-
-//   return len;
-// }
-
-// static Node*
-// node_list_add(Node* list, Node* x)
-// {
-//   Node *n;
-
-//   n = onig_node_new_list(x, NULL);
-//   if (IS_NULL(n)) return NULL_NODE;
-
-//   if (IS_NOT_NULL(list)) {
-//     while (IS_NOT_NULL(NODE_CDR(list)))
-//       list = NODE_CDR(list);
-
-//     NODE_CDR(list) = n;
-//   }
-
-//   return n;
-// }
+fn nodeListAdd(allocator: *Allocator, list: *Node, x: *Node) !*Node {
+    const n = try node.newList(x, null);
+    if (list != null) {
+        var next = list;
+        while (next.cdr().* != null) |cdr| {
+            next = cdr;
+        }
+        next.cdr().* = n;
+    }
+    return n;
+}
 
 // static int
 // node_str_node_cat(Node* node, Node* add)
