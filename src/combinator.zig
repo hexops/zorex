@@ -169,6 +169,41 @@ pub fn sequence(
     return v.parser;
 }
 
+/// returns a parser for matching one of the given parsers (ordered.)
+///
+/// `parsers` must live for as long as `parse` is to be called.
+pub fn oneOf(
+    comptime Value: type,
+    comptime Reader: type,
+    parsers: anytype,
+) Parser(Value, Reader) {
+    const v = struct {
+        pub var oneOfParsers: @TypeOf(parsers) = undefined;
+        pub const parser = Parser(Value, Reader){.parse = parse};
+
+        /// parses using one of the underlying parsers.
+        ///
+        /// Caller is responsible for freeing the returned value, if required.
+        fn parse(allocator: *Allocator, src: *Reader) callconv(.Inline) Error!?Value {
+            const startPos = try src.seekableStream().getPos();
+
+            comptime var i: usize = 0;
+            inline while (i < oneOfParsers.len) : (i += 1) {
+                const p = oneOfParsers[i];
+                const v = try p.parse(allocator, src);
+                if (v) | found | {
+                    return found;
+                }
+                try src.seekableStream().seekTo(startPos);
+            }
+            try src.seekableStream().seekTo(startPos);
+            return null;
+        }
+    };
+    v.oneOfParsers = parsers;
+    return v.parser;
+}
+
 /// returns a parser for matching the given parser `min` to `max` times.
 ///
 /// If `max` is -1, no limit is placed.
@@ -260,6 +295,22 @@ test "sequence" {
     const str = try Rune.toString(allocator, result.?);
     defer allocator.free(str);
     std.testing.expectEqualStrings("ab", str);
+}
+
+test "oneOf" {
+    const allocator = std.testing.allocator;
+    var reader = std.io.fixedBufferStream("bacdef");
+
+    const parser = oneOf(Rune, @TypeOf(reader), .{
+        rune(try Rune.fromString("a"), @TypeOf(reader)),
+        anyRune(@TypeOf(reader)),
+    });
+    var result = try parser.parse(allocator, &reader);
+    std.testing.expectEqualStrings("b", result.?.buf[0..result.?.len]);
+    result = try parser.parse(allocator, &reader);
+    std.testing.expectEqualStrings("a", result.?.buf[0..result.?.len]);
+    result = try parser.parse(allocator, &reader);
+    std.testing.expectEqualStrings("c", result.?.buf[0..result.?.len]);
 }
 
 test "repeated_zero_or_more" {
