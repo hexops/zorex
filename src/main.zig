@@ -6,5 +6,9 @@ test "syntax_parsing" {
     var reader = std.io.fixedBufferStream("abcdef");
     const syntaxTree = try regex(@TypeOf(reader)).parse(allocator, &reader);
     defer syntaxTree.?.deinit(allocator);
-    std.debug.print("result: {any}\n", .{syntaxTree.?});
+
+    var buf = std.ArrayList(u8).init(allocator);
+    defer buf.deinit();
+    try syntaxTree.?.writeTo(buf.writer());
+    std.testing.expectEqualStrings("abcdef", buf.items);
 }
