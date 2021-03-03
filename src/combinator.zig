@@ -255,6 +255,36 @@ pub fn repeated(
     return v.parser;
 }
 
+/// returns a parser that matches `next` iff `not` is first unmatched.
+pub fn nextIfNot(
+    comptime Value: type,
+    comptime Reader: type,
+    next: Parser(Value, Reader),
+    not: Parser(Value, Reader),
+) Parser(Value, Reader) {
+    const v = struct {
+        pub var nextParser: Parser(Value, Reader) = undefined;
+        pub var notParser: Parser(Value, Reader) = undefined;
+        pub const parser = Parser(Value, Reader){.parse = parse};
+
+        /// Parses N or more values using the underlying parser.
+        ///
+        /// Caller is responsible for freeing the returned array list, if any.
+        fn parse(allocator: *Allocator, src: *Reader) callconv(.Inline) Error!?Value {
+            const startPos = try src.seekableStream().getPos();
+            const notValue = try notParser.parse(allocator, src);
+            if (notValue != null) {
+                try src.seekableStream().seekTo(startPos);
+                return null;
+            }
+            return try nextParser.parse(allocator, src);
+        }
+    };
+    v.nextParser = next;
+    v.notParser = not;
+    return v.parser;
+}
+
 test "literal" {
     const allocator = std.testing.allocator;
     var reader = std.io.fixedBufferStream("abcdef");
@@ -344,4 +374,19 @@ test "repeated_one_to_three" {
     const str = try Rune.toString(allocator, result.?.items);
     defer allocator.free(str);
     std.testing.expectEqualStrings("aaa", str);
+}
+
+test "nextIfNot" {
+    const allocator = std.testing.allocator;
+    var reader = std.io.fixedBufferStream("aaabaacdef");
+
+    const not = rune(try Rune.fromString("c"), @TypeOf(reader));
+    const next = anyRune(@TypeOf(reader));
+    var result = try repeated(Rune, @TypeOf(reader), 0, -1,
+        nextIfNot(Rune, @TypeOf(reader), next, not)
+    ).parse(allocator, &reader);
+    defer result.?.deinit();
+    const str = try Rune.toString(allocator, result.?.items);
+    defer allocator.free(str);
+    std.testing.expectEqualStrings("aaabaa", str);
 }
