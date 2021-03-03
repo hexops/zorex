@@ -95,7 +95,6 @@ fn escapedLiteral(comptime Reader: type) comb.Parser(*Node, Reader) {
             var i: usize = 0;
             for (v.?.items) | runes | {
                 for (runes) | rune | {
-                    strLen += rune.len;
                     std.mem.copy(u8, str[i..i+rune.len], rune.buf[0..rune.len]);
                     i += rune.len;
                 }
@@ -139,7 +138,6 @@ fn unescapedLiteral(comptime Reader: type) comb.Parser(*Node, Reader) {
             var str = try allocator.alloc(u8, strLen);
             var i: usize = 0;
             for (v.?.items) | rune | {
-                strLen += rune.len;
                 std.mem.copy(u8, str[i..i+rune.len], rune.buf[0..rune.len]);
                 i += rune.len;
             }
