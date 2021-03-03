@@ -1,14 +1,14 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
-pub const Error = error {
+pub const Error = error{
     EndOfStream,
     Utf8InvalidStartByte,
 } || std.fs.File.ReadError || std.fs.File.SeekError || std.mem.Allocator.Error;
 
 pub fn Parser(comptime Value: type, comptime Reader: type) type {
     return struct {
-        parse: fn(allocator: *Allocator, src: *Reader) callconv(.Inline) Error!?Value,
+        parse: fn (allocator: *Allocator, src: *Reader) callconv(.Inline) Error!?Value,
     };
 }
 
@@ -18,7 +18,7 @@ pub fn Parser(comptime Value: type, comptime Reader: type) type {
 pub fn literal(s: []const u8, comptime Reader: type) Parser([]u8, Reader) {
     const v = struct {
         pub var want: []const u8 = undefined;
-        pub const parser = Parser([]u8, Reader){.parse = parse};
+        pub const parser = Parser([]u8, Reader){ .parse = parse };
 
         /// parses a literal.
         ///
@@ -56,13 +56,13 @@ pub const Rune = struct {
     // The caller is responsible for freeing the returned string.
     pub fn toString(allocator: *Allocator, runes: []const Rune) ![]u8 {
         var len: usize = 0;
-        for (runes) | r | {
+        for (runes) |r| {
             len += r.len;
         }
         const str = try allocator.alloc(u8, len);
         var i: usize = 0;
-        for (runes) | r | {
-            std.mem.copy(u8, str[i..i+r.len], r.buf[0..r.len]);
+        for (runes) |r| {
+            std.mem.copy(u8, str[i .. i + r.len], r.buf[0..r.len]);
             i += r.len;
         }
         return str;
@@ -73,7 +73,7 @@ pub const Rune = struct {
 pub fn rune(r: Rune, comptime Reader: type) Parser(Rune, Reader) {
     const v = struct {
         pub var want: Rune = undefined;
-        pub const parser = Parser(Rune, Reader){.parse = parse};
+        pub const parser = Parser(Rune, Reader){ .parse = parse };
 
         /// parses a rune.
         fn parse(allocator: *Allocator, src: *Reader) callconv(.Inline) Error!?Rune {
@@ -101,7 +101,7 @@ pub fn rune(r: Rune, comptime Reader: type) Parser(Rune, Reader) {
 /// returns a parser for matching any single UTF-8 rune.
 pub fn anyRune(comptime Reader: type) Parser(Rune, Reader) {
     return struct {
-        pub const parser = Parser(Rune, Reader){.parse = parse};
+        pub const parser = Parser(Rune, Reader){ .parse = parse };
 
         /// parses any rune.
         fn parse(allocator: *Allocator, src: *Reader) callconv(.Inline) Error!?Rune {
@@ -140,7 +140,7 @@ pub fn sequence(
 ) Parser([]Value, Reader) {
     const v = struct {
         pub var seq: @TypeOf(parsers) = undefined;
-        pub const parser = Parser([]Value, Reader){.parse = parse};
+        pub const parser = Parser([]Value, Reader){ .parse = parse };
 
         /// parses a sequence.
         ///
@@ -179,7 +179,7 @@ pub fn oneOf(
 ) Parser(Value, Reader) {
     const v = struct {
         pub var oneOfParsers: @TypeOf(parsers) = undefined;
-        pub const parser = Parser(Value, Reader){.parse = parse};
+        pub const parser = Parser(Value, Reader){ .parse = parse };
 
         /// parses using one of the underlying parsers.
         ///
@@ -191,7 +191,7 @@ pub fn oneOf(
             inline while (i < oneOfParsers.len) : (i += 1) {
                 const p = oneOfParsers[i];
                 const v = try p.parse(allocator, src);
-                if (v) | found | {
+                if (v) |found| {
                     return found;
                 }
                 try src.seekableStream().seekTo(startPos);
@@ -218,7 +218,7 @@ pub fn repeated(
         pub var minValues: usize = undefined;
         pub var maxValues: usize = undefined;
         pub var sub: Parser(Value, Reader) = undefined;
-        pub const parser = Parser(std.ArrayList(Value), Reader){.parse = parse};
+        pub const parser = Parser(std.ArrayList(Value), Reader){ .parse = parse };
 
         /// Parses N or more values using the underlying parser.
         ///
@@ -265,7 +265,7 @@ pub fn nextIfNot(
     const v = struct {
         pub var nextParser: Parser(Value, Reader) = undefined;
         pub var notParser: Parser(Value, Reader) = undefined;
-        pub const parser = Parser(Value, Reader){.parse = parse};
+        pub const parser = Parser(Value, Reader){ .parse = parse };
 
         /// Parses N or more values using the underlying parser.
         ///
@@ -382,9 +382,7 @@ test "nextIfNot" {
 
     const not = rune(try Rune.fromString("c"), @TypeOf(reader));
     const next = anyRune(@TypeOf(reader));
-    var result = try repeated(Rune, @TypeOf(reader), 0, -1,
-        nextIfNot(Rune, @TypeOf(reader), next, not)
-    ).parse(allocator, &reader);
+    var result = try repeated(Rune, @TypeOf(reader), 0, -1, nextIfNot(Rune, @TypeOf(reader), next, not)).parse(allocator, &reader);
     defer result.?.deinit();
     const str = try Rune.toString(allocator, result.?.items);
     defer allocator.free(str);

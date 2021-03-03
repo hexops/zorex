@@ -44,7 +44,7 @@ pub const Node = struct {
 
     pub fn deinit(self: *Node, allocator: *Allocator) void {
         self.data.deinit(allocator);
-        for (self.children.items) | child | {
+        for (self.children.items) |child| {
             child.deinit(allocator);
         }
         self.children.deinit();
@@ -67,13 +67,17 @@ pub fn regex(comptime Reader: type) comb.Parser(*Node, Reader) {
 /// returns a parser for parsing one or more escaped regex literals (e.g. `\*`).
 fn escapedLiteral(comptime Reader: type) comb.Parser(*Node, Reader) {
     return struct {
-        pub const parser = comb.Parser(*Node, Reader){.parse = parse};
+        pub const parser = comb.Parser(*Node, Reader){ .parse = parse };
 
         /// parses an escaped literal node.
         ///
         /// Caller is responsible for calling deinit() on the result, if any.
         fn parse(allocator: *Allocator, src: *Reader) callconv(.Inline) comb.Error!?*Node {
-            const inner = comb.repeated([]comb.Rune, Reader, 1, -1,
+            const inner = comb.repeated(
+                []comb.Rune,
+                Reader,
+                1,
+                -1,
                 comb.sequence(comb.Rune, Reader, .{
                     comb.rune(comb.Rune.fromString("\\") catch unreachable, Reader),
                     comb.anyRune(Reader),
@@ -86,21 +90,21 @@ fn escapedLiteral(comptime Reader: type) comb.Parser(*Node, Reader) {
             }
             defer v.?.deinit();
             var strLen: usize = 0;
-            for (v.?.items) | runes | {
-                for (runes) | rune | {
+            for (v.?.items) |runes| {
+                for (runes) |rune| {
                     strLen += rune.len;
                 }
             }
             var str = try allocator.alloc(u8, strLen);
             var i: usize = 0;
-            for (v.?.items) | runes | {
-                for (runes) | rune | {
-                    std.mem.copy(u8, str[i..i+rune.len], rune.buf[0..rune.len]);
+            for (v.?.items) |runes| {
+                for (runes) |rune| {
+                    std.mem.copy(u8, str[i .. i + rune.len], rune.buf[0..rune.len]);
                     i += rune.len;
                 }
                 allocator.free(runes);
             }
-            return Node.init(allocator, .{.escapedLiteral = str});
+            return Node.init(allocator, .{ .escapedLiteral = str });
         }
     }.parser;
 }
@@ -109,14 +113,20 @@ fn escapedLiteral(comptime Reader: type) comb.Parser(*Node, Reader) {
 /// without parsing regex metacharacters (e.g. `*`).
 fn unescapedLiteral(comptime Reader: type) comb.Parser(*Node, Reader) {
     return struct {
-        pub const parser = comb.Parser(*Node, Reader){.parse = parse};
+        pub const parser = comb.Parser(*Node, Reader){ .parse = parse };
 
         /// parses an unescaped literal node.
         ///
         /// Caller is responsible for calling deinit() on the result, if any.
         fn parse(allocator: *Allocator, src: *Reader) callconv(.Inline) comb.Error!?*Node {
-            const inner = comb.repeated(comb.Rune, Reader, 1, -1,
-                comb.nextIfNot(comb.Rune, Reader,
+            const inner = comb.repeated(
+                comb.Rune,
+                Reader,
+                1,
+                -1,
+                comb.nextIfNot(
+                    comb.Rune,
+                    Reader,
                     // any rune
                     comb.anyRune(Reader),
                     // not preceded by these:
@@ -132,16 +142,16 @@ fn unescapedLiteral(comptime Reader: type) comb.Parser(*Node, Reader) {
             }
             defer v.?.deinit();
             var strLen: usize = 0;
-            for (v.?.items) | rune | {
+            for (v.?.items) |rune| {
                 strLen += rune.len;
             }
             var str = try allocator.alloc(u8, strLen);
             var i: usize = 0;
-            for (v.?.items) | rune | {
-                std.mem.copy(u8, str[i..i+rune.len], rune.buf[0..rune.len]);
+            for (v.?.items) |rune| {
+                std.mem.copy(u8, str[i .. i + rune.len], rune.buf[0..rune.len]);
                 i += rune.len;
             }
-            return Node.init(allocator, .{.literal = str});
+            return Node.init(allocator, .{ .literal = str });
         }
     }.parser;
 }
