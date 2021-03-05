@@ -16,7 +16,7 @@ pub const NodeData = union(NodeDataTag) {
 
     pub fn deinit(self: NodeData, allocator: *Allocator) void {
         switch (self) {
-            .escapedLiteral => allocator.free(self.escapedLiteral),
+            .escapedLiteral => allocator.free(self.escapedLiteral), 
             .literal => allocator.free(self.literal),
         }
     }
@@ -29,15 +29,49 @@ pub const NodeData = union(NodeDataTag) {
     }
 };
 
+/// A repetition operator, e.g. `*`, `+`, `?`
+pub const RepetitionOperator = struct {
+    /// Minimum number of times to expect sequence.
+    min: usize,
+
+    /// Maximum number of times to expect sequence, or -1 for unlimited.
+    max: isize,
+
+    pub fn writeTo(self: RepetitionOperator, writer: anytype) !void {
+        if (self.min == 0 and self.max == -1) {
+            // zero or more, prefer more.
+            return try std.fmt.format(writer, "*", .{});
+        } else if (self.min == 1 and self.max == -1) {
+            // one or more, prefer more.
+            return try std.fmt.format(writer, "+", .{});
+        } else if (self.min == 0 and self.max == 1) {
+            // zero or one, prefer one.
+            return try std.fmt.format(writer, "?", .{});
+        } else if (self.min == self.max) {
+            // exactly N
+            return try std.fmt.format(writer, "{{d}}", .{self.min});
+        } else if (self.max == -1) {
+            // N or more, prefer more.
+            return try std.fmt.format(writer, "{{d},}", .{self.min});
+        }
+        // [min, max] number of matches, prefer more.
+        return try std.fmt.format(writer, "{{d},{d}}", .{self.min, self.max});
+        // TODO(slimsag): future: support non-greedy variants
+        // x*?, x+?, x??, x{n,m}?, x{n,}?, x{n}?
+    }
+};
+
 pub const Node = struct {
     data: NodeData,
     children: std.ArrayList(*Node),
+    repetition: ?RepetitionOperator,
 
     pub fn init(allocator: *Allocator, data: NodeData) !*Node {
         const n = try allocator.create(Node);
         n.* = Node{
             .data = data,
             .children = std.ArrayList(*Node).init(allocator),
+            .repetition = null,
         };
         return n;
     }
@@ -64,7 +98,36 @@ pub fn regex(comptime Reader: type) comb.Parser(*Node, Reader) {
     });
 }
 
-/// returns a parser for parsing one or more escaped regex literals (e.g. `\*`).
+fn repetitionOperator(comptime Reader: type) comb.Parser(RepetitionOperator, Reader) {
+    return comb.oneOf(RepetitionOperator, Reader, .{
+        repetitionOperatorSimple(Reader, "*", .{.min = 0, .max = -1}),
+        repetitionOperatorSimple(Reader, "+", .{.min = 1, .max = -1}),
+        repetitionOperatorSimple(Reader, "?", .{.min = 0, .max = 1}),
+        // TODO(slimsag): handle x{n}, x{n,m}, x{n,}
+    });
+}
+
+fn repetitionOperatorSimple(comptime Reader: type, rune: []const u8, value: RepetitionOperator) comb.Parser(RepetitionOperator, Reader) {
+    const v = struct {
+        pub const parser = comb.Parser(RepetitionOperator, Reader){ .parse = parse };
+        pub const target: comb.Rune;
+        pub const mapTo: RepetitionOperator;
+
+        fn parse(allocator: *Allocator, src: *Reader) callconv(.Inline) comb.Error!?RepetitionOperator {
+            const v = try target.parse(allocator, src);
+            if (v == null) {
+                return null;
+            }
+            return mapTo;
+        }
+    };
+    v.target = comb.rune(comb.Rune.fromString(rune) catch unreachable, Reader);
+    v.mapTo = value;
+    return v.parser;
+}
+
+/// returns a parser for parsing one or more escaped regex literals (e.g. `\*`),
+/// followed by an optional repetition operator.
 fn escapedLiteral(comptime Reader: type) comb.Parser(*Node, Reader) {
     return struct {
         pub const parser = comb.Parser(*Node, Reader){ .parse = parse };
@@ -110,7 +173,8 @@ fn escapedLiteral(comptime Reader: type) comb.Parser(*Node, Reader) {
 }
 
 /// returns a parser for parsing one or more unescaped regex literals (e.g. `abc123`)
-/// without parsing regex metacharacters (e.g. `*`).
+/// without parsing regex metacharacters (e.g. `*`), followed by an optional repetition
+/// operator.
 fn unescapedLiteral(comptime Reader: type) comb.Parser(*Node, Reader) {
     return struct {
         pub const parser = comb.Parser(*Node, Reader){ .parse = parse };
