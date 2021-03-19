@@ -19,7 +19,7 @@ pub fn OneOfContext(comptime Value: type) type {
 /// `parsers` must remain alive for as long as the parser will be used.
 pub fn oneOf(comptime Input: type, comptime Value: type) Parser(OneOfContext(Value), Value) {
     return struct {
-        pub fn parse(in_ctx: Context(OneOfContext(Value), Value)) callconv(.Inline) ?Result(Value) {
+        pub fn parse(in_ctx: Context(OneOfContext(Value), Value)) callconv(.Inline) Error!?Result(Value) {
             var ctx = in_ctx;
             const Node = std.atomic.Stack(GLLStackEntry(Value)).Node;
 
@@ -34,18 +34,18 @@ pub fn oneOf(comptime Input: type, comptime Value: type) Parser(OneOfContext(Val
                         continue;
                     }
 
-                    const node = ctx.allocator.create(Node) catch unreachable; // TODO(slimsag)
+                    const node = try ctx.allocator.create(Node);
                     node.* = Node{
                         .next = undefined,
                         .data = entry,
                     };
                     gll_trampoline.stack.push(node);
-                    gll_trampoline.set.put(entry, {}) catch unreachable; // TODO(slimsag)
+                    try gll_trampoline.set.put(entry, {});
                 }
                 while (gll_trampoline.stack.pop()) | next | {
                     defer ctx.allocator.destroy(next);
                     var node = next.data;
-                    const result = node.alternate.parse(ctx.with({}));
+                    const result = try node.alternate.parse(ctx.with({}));
                     if (result != null) {
                         while (gll_trampoline.stack.pop()) | unused | {
                             ctx.allocator.destroy(unused);
@@ -57,7 +57,7 @@ pub fn oneOf(comptime Input: type, comptime Value: type) Parser(OneOfContext(Val
             } else {
                 // At comptime, we can't easily implement GLL today.
                 for (ctx.input) | parser | {
-                    const result = parser.parse(ctx.with({}));
+                    const result = try parser.parse(ctx.with({}));
                     if (result != null) {
                         return result.?;
                     }
@@ -92,7 +92,7 @@ test "oneof_comptime" {
             &Literal.init("hello").interface,
             &Literal.init("world").interface,
         };
-        var x = oneOf(void, void)(ctx.with(parsers));
+        var x = try oneOf(void, void)(ctx.with(parsers));
         testing.expectEqual(Result(void){.consumed = 5, .result = .{.value = {}}}, x.?);
     }
 }
@@ -113,7 +113,7 @@ test "oneof_runtime" {
         &Literal.init("world").interface,
     };
     var helloOrWorld = OneOf(void, void).init(parsers);
-    const x = helloOrWorld.interface.parse(ctx);
+    const x = try helloOrWorld.interface.parse(ctx);
     testing.expectEqual(Result(void){.consumed = 5, .result = .{.value = {}}}, x.?);
 }
 
@@ -134,6 +134,6 @@ test "oneof_ambiguous" {
     };
     var ambiguous = OneOf(void, void).init(parsers);
 
-    const x = ambiguous.interface.parse(ctx);
+    const x = try ambiguous.interface.parse(ctx);
     testing.expectEqual(Result(void){.consumed = 9, .result = .{.value = {}}}, x.?);
 }

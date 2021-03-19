@@ -9,7 +9,7 @@ pub const LiteralContext = []const u8;
 /// A `Parser` which matches the literal `str`.
 ///
 /// `str` must remain alive for as long as the parser will be used.
-pub fn literal(ctx: Context(LiteralContext, void)) callconv(.Inline) ?Result(void) {
+pub fn literal(ctx: Context(LiteralContext, void)) callconv(.Inline) Error!?Result(void) {
     if (ctx.input.len > 0 and ctx.src.len > 0 and ctx.input[0] != ctx.src[0]) {
         return null;
     }
@@ -26,7 +26,7 @@ pub const Literal = Wrap(LiteralContext, void, literal);
 
 test "literal_comptime" {
     const allocator = testing.failing_allocator;
-    const x = comptime literal(.{
+    const x = comptime try literal(.{
         .input = "hello",
         .allocator = allocator,
         .src = "hello world",
@@ -41,7 +41,7 @@ test "literal_runtime" {
     var input = "hello world";
     var want = "hello";
     var l = Literal.init(want);
-    const x = l.interface.parse(.{
+    const x = try l.interface.parse(.{
         .input={},
         .allocator=allocator,
         .src=input,

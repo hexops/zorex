@@ -2,6 +2,10 @@ const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
 
+pub const Error = error{
+    OutOfMemory
+};
+
 const ResultTag = enum {
     err,
     value,
@@ -83,11 +87,12 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
     };
 }
 
-/// The type of all parser functions.
+/// The type of all parser functions, producing either a result (value or syntax error) or
+/// a hard error (OOM).
 ///
 /// Callers of a parser are responsible for freeing the resulting value if needed.
 pub fn Parser(comptime Input: type, comptime Value: type) type {
-    return fn(Context(Input, Value)) callconv(.Inline) ?Result(Value);
+    return fn(Context(Input, Value)) callconv(.Inline) Error!?Result(Value);
 }
 
 /// An interface whose implementation is a `Parser` which can be swapped out at runtime. It carries
@@ -95,9 +100,9 @@ pub fn Parser(comptime Input: type, comptime Value: type) type {
 pub fn ParserInterface(comptime Value: type) type {
     return struct {
         const Self = @This();
-        _parse: fn(self: *const Self, ctx: Context(void, Value)) callconv(.Inline) ?Result(Value),
+        _parse: fn(self: *const Self, ctx: Context(void, Value)) callconv(.Inline) Error!?Result(Value),
 
-        pub fn parse(self: *const Self, ctx: Context(void, Value)) callconv(.Inline) ?Result(Value) {
+        pub fn parse(self: *const Self, ctx: Context(void, Value)) callconv(.Inline) Error!?Result(Value) {
             return self._parse(self, ctx);
         }
     };
@@ -120,7 +125,7 @@ pub fn Wrap(
             return Self{.input = input};
         }
 
-        pub fn parse(interface: *const ParserInterface(Value), ctx: Context(void, Value)) callconv(.Inline) ?Result(Value) {
+        pub fn parse(interface: *const ParserInterface(Value), ctx: Context(void, Value)) callconv(.Inline) Error!?Result(Value) {
             const self = @fieldParentPtr(Self, "interface", interface);
             return parser(ctx.with(self.input));
         }
