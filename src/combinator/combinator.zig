@@ -2,9 +2,7 @@ const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
 
-pub const Error = error{
-    OutOfMemory
-};
+pub const Error = error{OutOfMemory};
 
 const ResultTag = enum {
     err,
@@ -79,11 +77,11 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
         }
 
         pub fn deinit(self: @This(), allocator: *mem.Allocator) void {
-            if (self.gll_trampoline) | gll_trampoline | {
+            if (self.gll_trampoline) |gll_trampoline| {
                 gll_trampoline.deinit(allocator);
             }
             return;
-        } 
+        }
     };
 }
 
@@ -92,7 +90,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
 ///
 /// Callers of a parser are responsible for freeing the resulting value if needed.
 pub fn Parser(comptime Input: type, comptime Value: type) type {
-    return fn(Context(Input, Value)) callconv(.Inline) Error!?Result(Value);
+    return fn (Context(Input, Value)) callconv(.Inline) Error!?Result(Value);
 }
 
 /// An interface whose implementation is a `Parser` which can be swapped out at runtime. It carries
@@ -100,7 +98,7 @@ pub fn Parser(comptime Input: type, comptime Value: type) type {
 pub fn ParserInterface(comptime Value: type) type {
     return struct {
         const Self = @This();
-        _parse: fn(self: *const Self, ctx: Context(void, Value)) callconv(.Inline) Error!?Result(Value),
+        _parse: fn (self: *const Self, ctx: Context(void, Value)) callconv(.Inline) Error!?Result(Value),
 
         pub fn parse(self: *const Self, ctx: Context(void, Value)) callconv(.Inline) Error!?Result(Value) {
             return self._parse(self, ctx);
@@ -110,19 +108,15 @@ pub fn ParserInterface(comptime Value: type) type {
 
 /// Wraps a `Parser` by providing a `ParserInterface` implementation which carries arbitrary
 /// `Context`.
-pub fn Wrap(
-    comptime Input: type,
-    comptime Value: type,
-    comptime parser: Parser(Input, Value)
-) type {
+pub fn Wrap(comptime Input: type, comptime Value: type, comptime parser: Parser(Input, Value)) type {
     return struct {
-        interface: ParserInterface(Value) = .{._parse = parse},
+        interface: ParserInterface(Value) = .{ ._parse = parse },
         input: Input,
 
         const Self = @This();
 
         pub fn init(input: Input) Self {
-            return Self{.input = input};
+            return Self{ .input = input };
         }
 
         pub fn parse(interface: *const ParserInterface(Value), ctx: Context(void, Value)) callconv(.Inline) Error!?Result(Value) {

@@ -14,9 +14,9 @@ pub fn literal(ctx: Context(LiteralContext, void)) callconv(.Inline) Error!?Resu
         return null;
     }
     if (!mem.startsWith(u8, ctx.src, ctx.input)) {
-        return Result(void){.consumed = 1, .result = .{.err = "expected literal"}};
+        return Result(void){ .consumed = 1, .result = .{ .err = "expected literal" } };
     }
-    return Result(void){.consumed = ctx.input.len, .result = .{.value = {}}};
+    return Result(void){ .consumed = ctx.input.len, .result = .{ .value = {} } };
 }
 
 // Returns a `ParserInterface` implementation which matches the literal `str`.
@@ -32,7 +32,7 @@ test "literal_comptime" {
         .src = "hello world",
         .gll_trampoline = null,
     });
-    testing.expectEqual(Result(void){.consumed = 5, .result = .{.value = {}}}, x.?);
+    testing.expectEqual(Result(void){ .consumed = 5, .result = .{ .value = {} } }, x.?);
 }
 
 test "literal_runtime" {
@@ -42,10 +42,10 @@ test "literal_runtime" {
     var want = "hello";
     var l = Literal.init(want);
     const x = try l.interface.parse(.{
-        .input={},
-        .allocator=allocator,
-        .src=input,
+        .input = {},
+        .allocator = allocator,
+        .src = input,
         .gll_trampoline = null,
     });
-    testing.expectEqual(Result(void){.consumed = 5, .result = .{.value = {}}}, x.?);
+    testing.expectEqual(Result(void){ .consumed = 5, .result = .{ .value = {} } }, x.?);
 }

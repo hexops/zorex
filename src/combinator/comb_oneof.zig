@@ -23,9 +23,9 @@ pub fn oneOf(comptime Input: type, comptime Value: type) Parser(OneOfContext(Val
             var ctx = in_ctx;
             const Node = std.atomic.Stack(GLLStackEntry(Value)).Node;
 
-            if (ctx.gll_trampoline) | gll_trampoline | {
+            if (ctx.gll_trampoline) |gll_trampoline| {
                 // Runtime combinator
-                for (ctx.input) | parser | {
+                for (ctx.input) |parser| {
                     const entry = GLLStackEntry(Value){
                         .position = 0,
                         .alternate = parser,
@@ -42,12 +42,12 @@ pub fn oneOf(comptime Input: type, comptime Value: type) Parser(OneOfContext(Val
                     gll_trampoline.stack.push(node);
                     try gll_trampoline.set.put(entry, {});
                 }
-                while (gll_trampoline.stack.pop()) | next | {
+                while (gll_trampoline.stack.pop()) |next| {
                     defer ctx.allocator.destroy(next);
                     var node = next.data;
                     const result = try node.alternate.parse(ctx.with({}));
                     if (result != null) {
-                        while (gll_trampoline.stack.pop()) | unused | {
+                        while (gll_trampoline.stack.pop()) |unused| {
                             ctx.allocator.destroy(unused);
                         }
                         return result.?;
@@ -56,7 +56,7 @@ pub fn oneOf(comptime Input: type, comptime Value: type) Parser(OneOfContext(Val
                 return null;
             } else {
                 // At comptime, we can't easily implement GLL today.
-                for (ctx.input) | parser | {
+                for (ctx.input) |parser| {
                     const result = try parser.parse(ctx.with({}));
                     if (result != null) {
                         return result.?;
@@ -81,9 +81,9 @@ test "oneof_comptime" {
     comptime {
         const allocator = testing.allocator;
         const ctx = Context(void, void){
-            .input={},
-            .allocator=allocator,
-            .src="hello world",
+            .input = {},
+            .allocator = allocator,
+            .src = "hello world",
             .gll_trampoline = null,
         };
         defer ctx.deinit(allocator);
@@ -93,7 +93,7 @@ test "oneof_comptime" {
             &Literal.init("world").interface,
         };
         var x = try oneOf(void, void)(ctx.with(parsers));
-        testing.expectEqual(Result(void){.consumed = 5, .result = .{.value = {}}}, x.?);
+        testing.expectEqual(Result(void){ .consumed = 5, .result = .{ .value = {} } }, x.?);
     }
 }
 
@@ -101,9 +101,9 @@ test "oneof_runtime" {
     const allocator = testing.allocator;
 
     const ctx = Context(void, void){
-        .input={},
-        .allocator=allocator,
-        .src="hello world",
+        .input = {},
+        .allocator = allocator,
+        .src = "hello world",
         .gll_trampoline = try GLLTrampoline(void).init(allocator),
     };
     defer ctx.deinit(allocator);
@@ -114,16 +114,16 @@ test "oneof_runtime" {
     };
     var helloOrWorld = OneOf(void, void).init(parsers);
     const x = try helloOrWorld.interface.parse(ctx);
-    testing.expectEqual(Result(void){.consumed = 5, .result = .{.value = {}}}, x.?);
+    testing.expectEqual(Result(void){ .consumed = 5, .result = .{ .value = {} } }, x.?);
 }
 
 test "oneof_ambiguous" {
     const allocator = testing.allocator;
 
     const ctx = Context(void, void){
-        .input={},
-        .allocator=allocator,
-        .src="hello world",
+        .input = {},
+        .allocator = allocator,
+        .src = "hello world",
         .gll_trampoline = try GLLTrampoline(void).init(allocator),
     };
     defer ctx.deinit(allocator);
@@ -135,5 +135,5 @@ test "oneof_ambiguous" {
     var ambiguous = OneOf(void, void).init(parsers);
 
     const x = try ambiguous.interface.parse(ctx);
-    testing.expectEqual(Result(void){.consumed = 9, .result = .{.value = {}}}, x.?);
+    testing.expectEqual(Result(void){ .consumed = 9, .result = .{ .value = {} } }, x.?);
 }
