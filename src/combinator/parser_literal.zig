@@ -10,13 +10,14 @@ pub const LiteralContext = []const u8;
 ///
 /// `str` must remain alive for as long as the parser will be used.
 pub fn literal(ctx: Context(LiteralContext, void)) callconv(.Inline) Error!?Result(void) {
-    if (ctx.input.len > 0 and ctx.src.len > 0 and ctx.input[0] != ctx.src[0]) {
+    const src = ctx.src[ctx.offset..];
+    if (ctx.input.len > 0 and src.len > 0 and ctx.input[0] != src[0]) {
         return null;
     }
-    if (!mem.startsWith(u8, ctx.src, ctx.input)) {
-        return Result(void){ .consumed = 1, .result = .{ .err = "expected literal" } };
+    if (!mem.startsWith(u8, src, ctx.input)) {
+        return Result(void){ .consumed = ctx.offset + 1, .result = .{ .err = "expected literal" } };
     }
-    return Result(void){ .consumed = ctx.input.len, .result = .{ .value = {} } };
+    return Result(void){ .consumed = ctx.offset + ctx.input.len, .result = .{ .value = {} } };
 }
 
 // Returns a `ParserInterface` implementation which matches the literal `str`.
@@ -30,6 +31,7 @@ test "literal_comptime" {
         .input = "hello",
         .allocator = allocator,
         .src = "hello world",
+        .offset = 0,
         .gll_trampoline = null,
     });
     testing.expectEqual(Result(void){ .consumed = 5, .result = .{ .value = {} } }, x.?);
@@ -45,6 +47,7 @@ test "literal_runtime" {
         .input = {},
         .allocator = allocator,
         .src = input,
+        .offset = 0,
         .gll_trampoline = null,
     });
     testing.expectEqual(Result(void){ .consumed = 5, .result = .{ .value = {} } }, x.?);

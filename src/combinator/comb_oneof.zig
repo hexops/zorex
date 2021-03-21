@@ -30,7 +30,8 @@ pub fn oneOf(comptime Input: type, comptime Value: type) Parser(OneOfContext(Val
                         .position = 0,
                         .alternate = parser,
                     };
-                    if (gll_trampoline.set.contains(entry)) {
+                    const setEntry = entry.setEntry();
+                    if (gll_trampoline.set.contains(setEntry)) {
                         continue;
                     }
 
@@ -40,7 +41,7 @@ pub fn oneOf(comptime Input: type, comptime Value: type) Parser(OneOfContext(Val
                         .data = entry,
                     };
                     gll_trampoline.stack.push(node);
-                    try gll_trampoline.set.put(entry, {});
+                    try gll_trampoline.set.put(setEntry, {});
                 }
                 while (gll_trampoline.stack.pop()) |next| {
                     defer ctx.allocator.destroy(next);
@@ -84,6 +85,7 @@ test "oneof_comptime" {
             .input = {},
             .allocator = allocator,
             .src = "hello world",
+            .offset = 0,
             .gll_trampoline = null,
         };
         defer ctx.deinit(allocator);
@@ -104,6 +106,7 @@ test "oneof_runtime" {
         .input = {},
         .allocator = allocator,
         .src = "hello world",
+        .offset = 0,
         .gll_trampoline = try GLLTrampoline(void).init(allocator),
     };
     defer ctx.deinit(allocator);
@@ -124,6 +127,7 @@ test "oneof_ambiguous" {
         .input = {},
         .allocator = allocator,
         .src = "hello world",
+        .offset = 0,
         .gll_trampoline = try GLLTrampoline(void).init(allocator),
     };
     defer ctx.deinit(allocator);

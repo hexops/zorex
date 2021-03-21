@@ -28,8 +28,17 @@ pub fn GLLStackEntry(comptime Value: type) type {
     return struct {
         position: usize,
         alternate: *const ParserInterface(Value),
+
+        pub fn setEntry(self: *const @This()) callconv(.Inline) GLLSetEntry {
+            return .{ .position = self.position, .alternate_ptr = @ptrToInt(self.alternate) };
+        }
     };
 }
+
+const GLLSetEntry = struct {
+    position: usize,
+    alternate_ptr: usize,
+};
 
 pub fn GLLTrampoline(comptime ParserValue: type) type {
     return struct {
@@ -38,17 +47,27 @@ pub fn GLLTrampoline(comptime ParserValue: type) type {
 
         /// Used to prevent adding an alternation to the stack that was already
         /// added previously.
-        set: std.AutoArrayHashMap(GLLStackEntry(ParserValue), void),
+        set: std.AutoArrayHashMap(GLLSetEntry, void),
 
         const Self = @This();
 
         pub fn init(allocator: *mem.Allocator) !*Self {
             const self = try allocator.create(Self);
             self.* = Self{
-                .stack = std.atomic.Stack(GLLStackEntry(void)).init(),
-                .set = std.AutoArrayHashMap(GLLStackEntry(ParserValue), void).init(allocator),
+                .stack = std.atomic.Stack(GLLStackEntry(ParserValue)).init(),
+                .set = std.AutoArrayHashMap(GLLSetEntry, void).init(allocator),
             };
             return self;
+        }
+
+        pub fn initWith(self: *Self, allocator: *mem.Allocator, comptime NewStackType: type) !*GLLTrampoline(NewStackType) {
+            const New = GLLTrampoline(NewStackType);
+            const new = try allocator.create(New);
+            new.* = New{
+                .stack = std.atomic.Stack(GLLStackEntry(NewStackType)).init(),
+                .set = self.set,
+            };
+            return new;
         }
 
         pub fn deinit(self: *Self, allocator: *mem.Allocator) void {
@@ -65,6 +84,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
         input: Input,
         allocator: *mem.Allocator,
         src: []const u8,
+        offset: usize,
         gll_trampoline: ?*GLLTrampoline(Value),
 
         pub fn with(self: @This(), new_input: anytype) Context(@TypeOf(new_input), Value) {
@@ -72,6 +92,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
                 .input = new_input,
                 .allocator = self.allocator,
                 .src = self.src,
+                .offset = self.offset,
                 .gll_trampoline = self.gll_trampoline,
             };
         }
