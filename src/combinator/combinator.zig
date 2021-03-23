@@ -27,7 +27,7 @@ pub fn Result(comptime Value: type) type {
 pub fn GLLStackEntry(comptime Value: type) type {
     return struct {
         position: usize,
-        alternate: *const ParserInterface(Value),
+        alternate: *const Parser(Value),
 
         pub fn setEntry(self: *const @This()) callconv(.Inline) GLLSetEntry {
             return .{ .position = self.position, .alternate_ptr = @ptrToInt(self.alternate) };
@@ -106,17 +106,9 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
     };
 }
 
-/// The type of all parser functions, producing either a result (value or syntax error) or
-/// a hard error (OOM).
-///
-/// Callers of a parser are responsible for freeing the resulting value if needed.
-pub fn Parser(comptime Input: type, comptime Value: type) type {
-    return fn (Context(Input, Value)) callconv(.Inline) Error!?Result(Value);
-}
-
-/// An interface whose implementation is a `Parser` which can be swapped out at runtime. It carries
-/// an arbitrary `Context` to make the type signature generic.
-pub fn ParserInterface(comptime Value: type) type {
+/// An interface whose implementation can be swapped out at runtime. It carries an arbitrary
+/// `Context` to make the type signature generic.
+pub fn Parser(comptime Value: type) type {
     return struct {
         const Self = @This();
         _parse: fn (self: *const Self, ctx: Context(void, Value)) callconv(.Inline) Error!?Result(Value),
@@ -127,27 +119,6 @@ pub fn ParserInterface(comptime Value: type) type {
     };
 }
 
-/// Wraps a `Parser` by providing a `ParserInterface` implementation which carries arbitrary
-/// `Context`.
-pub fn Wrap(comptime Input: type, comptime Value: type, comptime parser: Parser(Input, Value)) type {
-    return struct {
-        interface: ParserInterface(Value) = .{ ._parse = parse },
-        input: Input,
-
-        const Self = @This();
-
-        pub fn init(input: Input) Self {
-            return Self{ .input = input };
-        }
-
-        pub fn parse(interface: *const ParserInterface(Value), ctx: Context(void, Value)) callconv(.Inline) Error!?Result(Value) {
-            const self = @fieldParentPtr(Self, "interface", interface);
-            return parser(ctx.with(self.input));
-        }
-    };
-}
-
 test "syntax" {
-    const parserInterface = ParserInterface([]u8);
-    const parser = Parser([]u8, []u8);
+    const p = Parser([]u8);
 }

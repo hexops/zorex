@@ -6,21 +6,32 @@ const testing = std.testing;
 const mem = std.mem;
 
 pub fn OneOfContext(comptime Value: type) type {
-    return []const *const ParserInterface(Value);
+    return []const *const Parser(Value);
 }
 
-/// Returns a `Parser` which matches one of the given input `parsers`.
+/// Matches one of the given `input` parsers.
 ///
-/// If ctx.gll_trampoline is initialized (only possible at runtime, requires heap allocation),
-/// then ambiguous and left-recursive grammars are allowed and implemented in O(n^3) time using
-/// GLL combinators: https://stackoverflow.com/a/31879560 - however only the first match will be
-/// returned (enumerating all possible ambiguous matches is not supported.)
+/// If `ctx.gll_trampoline` is initialized then ambiguous and left-recursive grammars are allowed and
+/// implemented in O(n^3) time using GLL combinators (https://stackoverflow.com/a/31879560) however
+/// only the first match will be returned (enumerating all possible ambiguous matches is not
+/// supported.)
 ///
-/// `parsers` must remain alive for as long as the parser will be used.
-pub fn oneOf(comptime Input: type, comptime Value: type) Parser(OneOfContext(Value), Value) {
+/// The `input` parsers must remain alive for as long as the `OneOf` parser will be used.
+pub fn OneOf(comptime Input: type, comptime Value: type) type {
     return struct {
-        pub fn parse(in_ctx: Context(OneOfContext(Value), Value)) callconv(.Inline) Error!?Result(Value) {
-            var ctx = in_ctx;
+        interface: Parser(Value) = .{ ._parse = parse },
+        input: OneOfContext(Value),
+
+        const Self = @This();
+
+        pub fn init(input: OneOfContext(Value)) Self {
+            return Self{ .input = input };
+        }
+
+        pub fn parse(interface: *const Parser(Value), in_ctx: Context(void, Value)) callconv(.Inline) Error!?Result(Value) {
+            const self = @fieldParentPtr(Self, "interface", interface);
+            var ctx = in_ctx.with(self.input);
+
             const Node = std.atomic.Stack(GLLStackEntry(Value)).Node;
 
             if (ctx.gll_trampoline) |gll_trampoline| {
@@ -66,40 +77,10 @@ pub fn oneOf(comptime Input: type, comptime Value: type) Parser(OneOfContext(Val
                 return null;
             }
         }
-    }.parse;
+    };
 }
 
-/// Returns a `ParserInterface` which matches one of the given `ParserInterface`s.
-///
-/// See `oneOf` for guarantees around ambiguous and left-recursive grammars.
-///
-/// `parsers` must remain alive for as long as the parser will be used.
-pub fn OneOf(comptime Input: type, comptime Value: type) type {
-    return Wrap(OneOfContext(Value), Value, oneOf(Input, Value));
-}
-
-test "oneof_comptime" {
-    comptime {
-        const allocator = testing.allocator;
-        const ctx = Context(void, void){
-            .input = {},
-            .allocator = allocator,
-            .src = "hello world",
-            .offset = 0,
-            .gll_trampoline = null,
-        };
-        defer ctx.deinit(allocator);
-
-        const parsers: []const *const ParserInterface(void) = &.{
-            &Literal.init("hello").interface,
-            &Literal.init("world").interface,
-        };
-        var x = try oneOf(void, void)(ctx.with(parsers));
-        testing.expectEqual(Result(void){ .consumed = 5, .result = .{ .value = {} } }, x.?);
-    }
-}
-
-test "oneof_runtime" {
+test "oneof" {
     const allocator = testing.allocator;
 
     const ctx = Context(void, void){
@@ -111,7 +92,7 @@ test "oneof_runtime" {
     };
     defer ctx.deinit(allocator);
 
-    const parsers: []*const ParserInterface(void) = &.{
+    const parsers: []*const Parser(void) = &.{
         &Literal.init("hello").interface,
         &Literal.init("world").interface,
     };
@@ -132,7 +113,7 @@ test "oneof_ambiguous" {
     };
     defer ctx.deinit(allocator);
 
-    const parsers: []*const ParserInterface(void) = &.{
+    const parsers: []*const Parser(void) = &.{
         &Literal.init("hello world").interface,
         &Literal.init("hello wor").interface,
     };

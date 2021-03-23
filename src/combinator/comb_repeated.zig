@@ -8,7 +8,7 @@ const mem = std.mem;
 pub fn RepeatedContext(comptime Value: type) type {
     return struct {
         /// The parser which should be repeatedly parsed.
-        parser: *const ParserInterface(Value),
+        parser: *const Parser(Value),
 
         /// The minimum number of times the parser must successfully match.
         min: usize,
@@ -22,10 +22,24 @@ pub fn RepeatedValue(comptime Value: type) type {
     return std.ArrayList(Result(Value));
 }
 
-/// Returns a `Parser` which matches an input `parser` between `[min, max]` times (inclusive.)
-pub fn repeated(comptime Input: type, comptime Value: type) Parser(RepeatedContext(Value), RepeatedValue(Value)) {
+/// Matches the `input` number repetitively, between `[min, max]` times (inclusive.)
+///
+/// The `input` parsers must remain alive for as long as the `Repeated` parser will be used.
+pub fn Repeated(comptime Input: type, comptime Value: type) type {
     return struct {
-        pub fn parse(ctx: Context(RepeatedContext(Value), RepeatedValue(Value))) callconv(.Inline) Error!?Result(RepeatedValue(Value)) {
+        interface: Parser(RepeatedValue(Value)) = .{ ._parse = parse },
+        input: RepeatedContext(Value),
+
+        const Self = @This();
+
+        pub fn init(input: RepeatedContext(Value)) Self {
+            return Self{ .input = input };
+        }
+
+        pub fn parse(interface: *const Parser(RepeatedValue(Value)), in_ctx: Context(void, RepeatedValue(Value))) callconv(.Inline) Error!?Result(RepeatedValue(Value)) {
+            const self = @fieldParentPtr(Self, "interface", interface);
+            var ctx = in_ctx.with(self.input);
+
             var sub_ctx = Context(Value, void){
                 .input = {},
                 .allocator = ctx.allocator,
@@ -67,30 +81,10 @@ pub fn repeated(comptime Input: type, comptime Value: type) Parser(RepeatedConte
                 .result = .{ .value = list },
             };
         }
-    }.parse;
+    };
 }
 
-/// Returns a `ParserInterface` which matches an input `parser` between `[min, max]` times
-/// (inclusive.)
-pub fn Repeated(comptime Input: type, comptime Value: type) type {
-    return Wrap(RepeatedContext(Value), RepeatedValue(Value), repeated(Input, Value));
-}
-
-// TODO(slimsag): implementing this parser combinator at comptime is not
-// actually possible, unless we mark the `ctx` parameter as `comptime`. This is
-// because the Zig compiler cannot trace that `ctx` _is actually comptime_ without
-// such an annotation in this case. See the `sg/comptime-bug-question-mark` branch for
-// an explation of that problem.
-//
-// This means, similar to how we have comptime `literal` and runtime `Literal` we
-// would further need a `comptimeRepeated` AND runtime `repeated`/`Repeated`.
-// This is unfortunate, and hints that we likely _would_ be better off with just a
-// runtime implementation, using mecha if needed for a comptime implementation (which
-// may have some limitations like the data types it can emit being strings only), and
-// ultimately just waiting until Zig gets comptime heap allocation support:
-// https://github.com/ziglang/zig/issues/1291
-
-test "repeated_runtime" {
+test "repeated" {
     const allocator = testing.allocator;
 
     const ctx = Context(void, RepeatedValue(void)){
