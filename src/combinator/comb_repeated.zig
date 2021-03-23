@@ -27,7 +27,7 @@ pub fn RepeatedValue(comptime Value: type) type {
 /// The `input` parsers must remain alive for as long as the `Repeated` parser will be used.
 pub fn Repeated(comptime Input: type, comptime Value: type) type {
     return struct {
-        interface: Parser(RepeatedValue(Value)) = .{ ._parse = parse },
+        parser: Parser(RepeatedValue(Value)) = .{ ._parse = parse },
         input: RepeatedContext(Value),
 
         const Self = @This();
@@ -36,8 +36,8 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn parse(interface: *const Parser(RepeatedValue(Value)), in_ctx: Context(void, RepeatedValue(Value))) callconv(.Inline) Error!?Result(RepeatedValue(Value)) {
-            const self = @fieldParentPtr(Self, "interface", interface);
+        pub fn parse(parser: *const Parser(RepeatedValue(Value)), in_ctx: Context(void, RepeatedValue(Value))) callconv(.Inline) Error!?Result(RepeatedValue(Value)) {
+            const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
 
             var sub_ctx = Context(Value, void){
@@ -97,11 +97,11 @@ test "repeated" {
     defer ctx.deinit(allocator);
 
     var abcInfinity = Repeated(void, void).init(.{
-        .parser = &Literal.init("abc").interface,
+        .parser = &Literal.init("abc").parser,
         .min = 0,
         .max = -1,
     });
-    const x = try abcInfinity.interface.parse(ctx);
+    const x = try abcInfinity.parser.parse(ctx);
     defer x.?.result.value.deinit();
 
     var wantMatches = RepeatedValue(void).init(allocator);

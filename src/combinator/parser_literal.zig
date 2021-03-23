@@ -10,7 +10,7 @@ pub const LiteralContext = []const u8;
 ///
 /// The `input` string must remain alive for as long as the `Literal` parser will be used.
 pub const Literal = struct {
-    interface: Parser(void) = .{ ._parse = parse },
+    parser: Parser(void) = .{ ._parse = parse },
     input: LiteralContext,
 
     const Self = @This();
@@ -19,8 +19,8 @@ pub const Literal = struct {
         return Self{ .input = input };
     }
 
-    pub fn parse(interface: *const Parser(void), in_ctx: Context(void, void)) callconv(.Inline) Error!?Result(void) {
-        const self = @fieldParentPtr(Self, "interface", interface);
+    pub fn parse(parser: *const Parser(void), in_ctx: Context(void, void)) callconv(.Inline) Error!?Result(void) {
+        const self = @fieldParentPtr(Self, "parser", parser);
         var ctx = in_ctx.with(self.input);
 
         const src = ctx.src[ctx.offset..];
@@ -40,7 +40,7 @@ test "literal" {
     var input = "hello world";
     var want = "hello";
     var l = Literal.init(want);
-    const x = try l.interface.parse(.{
+    const x = try l.parser.parse(.{
         .input = {},
         .allocator = allocator,
         .src = input,
