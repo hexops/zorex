@@ -81,6 +81,12 @@ pub fn OneOf(comptime Input: type, comptime Value: type) type {
     };
 }
 
+// Confirms that the following grammar works as expected:
+//
+// ```ebnf
+// Grammar = "hello" | "world" ;
+// ```
+//
 test "oneof" {
     const allocator = testing.allocator;
 
@@ -102,6 +108,12 @@ test "oneof" {
     testing.expectEqual(Result(void){ .consumed = 5, .result = .{ .value = {} } }, x.?);
 }
 
+// Confirms that the following grammar works as expected:
+//
+// ```ebnf
+// Grammar = "hello world" | "hello wor" ;
+// ```
+//
 test "oneof_ambiguous" {
     const allocator = testing.allocator;
 
@@ -124,7 +136,14 @@ test "oneof_ambiguous" {
     testing.expectEqual(Result(void){ .consumed = 9, .result = .{ .value = {} } }, x.?);
 }
 
-test "oneof_left_recursion_basic" {
+// Confirms that the following grammar works as expected:
+//
+// ```ebnf
+// Expr = Expr | "abc" ;
+// Grammar = Expr ;
+// ```
+//
+test "oneof_left_recursion_avoidance" {
     const allocator = testing.allocator;
 
     const ctx = Context(void, void){
@@ -149,7 +168,14 @@ test "oneof_left_recursion_basic" {
     testing.expectEqual(Result(void){ .consumed = 3, .result = .{ .value = {} } }, x.?);
 }
 
-test "oneof_right_recursion_basic" {
+// Confirms that the following grammar works as expected:
+//
+// ```ebnf
+// Expr = "abc" | Expr ;
+// Grammar = Expr ;
+// ```
+//
+test "oneof_right_recursion_avoidance" {
     const allocator = testing.allocator;
 
     const ctx = Context(void, void){
