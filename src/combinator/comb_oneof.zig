@@ -1,5 +1,6 @@
 usingnamespace @import("combinator.zig");
 usingnamespace @import("parser_literal.zig");
+usingnamespace @import("comb_repeated.zig");
 
 const std = @import("std");
 const testing = std.testing;
@@ -38,7 +39,7 @@ pub fn OneOf(comptime Input: type, comptime Value: type) type {
                 // Runtime combinator
                 for (ctx.input) |in_parser| {
                     const entry = GLLStackEntry(Value){
-                        .position = 0,
+                        .position = ctx.offset,
                         .alternate = in_parser,
                     };
                     const setEntry = entry.setEntry();
@@ -121,4 +122,54 @@ test "oneof_ambiguous" {
 
     const x = try ambiguous.parser.parse(ctx);
     testing.expectEqual(Result(void){ .consumed = 9, .result = .{ .value = {} } }, x.?);
+}
+
+test "oneof_left_recursion_basic" {
+    const allocator = testing.allocator;
+
+    const ctx = Context(void, void){
+        .input = {},
+        .allocator = allocator,
+        .src = "abcabcabc123abc",
+        .offset = 0,
+        .gll_trampoline = try GLLTrampoline(void).init(allocator),
+    };
+    defer ctx.deinit(allocator);
+
+    // TODO(slimsag): stack ordering means left-recursive grammars must have
+    // the "left" parser last in the list, which is counter-intuitive. Need to make this
+    // ordering more well-defined/documented.
+    var parsers: [2]*const Parser(void) = .{
+        &Literal.init("abc").parser,
+        undefined, // placeholder for left-recursive expr itself
+    };
+    const expr = OneOf(void, void).init(&parsers);
+    parsers[1] = &expr.parser;
+    const x = try expr.parser.parse(ctx);
+    testing.expectEqual(Result(void){ .consumed = 3, .result = .{ .value = {} } }, x.?);
+}
+
+test "oneof_right_recursion_basic" {
+    const allocator = testing.allocator;
+
+    const ctx = Context(void, void){
+        .input = {},
+        .allocator = allocator,
+        .src = "abcabcabc123abc",
+        .offset = 0,
+        .gll_trampoline = try GLLTrampoline(void).init(allocator),
+    };
+    defer ctx.deinit(allocator);
+
+    // TODO(slimsag): stack ordering means right-recursive grammars must have
+    // the "right" parser first in the list, which is counter-intuitive. Need to make this
+    // ordering more well-defined/documented.
+    var parsers: [2]*const Parser(void) = .{
+        undefined, // placeholder for right-recursive expr itself
+        &Literal.init("abc").parser,
+    };
+    const expr = OneOf(void, void).init(&parsers);
+    parsers[0] = &expr.parser;
+    const x = try expr.parser.parse(ctx);
+    testing.expectEqual(Result(void){ .consumed = 3, .result = .{ .value = {} } }, x.?);
 }
