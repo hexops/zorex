@@ -1,4 +1,4 @@
-# Zorex: regex on steroids, a new kind of pattern matching engine <a href="https://hexops.com"><img align="right" alt="Hexops logo" src="https://raw.githubusercontent.com/hexops/media/main/readme.svg"></img></a>
+# Zorex: regex on steroids, a more powerful regex engine <a href="https://hexops.com"><img align="right" alt="Hexops logo" src="https://raw.githubusercontent.com/hexops/media/main/readme.svg"></img></a>
 
 [![CI](https://github.com/hexops/ztemplate/workflows/CI/badge.svg)](https://github.com/hexops/ztemplate/actions)
 
