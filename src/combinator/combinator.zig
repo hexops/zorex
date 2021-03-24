@@ -97,6 +97,20 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
             };
         }
 
+        pub fn init_with_value(self: @This(), comptime NewValue: type) !Context(Input, NewValue) {
+            var new_ctx = Context(Input, NewValue){
+                .input = self.input,
+                .allocator = self.allocator,
+                .src = self.src,
+                .offset = self.offset,
+                .gll_trampoline = null,
+            };
+            if (self.gll_trampoline) |gll_trampoline| {
+                new_ctx.gll_trampoline = try gll_trampoline.initWith(self.allocator, NewValue);
+            }
+            return new_ctx;
+        }
+
         pub fn deinit(self: @This()) void {
             if (self.gll_trampoline) |gll_trampoline| {
                 gll_trampoline.deinit(self.allocator);
