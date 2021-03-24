@@ -2,9 +2,7 @@
 
 [![CI](https://github.com/hexops/ztemplate/workflows/CI/badge.svg)](https://github.com/hexops/ztemplate/actions)
 
-Zorex blurs the line between regex engines and traditional parsing algorithms, PEGs, etc. used to parse programming languages
-
-For example, [you can't parse HTML](https://stackoverflow.com/questions/6751105/why-its-not-possible-to-use-regex-to-parse-html-xml-a-formal-explanation-in-la) (or other non-regular languages) with a regex engine, but _you can_ with Zorex.
+Zorex blurs the line between regex engine and advanced parsing algorithms used to parse programming languages. [You can't parse HTML (a context-free language)](https://stackoverflow.com/questions/6751105/why-its-not-possible-to-use-regex-to-parse-html-xml-a-formal-explanation-in-la) (a context-free language), or [XML](https://stackoverflow.com/a/8578999) ([a context-sensitive language](https://softwareengineering.stackexchange.com/a/205725)) with the most powerful of regex engines of today, but _you can_ with Zorex.
 
 ## Project status
 
