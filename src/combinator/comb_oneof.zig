@@ -91,7 +91,7 @@ test "oneof" {
         .offset = 0,
         .gll_trampoline = try GLLTrampoline(void).init(allocator),
     };
-    defer ctx.deinit(allocator);
+    defer ctx.deinit();
 
     const parsers: []*const Parser(void) = &.{
         &Literal.init("hello").parser,
@@ -112,7 +112,7 @@ test "oneof_ambiguous" {
         .offset = 0,
         .gll_trampoline = try GLLTrampoline(void).init(allocator),
     };
-    defer ctx.deinit(allocator);
+    defer ctx.deinit();
 
     const parsers: []*const Parser(void) = &.{
         &Literal.init("hello world").parser,
@@ -134,7 +134,7 @@ test "oneof_left_recursion_basic" {
         .offset = 0,
         .gll_trampoline = try GLLTrampoline(void).init(allocator),
     };
-    defer ctx.deinit(allocator);
+    defer ctx.deinit();
 
     // TODO(slimsag): stack ordering means left-recursive grammars must have
     // the "left" parser last in the list, which is counter-intuitive. Need to make this
@@ -159,7 +159,7 @@ test "oneof_right_recursion_basic" {
         .offset = 0,
         .gll_trampoline = try GLLTrampoline(void).init(allocator),
     };
-    defer ctx.deinit(allocator);
+    defer ctx.deinit();
 
     // TODO(slimsag): stack ordering means right-recursive grammars must have
     // the "right" parser first in the list, which is counter-intuitive. Need to make this

@@ -41,7 +41,7 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
             if (ctx.gll_trampoline != null) {
                 sub_ctx.gll_trampoline = try ctx.gll_trampoline.?.initWith(ctx.allocator, Value);
             }
-            defer sub_ctx.deinit(ctx.allocator);
+            defer sub_ctx.deinit();
 
             var list = std.ArrayList(Result(Value)).init(ctx.allocator);
             var consumed: usize = 0;
@@ -96,7 +96,7 @@ test "sequence" {
         .offset = 0,
         .gll_trampoline = try GLLTrampoline(SequenceValue(void)).init(allocator),
     };
-    defer ctx.deinit(allocator);
+    defer ctx.deinit();
 
     var seq = Sequence(void, void).init(&.{
         &Literal.init("abc").parser,

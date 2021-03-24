@@ -97,9 +97,9 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
             };
         }
 
-        pub fn deinit(self: @This(), allocator: *mem.Allocator) void {
+        pub fn deinit(self: @This()) void {
             if (self.gll_trampoline) |gll_trampoline| {
-                gll_trampoline.deinit(allocator);
+                gll_trampoline.deinit(self.allocator);
             }
             return;
         }
