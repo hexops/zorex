@@ -40,7 +40,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
 
-            var sub_ctx = Context(Value, void){
+            var sub_ctx = Context(void, Value){
                 .input = {},
                 .allocator = ctx.allocator,
                 .src = ctx.src,
