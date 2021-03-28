@@ -48,9 +48,9 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                 .gll_trampoline = null,
             };
             if (ctx.gll_trampoline != null) {
-                sub_ctx.gll_trampoline = try ctx.gll_trampoline.?.initWith(ctx.allocator, Value);
+                sub_ctx.gll_trampoline = try ctx.gll_trampoline.?.initChild(ctx.allocator, Value);
             }
-            defer sub_ctx.deinit();
+            defer sub_ctx.deinitChild();
 
             var list = std.ArrayList(Result(Value)).init(ctx.allocator);
             var consumed: usize = 0;

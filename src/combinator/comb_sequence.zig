@@ -1,6 +1,8 @@
 usingnamespace @import("combinator.zig");
 usingnamespace @import("parser_literal.zig");
 usingnamespace @import("comb_mapto.zig");
+usingnamespace @import("comb_optional.zig");
+usingnamespace @import("comb_oneof.zig");
 
 const std = @import("std");
 const testing = std.testing;
@@ -40,13 +42,32 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
                 .gll_trampoline = null,
             };
             if (ctx.gll_trampoline != null) {
-                sub_ctx.gll_trampoline = try ctx.gll_trampoline.?.initWith(ctx.allocator, Value);
+                sub_ctx.gll_trampoline = try ctx.gll_trampoline.?.initChild(ctx.allocator, Value);
             }
-            defer sub_ctx.deinit();
+            defer sub_ctx.deinitChild();
 
+            var freeLater = std.ArrayList([]*const Parser(Value)).init(ctx.allocator);
+            defer {
+                for (freeLater.items) |item| {
+                    ctx.allocator.free(item);
+                }
+                freeLater.deinit();
+            }
             var list = std.ArrayList(Result(Value)).init(ctx.allocator);
             var consumed: usize = 0;
             for (ctx.input) |in_parser| {
+                if (sub_ctx.gll_trampoline != null) {
+                    const entry = GLLStackEntry(Value){
+                        .position = ctx.offset+consumed,
+                        .alternate = in_parser,
+                    };
+                    const setEntry = entry.setEntry();
+                    if (sub_ctx.gll_trampoline.?.set.contains(setEntry)) {
+                        continue;
+                    }
+                    try sub_ctx.gll_trampoline.?.set.put(setEntry, {});
+                }
+
                 const next = try in_parser.parse(sub_ctx);
                 if (next == null) {
                     list.deinit();
@@ -142,4 +163,90 @@ test "sequence" {
     };
     testing.expectEqual(want.consumed, x.?.consumed);
     testing.expectEqualSlices(Result(void), want.result.value.items, x.?.result.value.items);
+}
+
+// Confirms that the following grammar works as expected:
+//
+// ```ebnf
+// Expr = [ Expr ] , "abc" ;
+// Grammar = Expr ;
+// ```
+//
+test "sequence_left_recursion" {
+    const allocator = testing.allocator;
+
+    const dynamicStr = std.ArrayList(u8);
+
+    const ctx = Context(void, SequenceValue(dynamicStr)){
+        .input = {},
+        .allocator = allocator,
+        .src = "abcabcabcabc123456",
+        .offset = 0,
+        .gll_trampoline = try GLLTrampoline(SequenceValue(dynamicStr)).init(allocator),
+    };
+    defer ctx.deinit();
+
+    const abc = MapTo(void, void, dynamicStr).init(.{
+        .parser = &Literal.init("abc").parser,
+        .mapTo = struct{
+            fn mapTo(in: ?Result(void)) Error!?Result(dynamicStr) {
+                if (in == null) return null;
+                var str = dynamicStr.init(allocator);
+                try str.appendSlice("(abc)");
+                return Result(dynamicStr){
+                    .consumed = in.?.consumed,
+                    .result = .{ .value = str },
+                };
+            }
+        }.mapTo,
+    });
+
+    var parsers: [2]*const Parser(dynamicStr) = .{
+        undefined, // placeholder for left-recursive expr itself
+        &abc.parser,
+    };
+    const expr = Sequence(void, dynamicStr).init(&parsers);
+    const optionalExpr = Optional(void, SequenceValue(dynamicStr)).init(&expr.parser);
+    const exprAsStringType = MapTo(void, ?SequenceValue(dynamicStr), dynamicStr).init(.{
+        .parser = &optionalExpr.parser,
+        .mapTo = struct{
+            fn mapTo(in: ?Result(?SequenceValue(dynamicStr))) Error!?Result(dynamicStr) {
+                if (in == null) return null;
+                var str = dynamicStr.init(allocator);
+                if (in.?.result.value != null) {
+                    defer in.?.result.value.?.deinit();
+                    for (in.?.result.value.?.items) |r| {
+                        try str.appendSlice("(");
+                        try str.appendSlice(r.result.value.items);
+                        try str.appendSlice(")");
+                        r.result.value.deinit();
+                    }
+                } else {
+                    try str.appendSlice("(none)");
+                }
+                return Result(dynamicStr){
+                    .consumed = in.?.consumed,
+                    .result = .{ .value = str },
+                };
+            }
+        }.mapTo,
+    });
+    parsers[0] = &exprAsStringType.parser;
+    const x = try expr.parser.parse(ctx);
+    defer x.?.result.value.deinit();
+
+    var wantMatches = SequenceValue(dynamicStr).init(allocator);
+    defer wantMatches.deinit();
+
+    testing.expectEqual(@as(usize, 6), x.?.consumed); // TODO(slimsag): should be 12
+    const gotSlice = x.?.result.value.items;
+    testing.expectEqual(@as(usize, 2), gotSlice.len);
+
+    defer gotSlice[0].result.value.deinit();
+    testing.expectEqual(@as(usize, 3), gotSlice[0].consumed);
+    testing.expectEqualStrings("((abc))", gotSlice[0].result.value.items);
+
+    defer gotSlice[1].result.value.deinit();
+    testing.expectEqual(@as(usize, 6), gotSlice[1].consumed);
+    testing.expectEqualStrings("(abc)", gotSlice[1].result.value.items);
 }

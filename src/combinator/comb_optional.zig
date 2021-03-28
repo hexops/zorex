@@ -28,8 +28,8 @@ pub fn Optional(comptime Input: type, comptime Value: type) type {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
 
-            const child_ctx = try ctx.with({}).init_with_value(Value);
-            defer child_ctx.deinit();
+            const child_ctx = try ctx.with({}).initChild(Value);
+            defer child_ctx.deinitChild();
 
             const value = try ctx.input.parse(child_ctx);
             if (value == null) {

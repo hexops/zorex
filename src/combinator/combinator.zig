@@ -47,7 +47,9 @@ pub fn GLLTrampoline(comptime ParserValue: type) type {
 
         /// Used to prevent adding an alternation to the stack that was already
         /// added previously.
-        set: std.AutoArrayHashMap(GLLSetEntry, void),
+        set: *std.AutoArrayHashMap(GLLSetEntry, void),
+
+        _set: std.AutoArrayHashMap(GLLSetEntry, void),
 
         const Self = @This();
 
@@ -55,16 +57,19 @@ pub fn GLLTrampoline(comptime ParserValue: type) type {
             const self = try allocator.create(Self);
             self.* = Self{
                 .stack = std.atomic.Stack(GLLStackEntry(ParserValue)).init(),
-                .set = std.AutoArrayHashMap(GLLSetEntry, void).init(allocator),
+                ._set = std.AutoArrayHashMap(GLLSetEntry, void).init(allocator),
+                .set = undefined,
             };
+            self.set = &self._set;
             return self;
         }
 
-        pub fn initWith(self: *Self, allocator: *mem.Allocator, comptime NewStackType: type) !*GLLTrampoline(NewStackType) {
+        pub fn initChild(self: *Self, allocator: *mem.Allocator, comptime NewStackType: type) !*GLLTrampoline(NewStackType) {
             const New = GLLTrampoline(NewStackType);
             const new = try allocator.create(New);
             new.* = New{
                 .stack = std.atomic.Stack(GLLStackEntry(NewStackType)).init(),
+                ._set = undefined,
                 .set = self.set,
             };
             return new;
@@ -72,6 +77,10 @@ pub fn GLLTrampoline(comptime ParserValue: type) type {
 
         pub fn deinit(self: *Self, allocator: *mem.Allocator) void {
             self.set.deinit();
+            allocator.destroy(self);
+        }
+
+        pub fn deinitChild(self: *Self, allocator: *mem.Allocator) void {
             allocator.destroy(self);
         }
     };
@@ -97,7 +106,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
             };
         }
 
-        pub fn init_with_value(self: @This(), comptime NewValue: type) !Context(Input, NewValue) {
+        pub fn initChild(self: @This(), comptime NewValue: type) !Context(Input, NewValue) {
             var new_ctx = Context(Input, NewValue){
                 .input = self.input,
                 .allocator = self.allocator,
@@ -106,7 +115,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
                 .gll_trampoline = null,
             };
             if (self.gll_trampoline) |gll_trampoline| {
-                new_ctx.gll_trampoline = try gll_trampoline.initWith(self.allocator, NewValue);
+                new_ctx.gll_trampoline = try gll_trampoline.initChild(self.allocator, NewValue);
             }
             return new_ctx;
         }
@@ -114,6 +123,13 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
         pub fn deinit(self: @This()) void {
             if (self.gll_trampoline) |gll_trampoline| {
                 gll_trampoline.deinit(self.allocator);
+            }
+            return;
+        }
+
+        pub fn deinitChild(self: @This()) void {
+            if (self.gll_trampoline) |gll_trampoline| {
+                gll_trampoline.deinitChild(self.allocator);
             }
             return;
         }
