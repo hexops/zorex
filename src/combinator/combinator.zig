@@ -14,6 +14,7 @@ const ResultTag = enum {
 ///
 /// 1. A `value` and number of `consumed` bytes.
 /// 2. A `syntax_err` with number of `consumed` bytes (i.e. position of error).
+/// 3. A fatal parse `err` (e.g. OOM), with no indication of `consumed` bytes.
 ///
 pub fn Result(comptime Value: type) type {
     return struct {
