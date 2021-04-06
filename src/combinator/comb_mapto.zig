@@ -9,7 +9,7 @@ const mem = std.mem;
 pub fn MapToContext(comptime Value: type, comptime Target: type) type {
     return struct {
         parser: *const Parser(Value),
-        mapTo: fn(?Result(Value)) Error!?Result(Target),
+        mapTo: fn (?Result(Value)) Error!?Result(Target),
     };
 }
 
@@ -54,7 +54,7 @@ test "oneof" {
 
     const mapTo = MapTo(void, void, []const u8).init(.{
         .parser = &Literal.init("hello").parser,
-        .mapTo = struct{
+        .mapTo = struct {
             fn mapTo(in: ?Result(void)) Error!?Result([]const u8) {
                 if (in == null) return null;
                 return Result([]const u8){

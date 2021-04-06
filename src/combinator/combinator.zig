@@ -5,20 +5,20 @@ const mem = std.mem;
 pub const Error = error{OutOfMemory};
 
 const ResultTag = enum {
-    err,
+    syntax_err,
     value,
 };
 
 /// A parser result, one of:
 ///
 /// 1. A `value` and number of `consumed` bytes.
-/// 2. A syntax `err`or with number of `consumed` bytes (i.e. position of error).
+/// 2. A `syntax_err` with number of `consumed` bytes (i.e. position of error).
 ///
 pub fn Result(comptime Value: type) type {
     return struct {
         consumed: usize,
         result: union(ResultTag) {
-            err: []const u8,
+            syntax_err: []const u8,
             value: Value,
         },
     };

@@ -58,7 +58,7 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
             for (ctx.input) |in_parser| {
                 if (sub_ctx.gll_trampoline != null) {
                     const entry = GLLStackEntry(Value){
-                        .position = ctx.offset+consumed,
+                        .position = ctx.offset + consumed,
                         .alternate = in_parser,
                     };
                     const setEntry = entry.setEntry();
@@ -74,19 +74,19 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
                     if (list.items.len > 0) {
                         return Result(SequenceValue(Value)){
                             .consumed = consumed,
-                            .result = .{ .err = "expected next" }, // TODO(slimsag): include what was expected next
+                            .result = .{ .syntax_err = "expected next" }, // TODO(slimsag): include what was expected next
                         };
                     }
                     return null;
                 }
                 switch (next.?.result) {
-                    .err => {
+                    .syntax_err => {
                         // TODO(slimsag): syntax errors should not be treated the same as other errors
                         list.deinit();
                         if (list.items.len > 0) {
                             return Result(SequenceValue(Value)){
                                 .consumed = consumed,
-                                .result = .{ .err = "expected next" }, // TODO(slimsag): include what was expected next
+                                .result = .{ .syntax_err = "expected next" }, // TODO(slimsag): include what was expected next
                             };
                         }
                         return null;
@@ -188,7 +188,7 @@ test "sequence_left_recursion" {
 
     const abc = MapTo(void, void, dynamicStr).init(.{
         .parser = &Literal.init("abc").parser,
-        .mapTo = struct{
+        .mapTo = struct {
             fn mapTo(in: ?Result(void)) Error!?Result(dynamicStr) {
                 if (in == null) return null;
                 var str = dynamicStr.init(allocator);
@@ -209,7 +209,7 @@ test "sequence_left_recursion" {
     const optionalExpr = Optional(void, SequenceValue(dynamicStr)).init(&expr.parser);
     const exprAsStringType = MapTo(void, ?SequenceValue(dynamicStr), dynamicStr).init(.{
         .parser = &optionalExpr.parser,
-        .mapTo = struct{
+        .mapTo = struct {
             fn mapTo(in: ?Result(?SequenceValue(dynamicStr))) Error!?Result(dynamicStr) {
                 if (in == null) return null;
                 var str = dynamicStr.init(allocator);

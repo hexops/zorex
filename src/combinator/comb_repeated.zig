@@ -60,7 +60,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                     break;
                 }
                 switch (next.?.result) {
-                    .err => break, // TODO(slimsag): syntax errors should not be treated the same as other errors
+                    .syntax_err => break, // TODO(slimsag): syntax errors should not be treated the same as other errors
                     .value => {},
                 }
                 consumed = next.?.consumed;
@@ -73,7 +73,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
             if (list.items.len < ctx.input.min) {
                 return Result(RepeatedValue(Value)){
                     .consumed = consumed,
-                    .result = .{ .err = "expected more" }, // TODO(slimsag): include number of expected/found matches
+                    .result = .{ .syntax_err = "expected more" }, // TODO(slimsag): include number of expected/found matches
                 };
             }
             return Result(RepeatedValue(Value)){

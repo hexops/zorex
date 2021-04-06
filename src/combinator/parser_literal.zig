@@ -28,7 +28,7 @@ pub const Literal = struct {
             return null;
         }
         if (!mem.startsWith(u8, src, ctx.input)) {
-            return Result(void){ .consumed = ctx.offset + 1, .result = .{ .err = "expected literal" } };
+            return Result(void){ .consumed = ctx.offset + 1, .result = .{ .syntax_err = "expected literal" } };
         }
         return Result(void){ .consumed = ctx.offset + ctx.input.len, .result = .{ .value = {} } };
     }
