@@ -9,7 +9,7 @@ const mem = std.mem;
 pub fn MapToContext(comptime Value: type, comptime Target: type) type {
     return struct {
         parser: *const Parser(Value),
-        mapTo: fn (?Result(Value)) Error!?Result(Target),
+        mapTo: fn (?Result(Value)) ?Result(Target),
     };
 }
 
@@ -27,15 +27,14 @@ pub fn MapTo(comptime Input: type, comptime Value: type, comptime Target: type) 
             return Self{ .input = input };
         }
 
-        pub fn parse(parser: *const Parser(Target), in_ctx: Context(void, Target)) callconv(.Inline) Error!?Result(Target) {
+        pub fn parse(parser: *const Parser(Target), in_ctx: Context(void, Target)) callconv(.Inline) ?Result(Target) {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
 
-            const child_ctx = try ctx.with({}).initChild(Value);
+            const child_ctx = ctx.with({}).initChild(Value) catch |err| return Result(Target).initError(err);
             defer child_ctx.deinitChild();
-            const value = try ctx.input.parser.parse(child_ctx);
-            const target = try ctx.input.mapTo(value);
-            return target;
+            const value = ctx.input.parser.parse(child_ctx);
+            return ctx.input.mapTo(value);
         }
     };
 }
@@ -55,7 +54,7 @@ test "oneof" {
     const mapTo = MapTo(void, void, []const u8).init(.{
         .parser = &Literal.init("hello").parser,
         .mapTo = struct {
-            fn mapTo(in: ?Result(void)) Error!?Result([]const u8) {
+            fn mapTo(in: ?Result(void)) ?Result([]const u8) {
                 if (in == null) return null;
                 return Result([]const u8){
                     .consumed = in.?.consumed,
@@ -65,7 +64,7 @@ test "oneof" {
         }.mapTo,
     });
 
-    const x = try mapTo.parser.parse(ctx);
+    const x = mapTo.parser.parse(ctx);
     testing.expectEqual(@as(usize, 5), x.?.consumed);
     testing.expectEqualStrings("hello", x.?.result.value);
 }

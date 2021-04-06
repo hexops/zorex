@@ -24,14 +24,14 @@ pub fn Optional(comptime Input: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn parse(parser: *const Parser(?Value), in_ctx: Context(void, ?Value)) callconv(.Inline) Error!?Result(?Value) {
+        pub fn parse(parser: *const Parser(?Value), in_ctx: Context(void, ?Value)) callconv(.Inline) ?Result(?Value) {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
 
-            const child_ctx = try ctx.with({}).initChild(Value);
+            const child_ctx = ctx.with({}).initChild(Value) catch |err| return Result(?Value).initError(err);
             defer child_ctx.deinitChild();
 
-            const value = try ctx.input.parse(child_ctx);
+            const value = ctx.input.parse(child_ctx);
             if (value == null) {
                 return Result(?Value){
                     .consumed = 0,
@@ -61,7 +61,7 @@ test "optional_some" {
 
     const optional = Optional(void, void).init(&Literal.init("hello").parser);
 
-    const x = try optional.parser.parse(ctx);
+    const x = optional.parser.parse(ctx);
     testing.expectEqual(@as(usize, 5), x.?.consumed);
     testing.expectEqual({}, x.?.result.value.?);
 }
@@ -80,7 +80,7 @@ test "optional_none" {
 
     const optional = Optional(void, void).init(&Literal.init("world").parser);
 
-    const x = try optional.parser.parse(ctx);
+    const x = optional.parser.parse(ctx);
     testing.expectEqual(@as(usize, 0), x.?.consumed);
     testing.expectEqual(@as(?void, null), x.?.result.value);
 }

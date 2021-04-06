@@ -30,7 +30,7 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn parse(parser: *const Parser(SequenceValue(Value)), in_ctx: Context(void, SequenceValue(Value))) callconv(.Inline) Error!?Result(SequenceValue(Value)) {
+        pub fn parse(parser: *const Parser(SequenceValue(Value)), in_ctx: Context(void, SequenceValue(Value))) callconv(.Inline) ?Result(SequenceValue(Value)) {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
 
@@ -42,7 +42,7 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
                 .gll_trampoline = null,
             };
             if (ctx.gll_trampoline != null) {
-                sub_ctx.gll_trampoline = try ctx.gll_trampoline.?.initChild(ctx.allocator, Value);
+                sub_ctx.gll_trampoline = ctx.gll_trampoline.?.initChild(ctx.allocator, Value) catch |err| return Result(SequenceValue(Value)).initError(err);
             }
             defer sub_ctx.deinitChild();
 
@@ -65,10 +65,10 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
                     if (sub_ctx.gll_trampoline.?.set.contains(setEntry)) {
                         continue;
                     }
-                    try sub_ctx.gll_trampoline.?.set.put(setEntry, {});
+                    sub_ctx.gll_trampoline.?.set.put(setEntry, {}) catch |err| return Result(SequenceValue(Value)).initError(err);
                 }
 
-                const next = try in_parser.parse(sub_ctx);
+                const next = in_parser.parse(sub_ctx);
                 if (next == null) {
                     list.deinit();
                     if (list.items.len > 0) {
@@ -91,11 +91,12 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
                         }
                         return null;
                     },
+                    .err => return Result(SequenceValue(Value)).initError(next.?.result.err),
                     .value => {},
                 }
                 consumed = next.?.consumed;
                 sub_ctx.offset = next.?.consumed;
-                try list.append(next.?);
+                list.append(next.?) catch |err| return Result(SequenceValue(Value)).initError(err);
             }
             if (list.items.len == 0) {
                 return null;
@@ -126,7 +127,7 @@ test "sequence" {
         &Literal.init("abc").parser,
         &Literal.init("456").parser,
     });
-    const x = try seq.parser.parse(ctx);
+    const x = seq.parser.parse(ctx);
     defer x.?.result.value.deinit();
 
     var wantMatches = SequenceValue(void).init(allocator);
@@ -189,10 +190,10 @@ test "sequence_left_recursion" {
     const abc = MapTo(void, void, dynamicStr).init(.{
         .parser = &Literal.init("abc").parser,
         .mapTo = struct {
-            fn mapTo(in: ?Result(void)) Error!?Result(dynamicStr) {
+            fn mapTo(in: ?Result(void)) ?Result(dynamicStr) {
                 if (in == null) return null;
                 var str = dynamicStr.init(allocator);
-                try str.appendSlice("(abc)");
+                str.appendSlice("(abc)") catch |err| return Result(dynamicStr).initError(err);
                 return Result(dynamicStr){
                     .consumed = in.?.consumed,
                     .result = .{ .value = str },
@@ -210,19 +211,19 @@ test "sequence_left_recursion" {
     const exprAsStringType = MapTo(void, ?SequenceValue(dynamicStr), dynamicStr).init(.{
         .parser = &optionalExpr.parser,
         .mapTo = struct {
-            fn mapTo(in: ?Result(?SequenceValue(dynamicStr))) Error!?Result(dynamicStr) {
+            fn mapTo(in: ?Result(?SequenceValue(dynamicStr))) ?Result(dynamicStr) {
                 if (in == null) return null;
                 var str = dynamicStr.init(allocator);
                 if (in.?.result.value != null) {
                     defer in.?.result.value.?.deinit();
                     for (in.?.result.value.?.items) |r| {
-                        try str.appendSlice("(");
-                        try str.appendSlice(r.result.value.items);
-                        try str.appendSlice(")");
+                        str.appendSlice("(") catch |err| return Result(dynamicStr).initError(err);
+                        str.appendSlice(r.result.value.items) catch |err| return Result(dynamicStr).initError(err);
+                        str.appendSlice(")") catch |err| return Result(dynamicStr).initError(err);
                         r.result.value.deinit();
                     }
                 } else {
-                    try str.appendSlice("(none)");
+                    str.appendSlice("(none)") catch |err| return Result(dynamicStr).initError(err);
                 }
                 return Result(dynamicStr){
                     .consumed = in.?.consumed,
@@ -232,7 +233,7 @@ test "sequence_left_recursion" {
         }.mapTo,
     });
     parsers[0] = &exprAsStringType.parser;
-    const x = try expr.parser.parse(ctx);
+    const x = expr.parser.parse(ctx);
     defer x.?.result.value.deinit();
 
     var wantMatches = SequenceValue(dynamicStr).init(allocator);

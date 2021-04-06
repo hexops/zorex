@@ -29,7 +29,7 @@ pub fn OneOf(comptime Input: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn parse(parser: *const Parser(Value), in_ctx: Context(void, Value)) callconv(.Inline) Error!?Result(Value) {
+        pub fn parse(parser: *const Parser(Value), in_ctx: Context(void, Value)) callconv(.Inline) ?Result(Value) {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
 
@@ -47,18 +47,18 @@ pub fn OneOf(comptime Input: type, comptime Value: type) type {
                         continue;
                     }
 
-                    const node = try ctx.allocator.create(Node);
+                    const node = ctx.allocator.create(Node) catch |err| return Result(Value).initError(err);
                     node.* = Node{
                         .next = undefined,
                         .data = entry,
                     };
                     gll_trampoline.stack.push(node);
-                    try gll_trampoline.set.put(setEntry, {});
+                    gll_trampoline.set.put(setEntry, {}) catch |err| return Result(Value).initError(err);
                 }
                 while (gll_trampoline.stack.pop()) |next| {
                     defer ctx.allocator.destroy(next);
                     var node = next.data;
-                    const result = try node.alternate.parse(ctx.with({}));
+                    const result = node.alternate.parse(ctx.with({}));
                     if (result != null) {
                         while (gll_trampoline.stack.pop()) |unused| {
                             ctx.allocator.destroy(unused);
@@ -70,7 +70,7 @@ pub fn OneOf(comptime Input: type, comptime Value: type) type {
             } else {
                 // At comptime, we can't easily implement GLL today.
                 for (ctx.input) |in_parser| {
-                    const result = try in_parser.parse(ctx.with({}));
+                    const result = in_parser.parse(ctx.with({}));
                     if (result != null) {
                         return result.?;
                     }
@@ -104,7 +104,7 @@ test "oneof" {
         &Literal.init("world").parser,
     };
     var helloOrWorld = OneOf(void, void).init(parsers);
-    const x = try helloOrWorld.parser.parse(ctx);
+    const x = helloOrWorld.parser.parse(ctx);
     testing.expectEqual(Result(void){ .consumed = 5, .result = .{ .value = {} } }, x.?);
 }
 
@@ -132,7 +132,7 @@ test "oneof_ambiguous" {
     };
     var ambiguous = OneOf(void, void).init(parsers);
 
-    const x = try ambiguous.parser.parse(ctx);
+    const x = ambiguous.parser.parse(ctx);
     testing.expectEqual(Result(void){ .consumed = 9, .result = .{ .value = {} } }, x.?);
 }
 
@@ -164,7 +164,7 @@ test "oneof_left_recursion_avoidance" {
     };
     const expr = OneOf(void, void).init(&parsers);
     parsers[1] = &expr.parser;
-    const x = try expr.parser.parse(ctx);
+    const x = expr.parser.parse(ctx);
     testing.expectEqual(Result(void){ .consumed = 3, .result = .{ .value = {} } }, x.?);
 }
 
@@ -196,6 +196,6 @@ test "oneof_right_recursion_avoidance" {
     };
     const expr = OneOf(void, void).init(&parsers);
     parsers[0] = &expr.parser;
-    const x = try expr.parser.parse(ctx);
+    const x = expr.parser.parse(ctx);
     testing.expectEqual(Result(void){ .consumed = 3, .result = .{ .value = {} } }, x.?);
 }

@@ -6,6 +6,7 @@ pub const Error = error{OutOfMemory};
 
 const ResultTag = enum {
     syntax_err,
+    err,
     value,
 };
 
@@ -19,8 +20,16 @@ pub fn Result(comptime Value: type) type {
         consumed: usize,
         result: union(ResultTag) {
             syntax_err: []const u8,
+            err: Error,
             value: Value,
         },
+
+        pub fn initError(err: Error) @This() {
+            return .{
+                .consumed = 0,
+                .result = .{ .err = err },
+            };
+        }
     };
 }
 
@@ -141,9 +150,9 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
 pub fn Parser(comptime Value: type) type {
     return struct {
         const Self = @This();
-        _parse: fn (self: *const Self, ctx: Context(void, Value)) callconv(.Inline) Error!?Result(Value),
+        _parse: fn (self: *const Self, ctx: Context(void, Value)) callconv(.Inline) ?Result(Value),
 
-        pub fn parse(self: *const Self, ctx: Context(void, Value)) callconv(.Inline) Error!?Result(Value) {
+        pub fn parse(self: *const Self, ctx: Context(void, Value)) callconv(.Inline) ?Result(Value) {
             return self._parse(self, ctx);
         }
     };

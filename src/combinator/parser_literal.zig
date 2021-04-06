@@ -19,7 +19,7 @@ pub const Literal = struct {
         return Self{ .input = input };
     }
 
-    pub fn parse(parser: *const Parser(void), in_ctx: Context(void, void)) callconv(.Inline) Error!?Result(void) {
+    pub fn parse(parser: *const Parser(void), in_ctx: Context(void, void)) callconv(.Inline) ?Result(void) {
         const self = @fieldParentPtr(Self, "parser", parser);
         var ctx = in_ctx.with(self.input);
 
@@ -40,7 +40,7 @@ test "literal" {
     var input = "hello world";
     var want = "hello";
     var l = Literal.init(want);
-    const x = try l.parser.parse(.{
+    const x = l.parser.parse(.{
         .input = {},
         .allocator = allocator,
         .src = input,

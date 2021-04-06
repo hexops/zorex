@@ -36,7 +36,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn parse(parser: *const Parser(RepeatedValue(Value)), in_ctx: Context(void, RepeatedValue(Value))) callconv(.Inline) Error!?Result(RepeatedValue(Value)) {
+        pub fn parse(parser: *const Parser(RepeatedValue(Value)), in_ctx: Context(void, RepeatedValue(Value))) callconv(.Inline) ?Result(RepeatedValue(Value)) {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
 
@@ -48,24 +48,25 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                 .gll_trampoline = null,
             };
             if (ctx.gll_trampoline != null) {
-                sub_ctx.gll_trampoline = try ctx.gll_trampoline.?.initChild(ctx.allocator, Value);
+                sub_ctx.gll_trampoline = ctx.gll_trampoline.?.initChild(ctx.allocator, Value) catch |err| return Result(RepeatedValue(Value)).initError(err);
             }
             defer sub_ctx.deinitChild();
 
             var list = std.ArrayList(Result(Value)).init(ctx.allocator);
             var consumed: usize = 0;
             while (list.items.len < ctx.input.max or ctx.input.max == -1) {
-                const next = try ctx.input.parser.parse(sub_ctx);
+                const next = ctx.input.parser.parse(sub_ctx);
                 if (next == null) {
                     break;
                 }
                 switch (next.?.result) {
                     .syntax_err => break, // TODO(slimsag): syntax errors should not be treated the same as other errors
+                    .err => return Result(RepeatedValue(Value)).initError(next.?.result.err),
                     .value => {},
                 }
                 consumed = next.?.consumed;
                 sub_ctx.offset = next.?.consumed;
-                try list.append(next.?);
+                list.append(next.?) catch |err| return Result(RepeatedValue(Value)).initError(err);
             }
             if (list.items.len == 0) {
                 return null;
@@ -101,7 +102,7 @@ test "repeated" {
         .min = 0,
         .max = -1,
     });
-    const x = try abcInfinity.parser.parse(ctx);
+    const x = abcInfinity.parser.parse(ctx);
     defer x.?.result.value.deinit();
 
     var wantMatches = RepeatedValue(void).init(allocator);
