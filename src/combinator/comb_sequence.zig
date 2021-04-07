@@ -72,10 +72,8 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
                 if (next == null) {
                     list.deinit();
                     if (list.items.len > 0) {
-                        return Result(SequenceValue(Value)){
-                            .consumed = consumed,
-                            .result = .{ .syntax_err = "expected next" }, // TODO(slimsag): include what was expected next
-                        };
+                        // TODO(slimsag): include what was expected next
+                        return Result(SequenceValue(Value)).initSyntaxError(consumed, "expected next");
                     }
                     return null;
                 }
@@ -84,10 +82,8 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
                         // TODO(slimsag): syntax errors should not be treated the same as other errors
                         list.deinit();
                         if (list.items.len > 0) {
-                            return Result(SequenceValue(Value)){
-                                .consumed = consumed,
-                                .result = .{ .syntax_err = "expected next" }, // TODO(slimsag): include what was expected next
-                            };
+                            // TODO(slimsag): include what was expected next
+                            return Result(SequenceValue(Value)).initSyntaxError(consumed, "expected next");
                         }
                         return null;
                     },

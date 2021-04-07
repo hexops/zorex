@@ -31,6 +31,13 @@ pub fn Result(comptime Value: type) type {
                 .result = .{ .err = err },
             };
         }
+
+        pub fn initSyntaxError(consumed: usize, syntax_err: []const u8) @This() {
+            return .{
+                .consumed = consumed,
+                .result = .{ .syntax_err = syntax_err },
+            };
+        }
     };
 }
 

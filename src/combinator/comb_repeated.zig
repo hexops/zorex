@@ -72,10 +72,8 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                 return null;
             }
             if (list.items.len < ctx.input.min) {
-                return Result(RepeatedValue(Value)){
-                    .consumed = consumed,
-                    .result = .{ .syntax_err = "expected more" }, // TODO(slimsag): include number of expected/found matches
-                };
+                // TODO(slimsag): include number of expected/found matches
+                return Result(RepeatedValue(Value)).initSyntaxError(consumed, "expected more");
             }
             return Result(RepeatedValue(Value)){
                 .consumed = consumed,
