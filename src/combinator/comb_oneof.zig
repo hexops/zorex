@@ -105,7 +105,7 @@ test "oneof" {
     };
     var helloOrWorld = OneOf(void, void).init(parsers);
     const x = helloOrWorld.parser.parse(ctx);
-    testing.expectEqual(Result(void){ .consumed = 5, .result = .{ .value = {} } }, x.?);
+    testing.expectEqual(Result(void).init(5, .{}), x.?);
 }
 
 // Confirms that the following grammar works as expected:
@@ -133,7 +133,7 @@ test "oneof_ambiguous" {
     var ambiguous = OneOf(void, void).init(parsers);
 
     const x = ambiguous.parser.parse(ctx);
-    testing.expectEqual(Result(void){ .consumed = 9, .result = .{ .value = {} } }, x.?);
+    testing.expectEqual(Result(void).init(9, {}), x.?);
 }
 
 // Confirms that the following grammar works as expected:
@@ -165,7 +165,7 @@ test "oneof_left_recursion_avoidance" {
     const expr = OneOf(void, void).init(&parsers);
     parsers[1] = &expr.parser;
     const x = expr.parser.parse(ctx);
-    testing.expectEqual(Result(void){ .consumed = 3, .result = .{ .value = {} } }, x.?);
+    testing.expectEqual(Result(void).init(3, {}), x.?);
 }
 
 // Confirms that the following grammar works as expected:
@@ -197,5 +197,5 @@ test "oneof_right_recursion_avoidance" {
     const expr = OneOf(void, void).init(&parsers);
     parsers[0] = &expr.parser;
     const x = expr.parser.parse(ctx);
-    testing.expectEqual(Result(void){ .consumed = 3, .result = .{ .value = {} } }, x.?);
+    testing.expectEqual(Result(void).init(3, {}), x.?);
 }

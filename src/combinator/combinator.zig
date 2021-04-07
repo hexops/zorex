@@ -5,9 +5,9 @@ const mem = std.mem;
 pub const Error = error{OutOfMemory};
 
 const ResultTag = enum {
+    value,
     syntax_err,
     err,
-    value,
 };
 
 /// A parser result, one of:
@@ -20,15 +20,15 @@ pub fn Result(comptime Value: type) type {
     return struct {
         consumed: usize,
         result: union(ResultTag) {
+            value: Value,
             syntax_err: []const u8,
             err: Error,
-            value: Value,
         },
 
-        pub fn initError(err: Error) @This() {
+        pub fn init(consumed: usize, value: Value) @This() {
             return .{
-                .consumed = 0,
-                .result = .{ .err = err },
+                .consumed = consumed,
+                .result = .{ .value = value },
             };
         }
 
@@ -36,6 +36,13 @@ pub fn Result(comptime Value: type) type {
             return .{
                 .consumed = consumed,
                 .result = .{ .syntax_err = syntax_err },
+            };
+        }
+
+        pub fn initError(err: Error) @This() {
+            return .{
+                .consumed = 0,
+                .result = .{ .err = err },
             };
         }
     };

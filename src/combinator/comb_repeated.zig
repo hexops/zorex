@@ -75,10 +75,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                 // TODO(slimsag): include number of expected/found matches
                 return Result(RepeatedValue(Value)).initSyntaxError(consumed, "expected more");
             }
-            return Result(RepeatedValue(Value)){
-                .consumed = consumed,
-                .result = .{ .value = list },
-            };
+            return Result(RepeatedValue(Value)).init(consumed, list);
         }
     };
 }
@@ -105,30 +102,10 @@ test "repeated" {
 
     var wantMatches = RepeatedValue(void).init(allocator);
     defer wantMatches.deinit();
-    try wantMatches.append(Result(void){
-        .consumed = 3,
-        .result = .{
-            .value = {},
-        },
-    });
-    try wantMatches.append(Result(void){
-        .consumed = 6,
-        .result = .{
-            .value = {},
-        },
-    });
-    try wantMatches.append(Result(void){
-        .consumed = 9,
-        .result = .{
-            .value = {},
-        },
-    });
-    var want = Result(RepeatedValue(void)){
-        .consumed = 9,
-        .result = .{
-            .value = wantMatches,
-        },
-    };
+    try wantMatches.append(Result(void).init(3, {}));
+    try wantMatches.append(Result(void).init(6, {}));
+    try wantMatches.append(Result(void).init(9, {}));
+    var want = Result(RepeatedValue(void)).init(9, wantMatches);
     testing.expectEqual(want.consumed, x.?.consumed);
     testing.expectEqualSlices(Result(void), want.result.value.items, x.?.result.value.items);
 }

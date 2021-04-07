@@ -97,10 +97,7 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
             if (list.items.len == 0) {
                 return null;
             }
-            return Result(SequenceValue(Value)){
-                .consumed = consumed,
-                .result = .{ .value = list },
-            };
+            return Result(SequenceValue(Value)).init(consumed, list);
         }
     };
 }
@@ -128,36 +125,11 @@ test "sequence" {
 
     var wantMatches = SequenceValue(void).init(allocator);
     defer wantMatches.deinit();
-    try wantMatches.append(Result(void){
-        .consumed = 3,
-        .result = .{
-            .value = {},
-        },
-    });
-    try wantMatches.append(Result(void){
-        .consumed = 6,
-        .result = .{
-            .value = {},
-        },
-    });
-    try wantMatches.append(Result(void){
-        .consumed = 9,
-        .result = .{
-            .value = {},
-        },
-    });
-    try wantMatches.append(Result(void){
-        .consumed = 12,
-        .result = .{
-            .value = {},
-        },
-    });
-    var want = Result(SequenceValue(void)){
-        .consumed = 12,
-        .result = .{
-            .value = wantMatches,
-        },
-    };
+    try wantMatches.append(Result(void).init(3, {}));
+    try wantMatches.append(Result(void).init(6, {}));
+    try wantMatches.append(Result(void).init(9, {}));
+    try wantMatches.append(Result(void).init(12, {}));
+    var want = Result(SequenceValue(void)).init(12, wantMatches);
     testing.expectEqual(want.consumed, x.?.consumed);
     testing.expectEqualSlices(Result(void), want.result.value.items, x.?.result.value.items);
 }
@@ -190,10 +162,7 @@ test "sequence_left_recursion" {
                 if (in == null) return null;
                 var str = dynamicStr.init(allocator);
                 str.appendSlice("(abc)") catch |err| return Result(dynamicStr).initError(err);
-                return Result(dynamicStr){
-                    .consumed = in.?.consumed,
-                    .result = .{ .value = str },
-                };
+                return Result(dynamicStr).init(in.?.consumed, str);
             }
         }.mapTo,
     });
@@ -221,10 +190,7 @@ test "sequence_left_recursion" {
                 } else {
                     str.appendSlice("(none)") catch |err| return Result(dynamicStr).initError(err);
                 }
-                return Result(dynamicStr){
-                    .consumed = in.?.consumed,
-                    .result = .{ .value = str },
-                };
+                return Result(dynamicStr).init(in.?.consumed, str);
             }
         }.mapTo,
     });

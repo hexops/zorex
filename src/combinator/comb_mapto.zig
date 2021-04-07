@@ -56,10 +56,7 @@ test "oneof" {
         .mapTo = struct {
             fn mapTo(in: ?Result(void)) ?Result([]const u8) {
                 if (in == null) return null;
-                return Result([]const u8){
-                    .consumed = in.?.consumed,
-                    .result = .{ .value = "hello" },
-                };
+                return Result([]const u8).init(in.?.consumed, "hello");
             }
         }.mapTo,
     });

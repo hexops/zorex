@@ -31,7 +31,7 @@ pub const Literal = struct {
             // TODO(slimsag): include what literal was expected
             return Result(void).initSyntaxError(ctx.offset + 1, "expected literal");
         }
-        return Result(void){ .consumed = ctx.offset + ctx.input.len, .result = .{ .value = {} } };
+        return Result(void).init(ctx.offset + ctx.input.len, {});
     }
 };
 
@@ -48,5 +48,5 @@ test "literal" {
         .offset = 0,
         .gll_trampoline = null,
     });
-    testing.expectEqual(Result(void){ .consumed = 5, .result = .{ .value = {} } }, x.?);
+    testing.expectEqual(Result(void).init(5, {}), x.?);
 }

@@ -33,16 +33,10 @@ pub fn Optional(comptime Input: type, comptime Value: type) type {
 
             const value = ctx.input.parse(child_ctx);
             if (value == null) {
-                return Result(?Value){
-                    .consumed = 0,
-                    .result = .{ .value = null },
-                };
+                return Result(?Value).init(0, null);
             }
             // TODO(slimsag): handle parser errors here
-            return Result(?Value){
-                .consumed = value.?.consumed,
-                .result = .{ .value = value.?.result.value },
-            };
+            return Result(?Value).init(value.?.consumed, value.?.result.value);
         }
     };
 }
