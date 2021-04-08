@@ -19,34 +19,47 @@ pub const Literal = struct {
         return Self{ .input = input };
     }
 
-    pub fn parse(parser: *const Parser(void), in_ctx: Context(void, void)) callconv(.Inline) ?Result(void) {
+    pub fn parse(parser: *const Parser(void), in_ctx: Context(void, void)) callconv(.Inline) !void {
         const self = @fieldParentPtr(Self, "parser", parser);
         var ctx = in_ctx.with(self.input);
+        defer ctx.results.close();
 
         const src = ctx.src[ctx.offset..];
         if (ctx.input.len > 0 and src.len > 0 and ctx.input[0] != src[0]) {
-            return null;
+            return;
         }
         if (!mem.startsWith(u8, src, ctx.input)) {
             // TODO(slimsag): include what literal was expected
-            return Result(void).initSyntaxError(ctx.offset + 1, "expected literal");
+            try ctx.results.add(Result(void).initSyntaxError(ctx.offset + 1, "expected literal"));
+            return;
         }
-        return Result(void).init(ctx.offset + ctx.input.len, {});
+        try ctx.results.add(Result(void).init(ctx.offset + ctx.input.len, {}));
+        return;
     }
 };
 
 test "literal" {
-    const allocator = testing.allocator;
+    nosuspend {
+        const allocator = testing.allocator;
 
-    var input = "hello world";
-    var want = "hello";
-    var l = Literal.init(want);
-    const x = l.parser.parse(.{
-        .input = {},
-        .allocator = allocator,
-        .src = input,
-        .offset = 0,
-        .gll_trampoline = null,
-    });
-    testing.expectEqual(Result(void).init(5, {}), x.?);
+        var src = "hello world";
+
+        var results = try ResultStream(?Result(void)).init(allocator);
+        var ctx = Context(void, void){
+            .input = {},
+            .allocator = allocator,
+            .src = src,
+            .offset = 0,
+            .gll_trampoline = null,
+            .results = &results,
+        };
+        defer ctx.deinit();
+
+        var want = "hello";
+        var l = Literal.init(want);
+        try l.parser.parse(ctx);
+        var sub = ctx.results.subscribe();
+        testing.expectEqual(@as(??Result(void), Result(void).init(want.len, {})), sub.next());
+        testing.expectEqual(@as(??Result(void), null), sub.next());
+    }
 }

@@ -1,3 +1,5 @@
+pub usingnamespace @import("gll_result_stream.zig");
+
 const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
@@ -119,6 +121,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
         src: []const u8,
         offset: usize,
         gll_trampoline: ?*GLLTrampoline(Value),
+        results: *ResultStream(?Result(Value)),
 
         pub fn with(self: @This(), new_input: anytype) Context(@TypeOf(new_input), Value) {
             return Context(@TypeOf(new_input), Value){
@@ -127,6 +130,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
                 .src = self.src,
                 .offset = self.offset,
                 .gll_trampoline = self.gll_trampoline,
+                .results = self.results,
             };
         }
 
@@ -137,6 +141,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
                 .src = self.src,
                 .offset = self.offset,
                 .gll_trampoline = null,
+                .results = self.results,
             };
             if (self.gll_trampoline) |gll_trampoline| {
                 new_ctx.gll_trampoline = try gll_trampoline.initChild(self.allocator, NewValue);
@@ -148,6 +153,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
             if (self.gll_trampoline) |gll_trampoline| {
                 gll_trampoline.deinit(self.allocator);
             }
+            self.results.deinit();
             return;
         }
 
@@ -165,10 +171,10 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
 pub fn Parser(comptime Value: type) type {
     return struct {
         const Self = @This();
-        _parse: fn (self: *const Self, ctx: Context(void, Value)) callconv(.Inline) ?Result(Value),
+        _parse: fn (self: *const Self, ctx: Context(void, Value)) callconv(.Inline) Error!void,
 
-        pub fn parse(self: *const Self, ctx: Context(void, Value)) callconv(.Inline) ?Result(Value) {
-            return self._parse(self, ctx);
+        pub fn parse(self: *const Self, ctx: Context(void, Value)) callconv(.Inline) Error!void {
+            return try self._parse(self, ctx);
         }
     };
 }
