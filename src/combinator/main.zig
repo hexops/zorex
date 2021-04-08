@@ -1,3 +1,4 @@
+usingnamespace @import("gll_result_stream.zig");
 usingnamespace @import("combinator.zig");
 usingnamespace @import("parser_literal.zig");
 usingnamespace @import("comb_mapto.zig");
