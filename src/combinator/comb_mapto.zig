@@ -9,7 +9,7 @@ const mem = std.mem;
 pub fn MapToContext(comptime Value: type, comptime Target: type) type {
     return struct {
         parser: *const Parser(Value),
-        mapTo: fn (?Result(Value)) ?Result(Target),
+        mapTo: fn (?Result(Value)) Error!?Result(Target),
     };
 }
 
@@ -18,7 +18,7 @@ pub fn MapToContext(comptime Value: type, comptime Target: type) type {
 /// The `input.parser` must remain alive for as long as the `MapTo` parser will be used.
 pub fn MapTo(comptime Input: type, comptime Value: type, comptime Target: type) type {
     return struct {
-        parser: Parser(Target) = .{ ._parse = parse },
+        parser: Parser(Target) = Parser(Target).init(parse),
         input: MapToContext(Value, Target),
 
         const Self = @This();
@@ -27,41 +27,53 @@ pub fn MapTo(comptime Input: type, comptime Value: type, comptime Target: type) 
             return Self{ .input = input };
         }
 
-        pub fn parse(parser: *const Parser(Target), in_ctx: Context(void, Target)) callconv(.Inline) ?Result(Target) {
+        pub fn parse(parser: *const Parser(Target), in_ctx: Context(void, Target)) callconv(.Async) !void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
+            defer ctx.results.close();
 
-            const child_ctx = ctx.with({}).initChild(Value) catch |err| return Result(Target).initError(err);
+            var new_results = try ResultStream(?Result(Value)).init(ctx.allocator);
+            const child_ctx = try ctx.with({}).initChild(Value, &new_results);
             defer child_ctx.deinitChild();
-            const value = ctx.input.parser.parse(child_ctx);
-            return ctx.input.mapTo(value);
+            try ctx.input.parser.parse(child_ctx);
+
+            var sub = child_ctx.results.subscribe();
+            while (sub.next()) |next| {
+                try ctx.results.add(try ctx.input.mapTo(next));
+            }
         }
     };
 }
 
 test "oneof" {
-    const allocator = testing.allocator;
+    nosuspend {
+        const allocator = testing.allocator;
 
-    const ctx = Context(void, []const u8){
-        .input = {},
-        .allocator = allocator,
-        .src = "hello world",
-        .offset = 0,
-        .gll_trampoline = try GLLTrampoline([]const u8).init(allocator),
-    };
-    defer ctx.deinit();
+        var results = try ResultStream(?Result([]const u8)).init(allocator);
+        const ctx = Context(void, []const u8){
+            .input = {},
+            .allocator = allocator,
+            .src = "hello world",
+            .offset = 0,
+            .gll_trampoline = try GLLTrampoline([]const u8).init(allocator),
+            .results = &results,
+        };
+        defer ctx.deinit();
 
-    const mapTo = MapTo(void, void, []const u8).init(.{
-        .parser = &Literal.init("hello").parser,
-        .mapTo = struct {
-            fn mapTo(in: ?Result(void)) ?Result([]const u8) {
-                if (in == null) return null;
-                return Result([]const u8).init(in.?.consumed, "hello");
-            }
-        }.mapTo,
-    });
+        const mapTo = MapTo(void, void, []const u8).init(.{
+            .parser = &Literal.init("hello").parser,
+            .mapTo = struct {
+                fn mapTo(in: ?Result(void)) Error!?Result([]const u8) {
+                    if (in == null) return null;
+                    return Result([]const u8).init(in.?.consumed, "hello");
+                }
+            }.mapTo,
+        });
 
-    const x = mapTo.parser.parse(ctx);
-    testing.expectEqual(@as(usize, 5), x.?.consumed);
-    testing.expectEqualStrings("hello", x.?.result.value);
+        try mapTo.parser.parse(ctx);
+
+        var sub = ctx.results.subscribe();
+        testing.expectEqual(@as(??Result([]const u8), Result([]const u8).init(5, "hello")), sub.next());
+        testing.expectEqual(@as(??Result([]const u8), null), sub.next());
+    }
 }

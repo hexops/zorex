@@ -10,7 +10,7 @@ pub const LiteralContext = []const u8;
 ///
 /// The `input` string must remain alive for as long as the `Literal` parser will be used.
 pub const Literal = struct {
-    parser: Parser(void) = .{ ._parse = parse },
+    parser: Parser(void) = Parser(void).init(parse),
     input: LiteralContext,
 
     const Self = @This();
@@ -19,7 +19,7 @@ pub const Literal = struct {
         return Self{ .input = input };
     }
 
-    pub fn parse(parser: *const Parser(void), in_ctx: Context(void, void)) callconv(.Inline) !void {
+    pub fn parse(parser: *const Parser(void), in_ctx: Context(void, void)) callconv(.Async) !void {
         const self = @fieldParentPtr(Self, "parser", parser);
         var ctx = in_ctx.with(self.input);
         defer ctx.results.close();
