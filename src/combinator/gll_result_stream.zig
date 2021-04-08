@@ -14,7 +14,7 @@ pub fn Iterator(comptime T: type) type {
         ///
         /// If the next value is not yet available, the frame is suspended and will be resumed once
         /// a new value is added.
-        fn next(self: *Self) callconv(.Async) ?T {
+        pub fn next(self: *Self) callconv(.Async) ?T {
             if (self.stream.past_values.items.len == 0 or self.index >= self.stream.past_values.items.len) {
                 if (self.stream.closed) {
                     return null; // no more results
@@ -81,7 +81,7 @@ pub fn ResultStream(comptime T: type) type {
         /// forbidden.
         ///
         /// `close` must be called before deinit.
-        pub fn deinit(self: *Self) void {
+        pub fn deinit(self: *const Self) void {
             self.past_values.deinit();
             self.listeners.deinit();
         }
@@ -91,7 +91,7 @@ pub fn ResultStream(comptime T: type) type {
         /// Uses of the returned iterator are valid for as long as the result stream is not
         /// deinitialized.
         pub fn subscribe(self: *Self) Iterator(T) {
-            return Iterator(T){.stream = self};
+            return Iterator(T){ .stream = self };
         }
     };
 }
