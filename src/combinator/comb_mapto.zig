@@ -32,8 +32,8 @@ pub fn MapTo(comptime Input: type, comptime Value: type, comptime Target: type) 
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
 
-            var new_results = try ResultStream(?Result(Value)).init(ctx.allocator);
-            const child_ctx = try ctx.with({}).initChild(Value, &new_results);
+            var child_results = try ResultStream(?Result(Value)).init(ctx.allocator);
+            const child_ctx = try ctx.with({}).initChild(Value, &child_results);
             defer child_ctx.deinitChild();
             try ctx.input.parser.parse(child_ctx);
 
