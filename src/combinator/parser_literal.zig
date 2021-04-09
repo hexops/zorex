@@ -26,6 +26,7 @@ pub const Literal = struct {
 
         const src = ctx.src[ctx.offset..];
         if (ctx.input.len > 0 and src.len > 0 and ctx.input[0] != src[0]) {
+            try ctx.results.add(null);
             return;
         }
         if (!mem.startsWith(u8, src, ctx.input)) {
