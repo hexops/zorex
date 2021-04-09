@@ -1,6 +1,5 @@
 usingnamespace @import("combinator.zig");
 usingnamespace @import("parser_literal.zig");
-//usingnamespace @import("comb_repeated.zig");
 
 const std = @import("std");
 const testing = std.testing;
@@ -24,57 +23,79 @@ pub fn Optional(comptime Input: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn parse(parser: *const Parser(?Value), in_ctx: Context(void, ?Value)) callconv(.Inline) ?Result(?Value) {
+        pub fn parse(parser: *const Parser(?Value), in_ctx: Context(void, ?Value)) callconv(.Async) Error!void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
+            defer ctx.results.close();
 
-            const child_ctx = ctx.with({}).initChild(Value) catch |err| return Result(?Value).initError(err);
+            var child_results = try ResultStream(?Result(Value)).init(ctx.allocator);
+            const child_ctx = try ctx.with({}).initChild(Value, &child_results);
             defer child_ctx.deinitChild();
 
-            const value = ctx.input.parse(child_ctx);
-            if (value == null) {
-                return Result(?Value).init(0, null);
+            try ctx.input.parse(child_ctx);
+
+            var sub = child_ctx.results.subscribe();
+            while (sub.next()) |next| {
+                if (next == null) {
+                    try ctx.results.add(Result(?Value).init(0, null));
+                    continue;
+                }
+                switch (next.?.result) {
+                .syntax_err => try ctx.results.add(Result(?Value).init(0, null)),
+                else => try ctx.results.add(Result(?Value).init(next.?.consumed, next.?.result.value)),
+                }
             }
-            // TODO(slimsag): handle parser errors here
-            return Result(?Value).init(value.?.consumed, value.?.result.value);
+            return;
         }
     };
 }
 
 test "optional_some" {
-    const allocator = testing.allocator;
+    nosuspend {
+        const allocator = testing.allocator;
 
-    const ctx = Context(void, ?void){
-        .input = {},
-        .allocator = allocator,
-        .src = "hello world",
-        .offset = 0,
-        .gll_trampoline = try GLLTrampoline(?void).init(allocator),
-    };
-    defer ctx.deinit();
+        var results = try ResultStream(?Result(?void)).init(allocator);
+        const ctx = Context(void, ?void){
+            .input = {},
+            .allocator = allocator,
+            .src = "hello world",
+            .offset = 0,
+            .gll_trampoline = try GLLTrampoline(?void).init(allocator),
+            .results = &results,
+        };
+        defer ctx.deinit();
 
-    const optional = Optional(void, void).init(&Literal.init("hello").parser);
+        const optional = Optional(void, void).init(&Literal.init("hello").parser);
 
-    const x = optional.parser.parse(ctx);
-    testing.expectEqual(@as(usize, 5), x.?.consumed);
-    testing.expectEqual({}, x.?.result.value.?);
+        try optional.parser.parse(ctx);
+
+        var sub = ctx.results.subscribe();
+        testing.expectEqual(@as(??Result(?void), Result(?void).init(5, {})), sub.next());
+        testing.expectEqual(@as(??Result(?void), null), sub.next());
+    }
 }
 
 test "optional_none" {
-    const allocator = testing.allocator;
+    nosuspend {
+        const allocator = testing.allocator;
 
-    const ctx = Context(void, ?void){
-        .input = {},
-        .allocator = allocator,
-        .src = "hello world",
-        .offset = 0,
-        .gll_trampoline = try GLLTrampoline(?void).init(allocator),
-    };
-    defer ctx.deinit();
+        var results = try ResultStream(?Result(?void)).init(allocator);
+        const ctx = Context(void, ?void){
+            .input = {},
+            .allocator = allocator,
+            .src = "hello world",
+            .offset = 0,
+            .gll_trampoline = try GLLTrampoline(?void).init(allocator),
+            .results = &results,
+        };
+        defer ctx.deinit();
 
-    const optional = Optional(void, void).init(&Literal.init("world").parser);
+        const optional = Optional(void, void).init(&Literal.init("world").parser);
 
-    const x = optional.parser.parse(ctx);
-    testing.expectEqual(@as(usize, 0), x.?.consumed);
-    testing.expectEqual(@as(?void, null), x.?.result.value);
+        try optional.parser.parse(ctx);
+
+        var sub = ctx.results.subscribe();
+        testing.expectEqual(@as(??Result(?void), Result(?void).init(0, null)), sub.next());
+        testing.expectEqual(@as(??Result(?void), null), sub.next());
+    }
 }
