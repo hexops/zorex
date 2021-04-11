@@ -28,7 +28,7 @@ pub fn Optional(comptime Input: type, comptime Value: type) type {
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
 
-            var child_results = try ResultStream(?Result(Value)).init(ctx.allocator);
+            var child_results = try ResultStream(Result(Value)).init(ctx.allocator);
             const child_ctx = try ctx.with({}).initChild(Value, &child_results);
             defer child_ctx.deinitChild();
 
@@ -36,13 +36,9 @@ pub fn Optional(comptime Input: type, comptime Value: type) type {
 
             var sub = child_ctx.results.subscribe();
             while (sub.next()) |next| {
-                if (next == null) {
-                    try ctx.results.add(Result(?Value).init(0, null));
-                    continue;
-                }
-                switch (next.?.result) {
+                switch (next.result) {
                     .err => try ctx.results.add(Result(?Value).init(0, null)),
-                    else => try ctx.results.add(Result(?Value).init(next.?.consumed, next.?.result.value)),
+                    else => try ctx.results.add(Result(?Value).init(next.consumed, next.result.value)),
                 }
             }
             return;
@@ -54,7 +50,7 @@ test "optional_some" {
     nosuspend {
         const allocator = testing.allocator;
 
-        var results = try ResultStream(?Result(?void)).init(allocator);
+        var results = try ResultStream(Result(?void)).init(allocator);
         const ctx = Context(void, ?void){
             .input = {},
             .allocator = allocator,
@@ -70,8 +66,8 @@ test "optional_some" {
         try optional.parser.parse(ctx);
 
         var sub = ctx.results.subscribe();
-        testing.expectEqual(@as(??Result(?void), Result(?void).init(5, {})), sub.next());
-        testing.expectEqual(@as(??Result(?void), null), sub.next());
+        testing.expectEqual(@as(?Result(?void), Result(?void).init(5, {})), sub.next());
+        testing.expectEqual(@as(?Result(?void), null), sub.next());
     }
 }
 
@@ -79,7 +75,7 @@ test "optional_none" {
     nosuspend {
         const allocator = testing.allocator;
 
-        var results = try ResultStream(?Result(?void)).init(allocator);
+        var results = try ResultStream(Result(?void)).init(allocator);
         const ctx = Context(void, ?void){
             .input = {},
             .allocator = allocator,
@@ -95,7 +91,7 @@ test "optional_none" {
         try optional.parser.parse(ctx);
 
         var sub = ctx.results.subscribe();
-        testing.expectEqual(@as(??Result(?void), Result(?void).init(0, null)), sub.next());
-        testing.expectEqual(@as(??Result(?void), null), sub.next());
+        testing.expectEqual(@as(?Result(?void), Result(?void).init(0, null)), sub.next());
+        testing.expectEqual(@as(?Result(?void), null), sub.next());
     }
 }

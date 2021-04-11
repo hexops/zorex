@@ -9,7 +9,7 @@ const mem = std.mem;
 pub fn MapToContext(comptime Value: type, comptime Target: type) type {
     return struct {
         parser: *const Parser(Value),
-        mapTo: fn (?Result(Value)) Error!?Result(Target),
+        mapTo: fn (Result(Value)) Error!Result(Target),
     };
 }
 
@@ -32,7 +32,7 @@ pub fn MapTo(comptime Input: type, comptime Value: type, comptime Target: type) 
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
 
-            var child_results = try ResultStream(?Result(Value)).init(ctx.allocator);
+            var child_results = try ResultStream(Result(Value)).init(ctx.allocator);
             const child_ctx = try ctx.with({}).initChild(Value, &child_results);
             defer child_ctx.deinitChild();
             try ctx.input.parser.parse(child_ctx);
@@ -49,7 +49,7 @@ test "oneof" {
     nosuspend {
         const allocator = testing.allocator;
 
-        var results = try ResultStream(?Result([]const u8)).init(allocator);
+        var results = try ResultStream(Result([]const u8)).init(allocator);
         const ctx = Context(void, []const u8){
             .input = {},
             .allocator = allocator,
@@ -63,9 +63,11 @@ test "oneof" {
         const mapTo = MapTo(void, void, []const u8).init(.{
             .parser = &Literal.init("hello").parser,
             .mapTo = struct {
-                fn mapTo(in: ?Result(void)) Error!?Result([]const u8) {
-                    if (in == null) return null;
-                    return Result([]const u8).init(in.?.consumed, "hello");
+                fn mapTo(in: Result(void)) Error!Result([]const u8) {
+                    switch (in.result) {
+                    .err => return Result([]const u8).initError(in.consumed, in.result.err),
+                    else => return Result([]const u8).init(in.consumed, "hello"),
+                    }
                 }
             }.mapTo,
         });
@@ -73,7 +75,7 @@ test "oneof" {
         try mapTo.parser.parse(ctx);
 
         var sub = ctx.results.subscribe();
-        testing.expectEqual(@as(??Result([]const u8), Result([]const u8).init(5, "hello")), sub.next());
-        testing.expectEqual(@as(??Result([]const u8), null), sub.next());
+        testing.expectEqual(@as(?Result([]const u8), Result([]const u8).init(5, "hello")), sub.next());
+        testing.expectEqual(@as(?Result([]const u8), null), sub.next());
     }
 }

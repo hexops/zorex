@@ -25,10 +25,6 @@ pub const Literal = struct {
         defer ctx.results.close();
 
         const src = ctx.src[ctx.offset..];
-        if (ctx.input.len > 0 and src.len > 0 and ctx.input[0] != src[0]) {
-            try ctx.results.add(null);
-            return;
-        }
         if (!mem.startsWith(u8, src, ctx.input)) {
             // TODO(slimsag): include what literal was expected
             try ctx.results.add(Result(void).initError(ctx.offset + 1, "expected literal"));
@@ -45,7 +41,7 @@ test "literal" {
 
         var src = "hello world";
 
-        var results = try ResultStream(?Result(void)).init(allocator);
+        var results = try ResultStream(Result(void)).init(allocator);
         var ctx = Context(void, void){
             .input = {},
             .allocator = allocator,
@@ -60,7 +56,7 @@ test "literal" {
         var l = Literal.init(want);
         try l.parser.parse(ctx);
         var sub = ctx.results.subscribe();
-        testing.expectEqual(@as(??Result(void), Result(void).init(want.len, {})), sub.next());
-        testing.expectEqual(@as(??Result(void), null), sub.next());
+        testing.expectEqual(@as(?Result(void), Result(void).init(want.len, {})), sub.next());
+        testing.expectEqual(@as(?Result(void), null), sub.next());
     }
 }

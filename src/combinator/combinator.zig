@@ -111,7 +111,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
         src: []const u8,
         offset: usize,
         gll_trampoline: ?*GLLTrampoline(Value),
-        results: *ResultStream(?Result(Value)),
+        results: *ResultStream(Result(Value)),
 
         pub fn with(self: @This(), new_input: anytype) Context(@TypeOf(new_input), Value) {
             return Context(@TypeOf(new_input), Value){
@@ -124,7 +124,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
             };
         }
 
-        pub fn initChild(self: @This(), comptime NewValue: type, new_results: *ResultStream(?Result(NewValue))) !Context(Input, NewValue) {
+        pub fn initChild(self: @This(), comptime NewValue: type, new_results: *ResultStream(Result(NewValue))) !Context(Input, NewValue) {
             var new_ctx = Context(Input, NewValue){
                 .input = self.input,
                 .allocator = self.allocator,

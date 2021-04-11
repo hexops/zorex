@@ -71,7 +71,10 @@ pub fn RepeatedValue(comptime Value: type) type {
 
             nosuspend {
                 while (sub.next()) |next_path| {
-                    try next_path.result.value.flatten_into(dst, allocator);
+                    switch (next_path.result) {
+                    .err => try dst.add(Result(Value).initError(next_path.consumed, next_path.result.err)),
+                    else => try next_path.result.value.flatten_into(dst, allocator),
+                    }
                 }
             }
         }
@@ -172,7 +175,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
             //      ),
             //  )
             //
-            var child_results = try ResultStream(?Result(Value)).init(ctx.allocator);
+            var child_results = try ResultStream(Result(Value)).init(ctx.allocator);
             var child_ctx = Context(void, Value){
                 .input = {},
                 .allocator = ctx.allocator,
@@ -193,26 +196,27 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
             while (sub.next()) |top_level| {
                 if (num_values >= ctx.input.max and ctx.input.max != -1) break;
                 num_values += 1;
-                if (top_level == null) break; // no more top-level values (e.g. A, B, C)
-                switch (top_level.?.result) {
+                switch (top_level.result) {
                     .err => {
                         // Going down the path of this top-level value terminated with an error.
-                        try ctx.results.add(Result(RepeatedValue(Value)).initError(top_level.?.consumed, top_level.?.result.err));
+                        if (num_values < 1 or num_values < ctx.input.min) {
+                            try ctx.results.add(Result(RepeatedValue(Value)).initError(top_level.consumed, top_level.result.err));
+                        }
                         continue;
                     },
                     else => {
                         // We got a non-error top-level value (e.g. A, B, C), consume if needed.
                         //
                         // TODO(slimsag): if no consumption, could get stuck forever!
-                        child_ctx.offset = top_level.?.consumed;
+                        child_ctx.offset = top_level.consumed;
 
                         // Now get the stream that continues down this path (i.e. the stream
                         // associated with A, B, C.)
-                        var path_results = try ResultStream(?Result(RepeatedValue(Value))).init(ctx.allocator);
-                        defer path_results.deinit();
+                        var path_results = try ctx.allocator.create(ResultStream(Result(RepeatedValue(Value))));
+                        path_results.* = try ResultStream(Result(RepeatedValue(Value))).init(ctx.allocator);
                         var path_ctx = in_ctx;
                         path_ctx.offset = child_ctx.offset;
-                        path_ctx.results = &path_results;
+                        path_ctx.results = path_results;
                         var path = Repeated(Input, Value).init(.{
                             .parser = self.input.parser,
                             .min = self.input.min,
@@ -220,22 +224,11 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                         });
                         try path.parser.parse(path_ctx);
 
-                        // TODO(slimsag): cleanup / remove optional ?Result types
-                        var non_opt_results = try ctx.allocator.create(ResultStream(Result(RepeatedValue(Value))));
-                        non_opt_results.* = try ResultStream(Result(RepeatedValue(Value))).init(ctx.allocator);
-                        defer non_opt_results.close();
-
                         // Emit our top-level value tuple (e.g. (A, stream(...))
                         try ctx.results.add(Result(RepeatedValue(Value)).init(child_ctx.offset, .{
-                            .node = top_level.?,
-                            .next = non_opt_results, // TODO(slimsag): make this just path_ctx.results
+                            .node = top_level,
+                            .next = path_ctx.results,
                         }));
-
-                        // TODO(slimsag): cleanup / remove optional ?Result types
-                        var opt_sub = path_ctx.results.subscribe();
-                        while (opt_sub.next()) |opt| {
-                            try non_opt_results.add(opt.?);
-                        }
                     },
                 }
             }
@@ -253,7 +246,7 @@ test "repeated" {
     nosuspend {
         const allocator = testing.allocator;
 
-        var results = try ResultStream(?Result(RepeatedValue(void))).init(allocator);
+        var results = try ResultStream(Result(RepeatedValue(void))).init(allocator);
         const ctx = Context(void, RepeatedValue(void)){
             .input = {},
             .allocator = allocator,
@@ -276,12 +269,12 @@ test "repeated" {
         testing.expect(sub.next() == null); // stream closed
 
         // first element
-        testing.expectEqual(@as(usize, 3), list.?.?.consumed);
-        testing.expectEqual(@as(usize, 3), list.?.?.result.value.node.consumed);
+        testing.expectEqual(@as(usize, 3), list.?.consumed);
+        testing.expectEqual(@as(usize, 3), list.?.result.value.node.consumed);
 
         // flatten the nested multi-dimensional array, since our grammer above is not ambiguous
         // this is fine to do and makes testing far easier.
-        var flattened = try list.?.?.result.value.flatten(allocator);
+        var flattened = try list.?.result.value.flatten(allocator);
         defer flattened.deinit();
         var flat = flattened.subscribe();
         testing.expectEqual(@as(usize, 3), flat.next().?.consumed);
