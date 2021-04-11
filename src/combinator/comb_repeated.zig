@@ -195,9 +195,9 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                 num_values += 1;
                 if (top_level == null) break; // no more top-level values (e.g. A, B, C)
                 switch (top_level.?.result) {
-                    .syntax_err => {
+                    .err => {
                         // Going down the path of this top-level value terminated with an error.
-                        try ctx.results.add(Result(RepeatedValue(Value)).initSyntaxError(top_level.?.consumed, top_level.?.result.syntax_err));
+                        try ctx.results.add(Result(RepeatedValue(Value)).initError(top_level.?.consumed, top_level.?.result.err));
                         continue;
                     },
                     else => {
@@ -241,7 +241,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
             }
             if (num_values < ctx.input.min) {
                 // TODO(slimsag): include number of expected/found matches
-                try ctx.results.add(Result(RepeatedValue(Value)).initSyntaxError(child_ctx.offset, "expected more"));
+                try ctx.results.add(Result(RepeatedValue(Value)).initError(child_ctx.offset, "expected more"));
                 return;
             }
             return;

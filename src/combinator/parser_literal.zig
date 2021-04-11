@@ -31,7 +31,7 @@ pub const Literal = struct {
         }
         if (!mem.startsWith(u8, src, ctx.input)) {
             // TODO(slimsag): include what literal was expected
-            try ctx.results.add(Result(void).initSyntaxError(ctx.offset + 1, "expected literal"));
+            try ctx.results.add(Result(void).initError(ctx.offset + 1, "expected literal"));
             return;
         }
         try ctx.results.add(Result(void).init(ctx.offset + ctx.input.len, {}));

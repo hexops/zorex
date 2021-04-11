@@ -41,7 +41,7 @@ pub fn Optional(comptime Input: type, comptime Value: type) type {
                     continue;
                 }
                 switch (next.?.result) {
-                    .syntax_err => try ctx.results.add(Result(?Value).init(0, null)),
+                    .err => try ctx.results.add(Result(?Value).init(0, null)),
                     else => try ctx.results.add(Result(?Value).init(next.?.consumed, next.?.result.value)),
                 }
             }

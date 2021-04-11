@@ -8,21 +8,20 @@ pub const Error = error{OutOfMemory};
 
 const ResultTag = enum {
     value,
-    syntax_err,
+    err,
 };
 
 /// A parser result, one of:
 ///
 /// 1. A `value` and number of `consumed` bytes.
-/// 2. A `syntax_err` with number of `consumed` bytes (i.e. position of error).
-/// 3. A fatal parse `err` (e.g. OOM), with no indication of `consumed` bytes.
+/// 2. An `err` with number of `consumed` bytes (i.e. position of error).
 ///
 pub fn Result(comptime Value: type) type {
     return struct {
         consumed: usize,
         result: union(ResultTag) {
             value: Value,
-            syntax_err: []const u8,
+            err: []const u8,
         },
 
         pub fn init(consumed: usize, value: Value) @This() {
@@ -32,10 +31,10 @@ pub fn Result(comptime Value: type) type {
             };
         }
 
-        pub fn initSyntaxError(consumed: usize, syntax_err: []const u8) @This() {
+        pub fn initError(consumed: usize, err: []const u8) @This() {
             return .{
                 .consumed = consumed,
-                .result = .{ .syntax_err = syntax_err },
+                .result = .{ .err = err },
             };
         }
     };
