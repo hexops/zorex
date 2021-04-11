@@ -9,7 +9,6 @@ pub const Error = error{OutOfMemory};
 const ResultTag = enum {
     value,
     syntax_err,
-    err,
 };
 
 /// A parser result, one of:
@@ -24,7 +23,6 @@ pub fn Result(comptime Value: type) type {
         result: union(ResultTag) {
             value: Value,
             syntax_err: []const u8,
-            err: Error,
         },
 
         pub fn init(consumed: usize, value: Value) @This() {
@@ -38,13 +36,6 @@ pub fn Result(comptime Value: type) type {
             return .{
                 .consumed = consumed,
                 .result = .{ .syntax_err = syntax_err },
-            };
-        }
-
-        pub fn initError(err: Error) @This() {
-            return .{
-                .consumed = 0,
-                .result = .{ .err = err },
             };
         }
     };
