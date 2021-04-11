@@ -65,8 +65,8 @@ test "oneof" {
             .mapTo = struct {
                 fn mapTo(in: Result(void)) Error!Result([]const u8) {
                     switch (in.result) {
-                    .err => return Result([]const u8).initError(in.consumed, in.result.err),
-                    else => return Result([]const u8).init(in.consumed, "hello"),
+                        .err => return Result([]const u8).initError(in.offset, in.result.err),
+                        else => return Result([]const u8).init(in.offset, "hello"),
                     }
                 }
             }.mapTo,

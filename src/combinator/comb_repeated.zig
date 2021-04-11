@@ -19,7 +19,7 @@ pub fn RepeatedContext(comptime Value: type) type {
 }
 
 // The first stream represents potential parse paths (i.e. different interpretations of the
-// parse), and the inner stream represents the 
+// parse), and the inner stream represents the
 
 // Represents a single value in the stream of repeated values.
 //
@@ -72,8 +72,8 @@ pub fn RepeatedValue(comptime Value: type) type {
             nosuspend {
                 while (sub.next()) |next_path| {
                     switch (next_path.result) {
-                    .err => try dst.add(Result(Value).initError(next_path.consumed, next_path.result.err)),
-                    else => try next_path.result.value.flatten_into(dst, allocator),
+                        .err => try dst.add(Result(Value).initError(next_path.offset, next_path.result.err)),
+                        else => try next_path.result.value.flatten_into(dst, allocator),
                     }
                 }
             }
@@ -200,7 +200,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                     .err => {
                         // Going down the path of this top-level value terminated with an error.
                         if (num_values < 1 or num_values < ctx.input.min) {
-                            try ctx.results.add(Result(RepeatedValue(Value)).initError(top_level.consumed, top_level.result.err));
+                            try ctx.results.add(Result(RepeatedValue(Value)).initError(top_level.offset, top_level.result.err));
                         }
                         continue;
                     },
@@ -208,7 +208,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                         // We got a non-error top-level value (e.g. A, B, C), consume if needed.
                         //
                         // TODO(slimsag): if no consumption, could get stuck forever!
-                        child_ctx.offset = top_level.consumed;
+                        child_ctx.offset = top_level.offset;
 
                         // Now get the stream that continues down this path (i.e. the stream
                         // associated with A, B, C.)
@@ -220,7 +220,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                         var path = Repeated(Input, Value).init(.{
                             .parser = self.input.parser,
                             .min = self.input.min,
-                            .max = if (self.input.max == -1) -1 else self.input.max-1,
+                            .max = if (self.input.max == -1) -1 else self.input.max - 1,
                         });
                         try path.parser.parse(path_ctx);
 
@@ -269,17 +269,17 @@ test "repeated" {
         testing.expect(sub.next() == null); // stream closed
 
         // first element
-        testing.expectEqual(@as(usize, 3), list.?.consumed);
-        testing.expectEqual(@as(usize, 3), list.?.result.value.node.consumed);
+        testing.expectEqual(@as(usize, 3), list.?.offset);
+        testing.expectEqual(@as(usize, 3), list.?.result.value.node.offset);
 
         // flatten the nested multi-dimensional array, since our grammer above is not ambiguous
         // this is fine to do and makes testing far easier.
         var flattened = try list.?.result.value.flatten(allocator);
         defer flattened.deinit();
         var flat = flattened.subscribe();
-        testing.expectEqual(@as(usize, 3), flat.next().?.consumed);
-        testing.expectEqual(@as(usize, 6), flat.next().?.consumed);
-        testing.expectEqual(@as(usize, 9), flat.next().?.consumed);
+        testing.expectEqual(@as(usize, 3), flat.next().?.offset);
+        testing.expectEqual(@as(usize, 6), flat.next().?.offset);
+        testing.expectEqual(@as(usize, 9), flat.next().?.offset);
         testing.expect(flat.next() == null); // stream closed
     }
 }

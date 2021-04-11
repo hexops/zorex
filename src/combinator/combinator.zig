@@ -13,27 +13,27 @@ const ResultTag = enum {
 
 /// A parser result, one of:
 ///
-/// 1. A `value` and number of `consumed` bytes.
-/// 2. An `err` with number of `consumed` bytes (i.e. position of error).
+/// 1. A `value` and new `offset` into the input `src`.
+/// 2. An `err` and new `offset` ito the input `src` ((i.e. position of error).
 ///
 pub fn Result(comptime Value: type) type {
     return struct {
-        consumed: usize,
+        offset: usize,
         result: union(ResultTag) {
             value: Value,
             err: []const u8,
         },
 
-        pub fn init(consumed: usize, value: Value) @This() {
+        pub fn init(offset: usize, value: Value) @This() {
             return .{
-                .consumed = consumed,
+                .offset = offset,
                 .result = .{ .value = value },
             };
         }
 
-        pub fn initError(consumed: usize, err: []const u8) @This() {
+        pub fn initError(offset: usize, err: []const u8) @This() {
             return .{
-                .consumed = consumed,
+                .offset = offset,
                 .result = .{ .err = err },
             };
         }

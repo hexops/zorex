@@ -38,7 +38,7 @@ pub fn Optional(comptime Input: type, comptime Value: type) type {
             while (sub.next()) |next| {
                 switch (next.result) {
                     .err => try ctx.results.add(Result(?Value).init(0, null)),
-                    else => try ctx.results.add(Result(?Value).init(next.consumed, next.result.value)),
+                    else => try ctx.results.add(Result(?Value).init(next.offset, next.result.value)),
                 }
             }
             return;
