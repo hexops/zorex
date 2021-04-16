@@ -18,38 +18,39 @@ pub fn RepeatedContext(comptime Value: type) type {
     };
 }
 
-// The first stream represents potential parse paths (i.e. different interpretations of the
-// parse), and the inner stream represents the
-
-// Represents a single value in the stream of repeated values.
-//
-// In the case of a non-ambiguous grammar, a `Repeated` combinator will yield:
-//
-//  RepeatedValue{
-//      node: value1,
-//      next: ResultStream(RepeatedValue{
-//          node: value2,
-//          next: ...,
-//      })
-//  }
-//
-// In the case of an ambiguous grammar, it would yield streams with potentially multiple values
-// (each representing one possible parse path / interpretation of the grammar):
-//
-//  RepeatedValue{
-//      node: value1,
-//      next: ResultStream(
-//          RepeatedValue{
-//              node: value2variant1,
-//              next: ...,
-//          },
-//          RepeatedValue{
-//              node: value2variant2,
-//              next: ...,
-//          },
-//      )
-//  }
-//
+/// Represents a single value in the stream of repeated values.
+///
+/// In the case of a non-ambiguous grammar, a `Repeated` combinator will yield:
+///
+/// ```
+/// RepeatedValue{
+///     node: value1,
+///     next: ResultStream(RepeatedValue{
+///         node: value2,
+///         next: ...,
+///     })
+/// }
+/// ```
+///
+/// In the case of an ambiguous grammar, it would yield streams with potentially multiple values
+/// (each representing one possible parse path / interpretation of the grammar):
+///
+/// ```
+/// RepeatedValue{
+///     node: value1,
+///     next: ResultStream(
+///         RepeatedValue{
+///             node: value2variant1,
+///             next: ...,
+///         },
+///         RepeatedValue{
+///             node: value2variant2,
+///             next: ...,
+///         },
+///     )
+/// }
+/// ```
+///
 pub fn RepeatedValue(comptime Value: type) type {
     return struct {
         node: Result(Value),
