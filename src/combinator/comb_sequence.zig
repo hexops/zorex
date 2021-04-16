@@ -2,7 +2,6 @@ usingnamespace @import("combinator.zig");
 usingnamespace @import("parser_literal.zig");
 usingnamespace @import("comb_mapto.zig");
 usingnamespace @import("comb_optional.zig");
-usingnamespace @import("comb_oneof.zig");
 
 const std = @import("std");
 const testing = std.testing;
@@ -12,11 +11,72 @@ pub fn SequenceContext(comptime Value: type) type {
     return []const *const Parser(Value);
 }
 
+/// Represents a sequence of parsed values. 
+///
+/// In the case of a non-ambiguous grammar, a `Sequence` combinator will yield:
+///
+/// ```
+/// SequenceValue{
+///     node: value1,
+///     next: ResultStream(SequenceValue{
+///         node: value2,
+///         next: ...,
+///     })
+/// }
+/// ```
+///
+/// In the case of an ambiguous grammar, it would yield streams with potentially multiple values
+/// (each representing one possible parse path / interpretation of the grammar):
+///
+/// ```
+/// SequenceValue{
+///     node: value1,
+///     next: ResultStream(
+///         SequenceValue{
+///             node: value2variant1,
+///             next: ...,
+///         },
+///         SequenceValue{
+///             node: value2variant2,
+///             next: ...,
+///         },
+///     )
+/// }
+/// ```
+///
 pub fn SequenceValue(comptime Value: type) type {
-    return std.ArrayList(Result(Value));
+    return struct {
+        node: Result(Value),
+        next: *ResultStream(Result(@This())),
+
+        pub fn flatten(self: *const @This(), allocator: *mem.Allocator) Error!ResultStream(Result(Value)) {
+            var dst = try ResultStream(Result(Value)).init(allocator);
+            try self.flatten_into(&dst, allocator);
+            dst.close(); // TODO(slimsag): why does deferring this not work?
+            return dst;
+        }
+
+        pub fn flatten_into(self: *const @This(), dst: *ResultStream(Result(Value)), allocator: *mem.Allocator) Error!void {
+            try dst.add(self.node);
+
+            defer allocator.destroy(self.next);
+            defer self.next.deinit();
+            var sub = self.next.subscribe();
+
+            nosuspend {
+                while (sub.next()) |next_path| {
+                    switch (next_path.result) {
+                        .err => try dst.add(Result(Value).initError(next_path.offset, next_path.result.err)),
+                        else => try next_path.result.value.flatten_into(dst, allocator),
+                    }
+                }
+            }
+        }
+    };
 }
 
-/// Matches the `input` parsers sequentially, requiring that all successfully match in order.
+/// Matches the `input` parsers sequentially. The parsers must produce the same data type (use
+/// MapTo, if needed.)
 ///
 /// The `input` parsers must remain alive for as long as the `Sequence` parser will be used.
 pub fn Sequence(comptime Input: type, comptime Value: type) type {
@@ -30,186 +90,135 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn parse(parser: *const Parser(SequenceValue(Value)), in_ctx: Context(void, SequenceValue(Value))) callconv(.Inline) ?Result(SequenceValue(Value)) {
+        pub fn parse(parser: *const Parser(SequenceValue(Value)), in_ctx: Context(void, SequenceValue(Value))) callconv(.Async) Error!void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
+            defer ctx.results.close();
 
-            var sub_ctx = Context(void, Value){
+            if (self.input.len == 0) {
+                return;
+            }
+
+            // For a sequence of input parsers [A, B, C], each one may produce multiple different
+            // possible parser paths (valid interpretations of the same input state) in the case of
+            // an ambiguous grammer. For example, the sequence of parsers [A, B, C] where each
+            // produces 2 possible parser paths (e.g. A1, A2) we need to emit:
+            //
+            // stream(
+            //     (A1, stream(
+            //         (B1, stream(
+            //             (C1, None),
+            //             (C2, None),
+            //         )),
+            //         (B2, stream(
+            //             (C1, None),
+            //             (C2, None),
+            //         )),
+            //     )),
+            //     (A2, stream(
+            //         (B1, stream(
+            //             (C1, None),
+            //             (C2, None),
+            //         )),
+            //         (B2, stream(
+            //             (C1, None),
+            //             (C2, None),
+            //         )),
+            //     )),
+            // )
+            //
+            // This call to `Sequence.parse` is only responsible for emitting the top level
+            // (A1, A2) and invoking Sequence(next) to produce the associated `stream()` for those
+            // parse states.
+            var child_results = try ResultStream(Result(Value)).init(ctx.allocator);
+            var child_ctx = Context(void, Value){
                 .input = {},
                 .allocator = ctx.allocator,
                 .src = ctx.src,
                 .offset = ctx.offset,
                 .gll_trampoline = null,
+                .results = &child_results,
             };
             if (ctx.gll_trampoline != null) {
-                sub_ctx.gll_trampoline = ctx.gll_trampoline.?.initChild(ctx.allocator, Value) catch |err| return Result(SequenceValue(Value)).initError(err);
+                child_ctx.gll_trampoline = try ctx.gll_trampoline.?.initChild(ctx.allocator, Value);
             }
-            defer sub_ctx.deinitChild();
+            defer child_ctx.deinitChild();
 
-            var freeLater = std.ArrayList([]*const Parser(Value)).init(ctx.allocator);
-            defer {
-                for (freeLater.items) |item| {
-                    ctx.allocator.free(item);
-                }
-                freeLater.deinit();
-            }
-            var list = std.ArrayList(Result(Value)).init(ctx.allocator);
-            var consumed: usize = 0;
-            for (ctx.input) |in_parser| {
-                if (sub_ctx.gll_trampoline != null) {
-                    const entry = GLLStackEntry(Value){
-                        .position = ctx.offset + consumed,
-                        .alternate = in_parser,
-                    };
-                    const setEntry = entry.setEntry();
-                    if (sub_ctx.gll_trampoline.?.set.contains(setEntry)) {
+            // For every top-level value (A1, A2 in our example above.)
+            try self.input[0].parse(child_ctx);
+            var sub = child_ctx.results.subscribe();
+            while (sub.next()) |top_level| {
+                switch (top_level.result) {
+                    .err => {
+                        try ctx.results.add(Result(SequenceValue(Value)).initError(top_level.offset, top_level.result.err));
                         continue;
-                    }
-                    sub_ctx.gll_trampoline.?.set.put(setEntry, {}) catch |err| return Result(SequenceValue(Value)).initError(err);
-                }
-
-                const next = in_parser.parse(sub_ctx);
-                if (next == null) {
-                    list.deinit();
-                    if (list.items.len > 0) {
-                        // TODO(slimsag): include what was expected next
-                        return Result(SequenceValue(Value)).initSyntaxError(consumed, "expected next");
-                    }
-                    return null;
-                }
-                switch (next.?.result) {
-                    .syntax_err => {
-                        // TODO(slimsag): syntax errors should not be treated the same as other errors
-                        list.deinit();
-                        if (list.items.len > 0) {
-                            // TODO(slimsag): include what was expected next
-                            return Result(SequenceValue(Value)).initSyntaxError(consumed, "expected next");
-                        }
-                        return null;
                     },
-                    .err => return Result(SequenceValue(Value)).initError(next.?.result.err),
-                    .value => {},
+                    else => {
+                        // We got a non-error top-level value (e.g. A1, A2), consume if needed.
+                        child_ctx.offset = top_level.offset;
+
+                        // Now get the stream that continues down this path (i.e. the stream
+                        // associated with A1, A2.)
+                        var path_results = try ctx.allocator.create(ResultStream(Result(SequenceValue(Value))));
+                        path_results.* = try ResultStream(Result(SequenceValue(Value))).init(ctx.allocator);
+                        var path_ctx = in_ctx;
+                        path_ctx.offset = child_ctx.offset;
+                        path_ctx.results = path_results;
+                        var path = Sequence(Input, Value).init(self.input[1..]);
+                        try path.parser.parse(path_ctx);
+
+                        // Emit our top-level value tuple (e.g. (A1, stream(...))
+                        try ctx.results.add(Result(SequenceValue(Value)).init(child_ctx.offset, .{
+                            .node = top_level,
+                            .next = path_ctx.results,
+                        }));
+                    },
                 }
-                consumed = next.?.consumed;
-                sub_ctx.offset = next.?.consumed;
-                list.append(next.?) catch |err| return Result(SequenceValue(Value)).initError(err);
             }
-            if (list.items.len == 0) {
-                return null;
-            }
-            return Result(SequenceValue(Value)).init(consumed, list);
         }
     };
 }
 
 test "sequence" {
-    const allocator = testing.allocator;
+    nosuspend {
+        const allocator = testing.allocator;
 
-    const ctx = Context(void, SequenceValue(void)){
-        .input = {},
-        .allocator = allocator,
-        .src = "abc123abc456_123abc",
-        .offset = 0,
-        .gll_trampoline = try GLLTrampoline(SequenceValue(void)).init(allocator),
-    };
-    defer ctx.deinit();
+        var results = try ResultStream(Result(SequenceValue(void))).init(allocator);
+        const ctx = Context(void, SequenceValue(void)){
+            .input = {},
+            .allocator = allocator,
+            .src = "abc123abc456_123abc",
+            .offset = 0,
+            .gll_trampoline = try GLLTrampoline(SequenceValue(void)).init(allocator),
+            .results = &results,
+        };
+        defer ctx.deinit();
 
-    var seq = Sequence(void, void).init(&.{
-        &Literal.init("abc").parser,
-        &Literal.init("123").parser,
-        &Literal.init("abc").parser,
-        &Literal.init("456").parser,
-    });
-    const x = seq.parser.parse(ctx);
-    defer x.?.result.value.deinit();
+        var seq = Sequence(void, void).init(&.{
+            &Literal.init("abc").parser,
+            &Literal.init("123ab").parser,
+            &Literal.init("c45").parser,
+            &Literal.init("6").parser,
+        });
+        try seq.parser.parse(ctx);
 
-    var wantMatches = SequenceValue(void).init(allocator);
-    defer wantMatches.deinit();
-    try wantMatches.append(Result(void).init(3, {}));
-    try wantMatches.append(Result(void).init(6, {}));
-    try wantMatches.append(Result(void).init(9, {}));
-    try wantMatches.append(Result(void).init(12, {}));
-    var want = Result(SequenceValue(void)).init(12, wantMatches);
-    testing.expectEqual(want.consumed, x.?.consumed);
-    testing.expectEqualSlices(Result(void), want.result.value.items, x.?.result.value.items);
-}
+        var sub = ctx.results.subscribe();
+        var list = sub.next();
+        testing.expect(sub.next() == null); // stream closed
 
-// Confirms that the following grammar works as expected:
-//
-// ```ebnf
-// Expr = [ Expr ] , "abc" ;
-// Grammar = Expr ;
-// ```
-//
-test "sequence_left_recursion" {
-    const allocator = testing.allocator;
+        // first element
+        testing.expectEqual(@as(usize, 3), list.?.offset);
+        testing.expectEqual(@as(usize, 3), list.?.result.value.node.offset);
 
-    const dynamicStr = std.ArrayList(u8);
-
-    const ctx = Context(void, SequenceValue(dynamicStr)){
-        .input = {},
-        .allocator = allocator,
-        .src = "abcabcabcabc123456",
-        .offset = 0,
-        .gll_trampoline = try GLLTrampoline(SequenceValue(dynamicStr)).init(allocator),
-    };
-    defer ctx.deinit();
-
-    const abc = MapTo(void, void, dynamicStr).init(.{
-        .parser = &Literal.init("abc").parser,
-        .mapTo = struct {
-            fn mapTo(in: ?Result(void)) ?Result(dynamicStr) {
-                if (in == null) return null;
-                var str = dynamicStr.init(allocator);
-                str.appendSlice("(abc)") catch |err| return Result(dynamicStr).initError(err);
-                return Result(dynamicStr).init(in.?.consumed, str);
-            }
-        }.mapTo,
-    });
-
-    var parsers: [2]*const Parser(dynamicStr) = .{
-        undefined, // placeholder for left-recursive expr itself
-        &abc.parser,
-    };
-    const expr = Sequence(void, dynamicStr).init(&parsers);
-    const optionalExpr = Optional(void, SequenceValue(dynamicStr)).init(&expr.parser);
-    const exprAsStringType = MapTo(void, ?SequenceValue(dynamicStr), dynamicStr).init(.{
-        .parser = &optionalExpr.parser,
-        .mapTo = struct {
-            fn mapTo(in: ?Result(?SequenceValue(dynamicStr))) ?Result(dynamicStr) {
-                if (in == null) return null;
-                var str = dynamicStr.init(allocator);
-                if (in.?.result.value != null) {
-                    defer in.?.result.value.?.deinit();
-                    for (in.?.result.value.?.items) |r| {
-                        str.appendSlice("(") catch |err| return Result(dynamicStr).initError(err);
-                        str.appendSlice(r.result.value.items) catch |err| return Result(dynamicStr).initError(err);
-                        str.appendSlice(")") catch |err| return Result(dynamicStr).initError(err);
-                        r.result.value.deinit();
-                    }
-                } else {
-                    str.appendSlice("(none)") catch |err| return Result(dynamicStr).initError(err);
-                }
-                return Result(dynamicStr).init(in.?.consumed, str);
-            }
-        }.mapTo,
-    });
-    parsers[0] = &exprAsStringType.parser;
-    const x = expr.parser.parse(ctx);
-    defer x.?.result.value.deinit();
-
-    var wantMatches = SequenceValue(dynamicStr).init(allocator);
-    defer wantMatches.deinit();
-
-    testing.expectEqual(@as(usize, 6), x.?.consumed); // TODO(slimsag): should be 12
-    const gotSlice = x.?.result.value.items;
-    testing.expectEqual(@as(usize, 2), gotSlice.len);
-
-    defer gotSlice[0].result.value.deinit();
-    testing.expectEqual(@as(usize, 3), gotSlice[0].consumed);
-    testing.expectEqualStrings("((abc))", gotSlice[0].result.value.items);
-
-    defer gotSlice[1].result.value.deinit();
-    testing.expectEqual(@as(usize, 6), gotSlice[1].consumed);
-    testing.expectEqualStrings("(abc)", gotSlice[1].result.value.items);
+        // flatten the nested multi-dimensional array, since our grammer above is not ambiguous
+        // this is fine to do and makes testing far easier.
+        var flattened = try list.?.result.value.flatten(allocator);
+        defer flattened.deinit();
+        var flat = flattened.subscribe();
+        testing.expectEqual(@as(usize, 3), flat.next().?.offset);
+        testing.expectEqual(@as(usize, 8), flat.next().?.offset);
+        testing.expectEqual(@as(usize, 11), flat.next().?.offset);
+        testing.expectEqual(@as(usize, 12), flat.next().?.offset);
+        testing.expect(flat.next() == null); // stream closed
+    }
 }
