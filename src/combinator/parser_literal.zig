@@ -1,4 +1,4 @@
-usingnamespace @import("combinator.zig");
+usingnamespace @import("gll_parser.zig");
 
 const std = @import("std");
 const testing = std.testing;
