@@ -40,68 +40,6 @@ pub fn Result(comptime Value: type) type {
     };
 }
 
-pub fn GLLStackEntry(comptime Value: type) type {
-    return struct {
-        position: usize,
-        alternate: *const Parser(Value),
-
-        pub fn setEntry(self: *const @This()) callconv(.Inline) GLLSetEntry {
-            return .{ .position = self.position, .alternate_ptr = @ptrToInt(self.alternate) };
-        }
-    };
-}
-
-const GLLSetEntry = struct {
-    position: usize,
-    alternate_ptr: usize,
-};
-
-pub fn GLLTrampoline(comptime ParserValue: type) type {
-    return struct {
-        /// Used to keep track of pending alternations.
-        stack: std.atomic.Stack(GLLStackEntry(ParserValue)),
-
-        /// Used to prevent adding an alternation to the stack that was already
-        /// added previously.
-        set: *std.AutoArrayHashMap(GLLSetEntry, void),
-
-        _set: std.AutoArrayHashMap(GLLSetEntry, void),
-
-        const Self = @This();
-
-        pub fn init(allocator: *mem.Allocator) !*Self {
-            const self = try allocator.create(Self);
-            self.* = Self{
-                .stack = std.atomic.Stack(GLLStackEntry(ParserValue)).init(),
-                ._set = std.AutoArrayHashMap(GLLSetEntry, void).init(allocator),
-                .set = undefined,
-            };
-            self.set = &self._set;
-            return self;
-        }
-
-        pub fn initChild(self: *Self, allocator: *mem.Allocator, comptime NewStackType: type) !*GLLTrampoline(NewStackType) {
-            const New = GLLTrampoline(NewStackType);
-            const new = try allocator.create(New);
-            new.* = New{
-                .stack = std.atomic.Stack(GLLStackEntry(NewStackType)).init(),
-                ._set = undefined,
-                .set = self.set,
-            };
-            return new;
-        }
-
-        pub fn deinit(self: *Self, allocator: *mem.Allocator) void {
-            self.set.deinit();
-            allocator.destroy(self);
-        }
-
-        pub fn deinitChild(self: *Self, allocator: *mem.Allocator) void {
-            allocator.destroy(self);
-        }
-    };
-}
-
 /// Describes context to be given to a `Parser`, such as `input` parameters, an `allocator`, and
 /// the actual `src` to parse.
 pub fn Context(comptime Input: type, comptime Value: type) type {
@@ -110,7 +48,6 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
         allocator: *mem.Allocator,
         src: []const u8,
         offset: usize,
-        gll_trampoline: ?*GLLTrampoline(Value),
         results: *ResultStream(Result(Value)),
 
         pub fn with(self: @This(), new_input: anytype) Context(@TypeOf(new_input), Value) {
@@ -119,7 +56,6 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
                 .allocator = self.allocator,
                 .src = self.src,
                 .offset = self.offset,
-                .gll_trampoline = self.gll_trampoline,
                 .results = self.results,
             };
         }
@@ -130,27 +66,17 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
                 .allocator = self.allocator,
                 .src = self.src,
                 .offset = self.offset,
-                .gll_trampoline = null,
                 .results = new_results,
             };
-            if (self.gll_trampoline) |gll_trampoline| {
-                new_ctx.gll_trampoline = try gll_trampoline.initChild(self.allocator, NewValue);
-            }
             return new_ctx;
         }
 
         pub fn deinit(self: @This()) void {
-            if (self.gll_trampoline) |gll_trampoline| {
-                gll_trampoline.deinit(self.allocator);
-            }
             self.results.deinit();
             return;
         }
 
         pub fn deinitChild(self: @This()) void {
-            if (self.gll_trampoline) |gll_trampoline| {
-                gll_trampoline.deinitChild(self.allocator);
-            }
             self.results.deinit();
             return;
         }

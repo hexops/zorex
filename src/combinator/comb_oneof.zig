@@ -114,7 +114,6 @@ test "oneof" {
             .allocator = allocator,
             .src = "elloworld",
             .offset = 0,
-            .gll_trampoline = try GLLTrampoline(OneOfValue(void)).init(allocator),
             .results = &results,
         };
         defer ctx.deinit();
@@ -147,7 +146,6 @@ test "oneof_ambiguous" {
             .allocator = allocator,
             .src = "elloworld",
             .offset = 0,
-            .gll_trampoline = try GLLTrampoline(OneOfValue(void)).init(allocator),
             .results = &results,
         };
         defer ctx.deinit();

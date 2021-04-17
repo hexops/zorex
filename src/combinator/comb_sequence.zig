@@ -136,12 +136,8 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
                 .allocator = ctx.allocator,
                 .src = ctx.src,
                 .offset = ctx.offset,
-                .gll_trampoline = null,
                 .results = &child_results,
             };
-            if (ctx.gll_trampoline != null) {
-                child_ctx.gll_trampoline = try ctx.gll_trampoline.?.initChild(ctx.allocator, Value);
-            }
             defer child_ctx.deinitChild();
 
             // For every top-level value (A1, A2 in our example above.)
@@ -189,7 +185,6 @@ test "sequence" {
             .allocator = allocator,
             .src = "abc123abc456_123abc",
             .offset = 0,
-            .gll_trampoline = try GLLTrampoline(SequenceValue(void)).init(allocator),
             .results = &results,
         };
         defer ctx.deinit();

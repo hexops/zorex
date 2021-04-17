@@ -55,7 +55,6 @@ test "oneof" {
             .allocator = allocator,
             .src = "hello world",
             .offset = 0,
-            .gll_trampoline = try GLLTrampoline([]const u8).init(allocator),
             .results = &results,
         };
         defer ctx.deinit();

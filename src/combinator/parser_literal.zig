@@ -47,7 +47,6 @@ test "literal" {
             .allocator = allocator,
             .src = src,
             .offset = 0,
-            .gll_trampoline = null,
             .results = &results,
         };
         defer ctx.deinit();

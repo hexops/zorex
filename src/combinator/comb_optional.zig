@@ -56,7 +56,6 @@ test "optional_some" {
             .allocator = allocator,
             .src = "hello world",
             .offset = 0,
-            .gll_trampoline = try GLLTrampoline(?void).init(allocator),
             .results = &results,
         };
         defer ctx.deinit();
@@ -81,7 +80,6 @@ test "optional_none" {
             .allocator = allocator,
             .src = "hello world",
             .offset = 0,
-            .gll_trampoline = try GLLTrampoline(?void).init(allocator),
             .results = &results,
         };
         defer ctx.deinit();
