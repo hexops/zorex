@@ -273,7 +273,7 @@ test "repeated" {
         testing.expectEqual(@as(usize, 3), list.?.offset);
         testing.expectEqual(@as(usize, 3), list.?.result.value.node.offset);
 
-        // flatten the nested multi-dimensional array, since our grammer above is not ambiguous
+        // flatten the nested multi-dimensional array, since our grammar above is not ambiguous
         // this is fine to do and makes testing far easier.
         var flattened = try list.?.result.value.flatten(allocator);
         defer flattened.deinit();

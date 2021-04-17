@@ -101,7 +101,7 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
 
             // For a sequence of input parsers [A, B, C], each one may produce multiple different
             // possible parser paths (valid interpretations of the same input state) in the case of
-            // an ambiguous grammer. For example, the sequence of parsers [A, B, C] where each
+            // an ambiguous grammar. For example, the sequence of parsers [A, B, C] where each
             // produces 2 possible parser paths (e.g. A1, A2) we need to emit:
             //
             // stream(
@@ -210,7 +210,7 @@ test "sequence" {
         testing.expectEqual(@as(usize, 3), list.?.offset);
         testing.expectEqual(@as(usize, 3), list.?.result.value.node.offset);
 
-        // flatten the nested multi-dimensional array, since our grammer above is not ambiguous
+        // flatten the nested multi-dimensional array, since our grammar above is not ambiguous
         // this is fine to do and makes testing far easier.
         var flattened = try list.?.result.value.flatten(allocator);
         defer flattened.deinit();
