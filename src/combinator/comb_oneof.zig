@@ -10,17 +10,45 @@ pub fn OneOfContext(comptime Value: type) type {
     return []const *const Parser(Value);
 }
 
-/// Matches one of the given `input` parsers.
+/// Represents values from one parse path.
 ///
-/// If `ctx.gll_trampoline` is initialized then ambiguous and left-recursive grammars are allowed and
-/// implemented in O(n^3) time using GLL combinators (https://stackoverflow.com/a/31879560) however
-/// only the first match will be returned (enumerating all possible ambiguous matches is not
-/// supported.)
+/// In the case of a non-ambiguous `OneOf` grammar of `Parser1 | Parser2`, the combinator will
+/// yield:
+///
+/// ```
+/// stream(OneOfValue(Parser1Value))
+/// ```
+///
+/// Or:
+///
+/// ```
+/// stream(OneOfValue(Parser2Value))
+/// ```
+///
+/// In the case of an ambiguous grammar `Parser1 | Parser2` where either parser can produce three
+/// different parse paths, it will yield:
+///
+/// ```
+/// stream(
+///     OneOfValue(Parser1Value1),
+///     OneOfValue(Parser1Value2),
+///     OneOfValue(Parser1Value3),
+///     OneOfValue(Parser2Value1),
+///     OneOfValue(Parser2Value2),
+///     OneOfValue(Parser2Value3),
+/// )
+/// ```
+///
+pub fn OneOfValue(comptime Value: type) type {
+    return Value;
+}
+
+/// Matches one of the given `input` parsers.
 ///
 /// The `input` parsers must remain alive for as long as the `OneOf` parser will be used.
 pub fn OneOf(comptime Input: type, comptime Value: type) type {
     return struct {
-        parser: Parser(Value) = .{ ._parse = parse },
+        parser: Parser(OneOfValue(Value)) = .{ ._parse = parse },
         input: OneOfContext(Value),
 
         const Self = @This();
@@ -29,54 +57,43 @@ pub fn OneOf(comptime Input: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn parse(parser: *const Parser(Value), in_ctx: Context(void, Value)) callconv(.Inline) ?Result(Value) {
+        pub fn parse(parser: *const Parser(Value), in_ctx: Context(void, Value)) callconv(.Async) !void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
+            defer ctx.results.close();
 
-            const Node = std.atomic.Stack(GLLStackEntry(Value)).Node;
-
-            if (ctx.gll_trampoline) |gll_trampoline| {
-                // Runtime combinator
-                for (ctx.input) |in_parser| {
-                    const entry = GLLStackEntry(Value){
-                        .position = ctx.offset,
-                        .alternate = in_parser,
-                    };
-                    const setEntry = entry.setEntry();
-                    if (gll_trampoline.set.contains(setEntry)) {
-                        continue;
-                    }
-
-                    const node = ctx.allocator.create(Node) catch |err| return Result(Value).initError(err);
-                    node.* = Node{
-                        .next = undefined,
-                        .data = entry,
-                    };
-                    gll_trampoline.stack.push(node);
-                    gll_trampoline.set.put(setEntry, {}) catch |err| return Result(Value).initError(err);
-                }
-                while (gll_trampoline.stack.pop()) |next| {
-                    defer ctx.allocator.destroy(next);
-                    var node = next.data;
-                    const result = node.alternate.parse(ctx.with({}));
-                    if (result != null) {
-                        while (gll_trampoline.stack.pop()) |unused| {
-                            ctx.allocator.destroy(unused);
-                        }
-                        return result.?;
-                    }
-                }
-                return null;
-            } else {
-                // At comptime, we can't easily implement GLL today.
-                for (ctx.input) |in_parser| {
-                    const result = in_parser.parse(ctx.with({}));
-                    if (result != null) {
-                        return result.?;
-                    }
-                }
-                return null;
+            var buffer = try ResultStream(Result(OneOfValue(Value))).init(ctx.allocator);
+            defer buffer.deinit();
+            for (self.input) |in_parser| {
+                var child_ctx = ctx.with({});
+                child_ctx.results = &buffer;
+                try in_parser.parse(child_ctx);
             }
+
+            var gotValues: usize = 0;
+            var gotErrors: usize = 0;
+            var sub = buffer.subscribe();
+            while (sub.next()) |next| {
+                switch (next.result) {
+                    .err => gotErrors += 1,
+                    else => gotValues += 1,
+                }
+            }
+            if (gotValues > 0) {
+                // At least one parse path succeeded, so discard all error'd parse paths.
+                var sub2 = buffer.subscribe();
+                while (sub2.next()) |next| {
+                    switch (next.result) {
+                        .err => {},
+                        else => try ctx.results.add(next),
+                    }
+                }
+                return;
+            }
+            // All parse paths failed, so return a nice error.
+            //
+            // TODO(slimsag): include names of expected input parsers
+            try ctx.results.add(Result(OneOfValue(Value)).initError(ctx.offset, "expected OneOf"));
         }
     };
 }
@@ -84,118 +101,66 @@ pub fn OneOf(comptime Input: type, comptime Value: type) type {
 // Confirms that the following grammar works as expected:
 //
 // ```ebnf
-// Grammar = "hello" | "world" ;
+// Grammar = "ello" | "world" ;
 // ```
 //
 test "oneof" {
-    const allocator = testing.allocator;
+    nosuspend {
+        const allocator = testing.allocator;
 
-    const ctx = Context(void, void){
-        .input = {},
-        .allocator = allocator,
-        .src = "hello world",
-        .offset = 0,
-        .gll_trampoline = try GLLTrampoline(void).init(allocator),
-    };
-    defer ctx.deinit();
+        var results = try ResultStream(Result(OneOfValue(void))).init(allocator);
+        const ctx = Context(void, OneOfValue(void)){
+            .input = {},
+            .allocator = allocator,
+            .src = "elloworld",
+            .offset = 0,
+            .gll_trampoline = try GLLTrampoline(OneOfValue(void)).init(allocator),
+            .results = &results,
+        };
+        defer ctx.deinit();
 
-    const parsers: []*const Parser(void) = &.{
-        &Literal.init("hello").parser,
-        &Literal.init("world").parser,
-    };
-    var helloOrWorld = OneOf(void, void).init(parsers);
-    const x = helloOrWorld.parser.parse(ctx);
-    testing.expectEqual(Result(void).init(5, .{}), x.?);
+        const parsers: []*const Parser(void) = &.{
+            &Literal.init("ello").parser,
+            &Literal.init("world").parser,
+        };
+        var helloOrWorld = OneOf(void, void).init(parsers);
+        try helloOrWorld.parser.parse(ctx);
+        var sub = ctx.results.subscribe();
+        testing.expectEqual(@as(?Result(OneOfValue(void)), Result(OneOfValue(void)).init(4, .{})), sub.next());
+        testing.expect(sub.next() == null); // stream closed
+    }
 }
 
 // Confirms that the following grammar works as expected:
 //
 // ```ebnf
-// Grammar = "hello world" | "hello wor" ;
+// Grammar = "ello" | "elloworld" ;
 // ```
 //
 test "oneof_ambiguous" {
-    const allocator = testing.allocator;
+    nosuspend {
+        const allocator = testing.allocator;
 
-    const ctx = Context(void, void){
-        .input = {},
-        .allocator = allocator,
-        .src = "hello world",
-        .offset = 0,
-        .gll_trampoline = try GLLTrampoline(void).init(allocator),
-    };
-    defer ctx.deinit();
+        var results = try ResultStream(Result(OneOfValue(void))).init(allocator);
+        const ctx = Context(void, OneOfValue(void)){
+            .input = {},
+            .allocator = allocator,
+            .src = "elloworld",
+            .offset = 0,
+            .gll_trampoline = try GLLTrampoline(OneOfValue(void)).init(allocator),
+            .results = &results,
+        };
+        defer ctx.deinit();
 
-    const parsers: []*const Parser(void) = &.{
-        &Literal.init("hello world").parser,
-        &Literal.init("hello wor").parser,
-    };
-    var ambiguous = OneOf(void, void).init(parsers);
-
-    const x = ambiguous.parser.parse(ctx);
-    testing.expectEqual(Result(void).init(9, {}), x.?);
-}
-
-// Confirms that the following grammar works as expected:
-//
-// ```ebnf
-// Expr = Expr | "abc" ;
-// Grammar = Expr ;
-// ```
-//
-test "oneof_left_recursion_avoidance" {
-    const allocator = testing.allocator;
-
-    const ctx = Context(void, void){
-        .input = {},
-        .allocator = allocator,
-        .src = "abcabcabc123abc",
-        .offset = 0,
-        .gll_trampoline = try GLLTrampoline(void).init(allocator),
-    };
-    defer ctx.deinit();
-
-    // TODO(slimsag): stack ordering means left-recursive grammars must have
-    // the "left" parser last in the list, which is counter-intuitive. Need to make this
-    // ordering more well-defined/documented.
-    var parsers: [2]*const Parser(void) = .{
-        &Literal.init("abc").parser,
-        undefined, // placeholder for left-recursive expr itself
-    };
-    const expr = OneOf(void, void).init(&parsers);
-    parsers[1] = &expr.parser;
-    const x = expr.parser.parse(ctx);
-    testing.expectEqual(Result(void).init(3, {}), x.?);
-}
-
-// Confirms that the following grammar works as expected:
-//
-// ```ebnf
-// Expr = "abc" | Expr ;
-// Grammar = Expr ;
-// ```
-//
-test "oneof_right_recursion_avoidance" {
-    const allocator = testing.allocator;
-
-    const ctx = Context(void, void){
-        .input = {},
-        .allocator = allocator,
-        .src = "abcabcabc123abc",
-        .offset = 0,
-        .gll_trampoline = try GLLTrampoline(void).init(allocator),
-    };
-    defer ctx.deinit();
-
-    // TODO(slimsag): stack ordering means right-recursive grammars must have
-    // the "right" parser first in the list, which is counter-intuitive. Need to make this
-    // ordering more well-defined/documented.
-    var parsers: [2]*const Parser(void) = .{
-        undefined, // placeholder for right-recursive expr itself
-        &Literal.init("abc").parser,
-    };
-    const expr = OneOf(void, void).init(&parsers);
-    parsers[0] = &expr.parser;
-    const x = expr.parser.parse(ctx);
-    testing.expectEqual(Result(void).init(3, {}), x.?);
+        const parsers: []*const Parser(void) = &.{
+            &Literal.init("ello").parser,
+            &Literal.init("elloworld").parser,
+        };
+        var helloOrWorld = OneOf(void, void).init(parsers);
+        try helloOrWorld.parser.parse(ctx);
+        var sub = ctx.results.subscribe();
+        testing.expectEqual(@as(?Result(OneOfValue(void)), Result(OneOfValue(void)).init(4, .{})), sub.next());
+        testing.expectEqual(@as(?Result(OneOfValue(void)), Result(OneOfValue(void)).init(9, .{})), sub.next());
+        testing.expect(sub.next() == null); // stream closed
+    }
 }
