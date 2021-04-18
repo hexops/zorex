@@ -51,13 +51,7 @@ test "optional_some" {
         const allocator = testing.allocator;
 
         var results = try ResultStream(Result(?void)).init(allocator);
-        const ctx = Context(void, ?void){
-            .input = {},
-            .allocator = allocator,
-            .src = "hello world",
-            .offset = 0,
-            .results = &results,
-        };
+        const ctx = Context(void, ?void).init(allocator, "hello world", &results);
         defer ctx.deinit();
 
         const optional = Optional(void, void).init(&Literal.init("hello").parser);
@@ -75,13 +69,7 @@ test "optional_none" {
         const allocator = testing.allocator;
 
         var results = try ResultStream(Result(?void)).init(allocator);
-        const ctx = Context(void, ?void){
-            .input = {},
-            .allocator = allocator,
-            .src = "hello world",
-            .offset = 0,
-            .results = &results,
-        };
+        const ctx = Context(void, ?void).init(allocator, "hello world", &results);
         defer ctx.deinit();
 
         const optional = Optional(void, void).init(&Literal.init("world").parser);

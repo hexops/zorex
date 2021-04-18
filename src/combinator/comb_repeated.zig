@@ -244,13 +244,7 @@ test "repeated" {
         const allocator = testing.allocator;
 
         var results = try ResultStream(Result(RepeatedValue(void))).init(allocator);
-        const ctx = Context(void, RepeatedValue(void)){
-            .input = {},
-            .allocator = allocator,
-            .src = "abcabcabc123abc",
-            .offset = 0,
-            .results = &results,
-        };
+        const ctx = Context(void, RepeatedValue(void)).init(allocator, "abcabcabc123abc", &results);
         defer ctx.deinit();
 
         var abcInfinity = Repeated(void, void).init(.{

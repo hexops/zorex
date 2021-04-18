@@ -49,13 +49,7 @@ test "oneof" {
         const allocator = testing.allocator;
 
         var results = try ResultStream(Result([]const u8)).init(allocator);
-        const ctx = Context(void, []const u8){
-            .input = {},
-            .allocator = allocator,
-            .src = "hello world",
-            .offset = 0,
-            .results = &results,
-        };
+        const ctx = Context(void, []const u8).init(allocator, "hello world", &results);
         defer ctx.deinit();
 
         const mapTo = MapTo(void, void, []const u8).init(.{

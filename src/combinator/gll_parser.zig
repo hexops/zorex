@@ -50,6 +50,16 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
         offset: usize,
         results: *ResultStream(Result(Value)),
 
+        pub fn init(allocator: *mem.Allocator, src: []const u8, results: *ResultStream(Result(Value))) @This() {
+            return .{
+                .input = {},
+                .allocator = allocator,
+                .src = src,
+                .offset = 0,
+                .results = results,
+            };
+        }
+
         pub fn with(self: @This(), new_input: anytype) Context(@TypeOf(new_input), Value) {
             return Context(@TypeOf(new_input), Value){
                 .input = new_input,

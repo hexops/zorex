@@ -180,13 +180,7 @@ test "sequence" {
         const allocator = testing.allocator;
 
         var results = try ResultStream(Result(SequenceValue(void))).init(allocator);
-        const ctx = Context(void, SequenceValue(void)){
-            .input = {},
-            .allocator = allocator,
-            .src = "abc123abc456_123abc",
-            .offset = 0,
-            .results = &results,
-        };
+        const ctx = Context(void, SequenceValue(void)).init(allocator, "abc123abc456_123abc", &results);
         defer ctx.deinit();
 
         var seq = Sequence(void, void).init(&.{
