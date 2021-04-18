@@ -57,7 +57,7 @@ pub fn OneOf(comptime Input: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn parse(parser: *const Parser(Value), in_ctx: Context(void, Value)) callconv(.Async) !void {
+        pub fn parse(parser: *const Parser(Value), in_ctx: *const Context(void, Value)) callconv(.Async) !void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
@@ -67,7 +67,7 @@ pub fn OneOf(comptime Input: type, comptime Value: type) type {
             for (self.input) |in_parser| {
                 var child_ctx = ctx.with({});
                 child_ctx.results = &buffer;
-                try in_parser.parse(child_ctx);
+                try in_parser.parse(&child_ctx);
             }
 
             var gotValues: usize = 0;
@@ -117,7 +117,7 @@ test "oneof" {
             &Literal.init("world").parser,
         };
         var helloOrWorld = OneOf(void, void).init(parsers);
-        try helloOrWorld.parser.parse(ctx);
+        try helloOrWorld.parser.parse(&ctx);
         var sub = ctx.results.subscribe();
         testing.expectEqual(@as(?Result(OneOfValue(void)), Result(OneOfValue(void)).init(4, .{})), sub.next());
         testing.expect(sub.next() == null); // stream closed
@@ -143,7 +143,7 @@ test "oneof_ambiguous" {
             &Literal.init("elloworld").parser,
         };
         var helloOrWorld = OneOf(void, void).init(parsers);
-        try helloOrWorld.parser.parse(ctx);
+        try helloOrWorld.parser.parse(&ctx);
         var sub = ctx.results.subscribe();
         testing.expectEqual(@as(?Result(OneOfValue(void)), Result(OneOfValue(void)).init(4, .{})), sub.next());
         testing.expectEqual(@as(?Result(OneOfValue(void)), Result(OneOfValue(void)).init(9, .{})), sub.next());

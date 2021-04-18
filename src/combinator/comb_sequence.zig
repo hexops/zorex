@@ -90,7 +90,7 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn parse(parser: *const Parser(SequenceValue(Value)), in_ctx: Context(void, SequenceValue(Value))) callconv(.Async) Error!void {
+        pub fn parse(parser: *const Parser(SequenceValue(Value)), in_ctx: *const Context(void, SequenceValue(Value))) callconv(.Async) Error!void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
@@ -141,7 +141,7 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
             defer child_ctx.deinitChild();
 
             // For every top-level value (A1, A2 in our example above.)
-            try self.input[0].parse(child_ctx);
+            try self.input[0].parse(&child_ctx);
             var sub = child_ctx.results.subscribe();
             while (sub.next()) |top_level| {
                 switch (top_level.result) {
@@ -157,11 +157,11 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
                         // associated with A1, A2.)
                         var path_results = try ctx.allocator.create(ResultStream(Result(SequenceValue(Value))));
                         path_results.* = try ResultStream(Result(SequenceValue(Value))).init(ctx.allocator);
-                        var path_ctx = in_ctx;
+                        var path_ctx = in_ctx.*;
                         path_ctx.offset = child_ctx.offset;
                         path_ctx.results = path_results;
                         var path = Sequence(Input, Value).init(self.input[1..]);
-                        try path.parser.parse(path_ctx);
+                        try path.parser.parse(&path_ctx);
 
                         // Emit our top-level value tuple (e.g. (A1, stream(...))
                         try ctx.results.add(Result(SequenceValue(Value)).init(child_ctx.offset, .{
@@ -189,7 +189,7 @@ test "sequence" {
             &Literal.init("c45").parser,
             &Literal.init("6").parser,
         });
-        try seq.parser.parse(ctx);
+        try seq.parser.parse(&ctx);
 
         var sub = ctx.results.subscribe();
         var list = sub.next();

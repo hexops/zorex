@@ -23,7 +23,7 @@ pub fn Optional(comptime Input: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn parse(parser: *const Parser(?Value), in_ctx: Context(void, ?Value)) callconv(.Async) Error!void {
+        pub fn parse(parser: *const Parser(?Value), in_ctx: *const Context(void, ?Value)) callconv(.Async) Error!void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
@@ -32,7 +32,7 @@ pub fn Optional(comptime Input: type, comptime Value: type) type {
             const child_ctx = try ctx.with({}).initChild(Value, &child_results);
             defer child_ctx.deinitChild();
 
-            try ctx.input.parse(child_ctx);
+            try ctx.input.parse(&child_ctx);
 
             var sub = child_ctx.results.subscribe();
             while (sub.next()) |next| {
@@ -56,7 +56,7 @@ test "optional_some" {
 
         const optional = Optional(void, void).init(&Literal.init("hello").parser);
 
-        try optional.parser.parse(ctx);
+        try optional.parser.parse(&ctx);
 
         var sub = ctx.results.subscribe();
         testing.expectEqual(@as(?Result(?void), Result(?void).init(5, {})), sub.next());
@@ -74,7 +74,7 @@ test "optional_none" {
 
         const optional = Optional(void, void).init(&Literal.init("world").parser);
 
-        try optional.parser.parse(ctx);
+        try optional.parser.parse(&ctx);
 
         var sub = ctx.results.subscribe();
         testing.expectEqual(@as(?Result(?void), Result(?void).init(0, null)), sub.next());

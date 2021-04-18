@@ -96,7 +96,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn parse(parser: *const Parser(RepeatedValue(Value)), in_ctx: Context(void, RepeatedValue(Value))) callconv(.Async) Error!void {
+        pub fn parse(parser: *const Parser(RepeatedValue(Value)), in_ctx: *const Context(void, RepeatedValue(Value))) callconv(.Async) Error!void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
@@ -188,7 +188,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
 
             // For every top-level value (A, B, C in our example above.)
             var num_values: usize = 0;
-            try self.input.parser.parse(child_ctx);
+            try self.input.parser.parse(&child_ctx);
             var sub = child_ctx.results.subscribe();
             while (sub.next()) |top_level| {
                 if (num_values >= ctx.input.max and ctx.input.max != -1) break;
@@ -211,7 +211,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                         // associated with A, B, C.)
                         var path_results = try ctx.allocator.create(ResultStream(Result(RepeatedValue(Value))));
                         path_results.* = try ResultStream(Result(RepeatedValue(Value))).init(ctx.allocator);
-                        var path_ctx = in_ctx;
+                        var path_ctx = in_ctx.*;
                         path_ctx.offset = child_ctx.offset;
                         path_ctx.results = path_results;
                         var path = Repeated(Input, Value).init(.{
@@ -219,7 +219,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                             .min = self.input.min,
                             .max = if (self.input.max == -1) -1 else self.input.max - 1,
                         });
-                        try path.parser.parse(path_ctx);
+                        try path.parser.parse(&path_ctx);
 
                         // Emit our top-level value tuple (e.g. (A, stream(...))
                         try ctx.results.add(Result(RepeatedValue(Value)).init(child_ctx.offset, .{
@@ -252,7 +252,7 @@ test "repeated" {
             .min = 0,
             .max = -1,
         });
-        try abcInfinity.parser.parse(ctx);
+        try abcInfinity.parser.parse(&ctx);
 
         var sub = ctx.results.subscribe();
         var list = sub.next();

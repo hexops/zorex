@@ -19,7 +19,7 @@ pub const Literal = struct {
         return Self{ .input = input };
     }
 
-    pub fn parse(parser: *const Parser(void), in_ctx: Context(void, void)) callconv(.Async) !void {
+    pub fn parse(parser: *const Parser(void), in_ctx: *const Context(void, void)) callconv(.Async) !void {
         const self = @fieldParentPtr(Self, "parser", parser);
         var ctx = in_ctx.with(self.input);
         defer ctx.results.close();
@@ -53,7 +53,7 @@ test "literal" {
 
         var want = "hello";
         var l = Literal.init(want);
-        try l.parser.parse(ctx);
+        try l.parser.parse(&ctx);
         var sub = ctx.results.subscribe();
         testing.expectEqual(@as(?Result(void), Result(void).init(want.len, {})), sub.next());
         testing.expectEqual(@as(?Result(void), null), sub.next());

@@ -26,7 +26,7 @@ pub fn MapTo(comptime Input: type, comptime Value: type, comptime Target: type) 
             return Self{ .input = input };
         }
 
-        pub fn parse(parser: *const Parser(Target), in_ctx: Context(void, Target)) callconv(.Async) !void {
+        pub fn parse(parser: *const Parser(Target), in_ctx: *const Context(void, Target)) callconv(.Async) !void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
@@ -34,7 +34,7 @@ pub fn MapTo(comptime Input: type, comptime Value: type, comptime Target: type) 
             var child_results = try ResultStream(Result(Value)).init(ctx.allocator);
             const child_ctx = try ctx.with({}).initChild(Value, &child_results);
             defer child_ctx.deinitChild();
-            try ctx.input.parser.parse(child_ctx);
+            try ctx.input.parser.parse(&child_ctx);
 
             var sub = child_ctx.results.subscribe();
             while (sub.next()) |next| {
@@ -64,7 +64,7 @@ test "oneof" {
             }.mapTo,
         });
 
-        try mapTo.parser.parse(ctx);
+        try mapTo.parser.parse(&ctx);
 
         var sub = ctx.results.subscribe();
         testing.expectEqual(@as(?Result([]const u8), Result([]const u8).init(5, "hello")), sub.next());

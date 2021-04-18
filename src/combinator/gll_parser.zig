@@ -98,13 +98,13 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
 pub fn Parser(comptime Value: type) type {
     return struct {
         const Self = @This();
-        _parse: fn (self: *const Self, ctx: Context(void, Value)) callconv(.Async) Error!void,
+        _parse: fn (self: *const Self, ctx: *const Context(void, Value)) callconv(.Async) Error!void,
 
-        pub fn init(parseImpl: fn (self: *const Self, ctx: Context(void, Value)) callconv(.Async) Error!void) @This() {
+        pub fn init(parseImpl: fn (self: *const Self, ctx: *const Context(void, Value)) callconv(.Async) Error!void) @This() {
             return .{ ._parse = parseImpl };
         }
 
-        pub fn parse(self: *const Self, ctx: Context(void, Value)) callconv(.Async) Error!void {
+        pub fn parse(self: *const Self, ctx: *const Context(void, Value)) callconv(.Async) Error!void {
             var frame = try std.heap.page_allocator.allocAdvanced(u8, 16, @frameSize(self._parse), std.mem.Allocator.Exact.at_least);
             defer std.heap.page_allocator.free(frame);
             return try await @asyncCall(frame, {}, self._parse, .{ self, ctx });
