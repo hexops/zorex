@@ -130,8 +130,7 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
             // This call to `Sequence.parse` is only responsible for emitting the top level
             // (A1, A2) and invoking Sequence(next) to produce the associated `stream()` for those
             // parse states.
-            var child_results = try ResultStream(Result(Value)).init(ctx.allocator);
-            var child_ctx = try ctx.with({}).initChild(Value, &child_results);
+            var child_ctx = try ctx.with({}).initChild(Value);
             defer child_ctx.deinitChild();
 
             // For every top-level value (A1, A2 in our example above.)

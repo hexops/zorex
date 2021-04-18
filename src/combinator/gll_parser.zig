@@ -62,13 +62,15 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
             };
         }
 
-        pub fn initChild(self: @This(), comptime NewValue: type, new_results: *ResultStream(Result(NewValue))) !Context(Input, NewValue) {
+        pub fn initChild(self: @This(), comptime NewValue: type) !Context(Input, NewValue) {
+            var child_results = try self.allocator.create(ResultStream(Result(NewValue)));
+            child_results.* = try ResultStream(Result(NewValue)).init(self.allocator);
             return Context(Input, NewValue){
                 .input = self.input,
                 .allocator = self.allocator,
                 .src = self.src,
                 .offset = self.offset,
-                .results = new_results,
+                .results = child_results,
             };
         }
 
@@ -90,6 +92,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
 
         pub fn deinitChild(self: @This()) void {
             self.results.deinit();
+            self.allocator.destroy(self.results);
             return;
         }
     };
