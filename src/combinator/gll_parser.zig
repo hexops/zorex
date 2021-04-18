@@ -60,6 +60,16 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
             };
         }
 
+        pub fn initChild(self: @This(), comptime NewValue: type, new_results: *ResultStream(Result(NewValue))) !Context(Input, NewValue) {
+            return Context(Input, NewValue){
+                .input = self.input,
+                .allocator = self.allocator,
+                .src = self.src,
+                .offset = self.offset,
+                .results = new_results,
+            };
+        }
+
         pub fn with(self: @This(), new_input: anytype) Context(@TypeOf(new_input), Value) {
             return Context(@TypeOf(new_input), Value){
                 .input = new_input,
@@ -68,17 +78,6 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
                 .offset = self.offset,
                 .results = self.results,
             };
-        }
-
-        pub fn initChild(self: @This(), comptime NewValue: type, new_results: *ResultStream(Result(NewValue))) !Context(Input, NewValue) {
-            var new_ctx = Context(Input, NewValue){
-                .input = self.input,
-                .allocator = self.allocator,
-                .src = self.src,
-                .offset = self.offset,
-                .results = new_results,
-            };
-            return new_ctx;
         }
 
         pub fn deinit(self: @This()) void {
