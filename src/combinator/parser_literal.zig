@@ -39,16 +39,8 @@ test "literal" {
     nosuspend {
         const allocator = testing.allocator;
 
-        var src = "hello world";
-
         var results = try ResultStream(Result(void)).init(allocator);
-        var ctx = Context(void, void){
-            .input = {},
-            .allocator = allocator,
-            .src = src,
-            .offset = 0,
-            .results = &results,
-        };
+        var ctx = Context(void, void).init(allocator, "hello world", &results);
         defer ctx.deinit();
 
         var want = "hello";

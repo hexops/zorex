@@ -177,13 +177,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
             //  )
             //
             var child_results = try ResultStream(Result(Value)).init(ctx.allocator);
-            var child_ctx = Context(void, Value){
-                .input = {},
-                .allocator = ctx.allocator,
-                .src = ctx.src,
-                .offset = ctx.offset,
-                .results = &child_results,
-            };
+            var child_ctx = try ctx.with({}).initChild(Value, &child_results);
             defer child_ctx.deinitChild();
 
             // For every top-level value (A, B, C in our example above.)
