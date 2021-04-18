@@ -173,8 +173,7 @@ test "sequence" {
     nosuspend {
         const allocator = testing.allocator;
 
-        var results = try ResultStream(Result(SequenceValue(void))).init(allocator);
-        const ctx = Context(void, SequenceValue(void)).init(allocator, "abc123abc456_123abc", &results);
+        const ctx = try Context(void, SequenceValue(void)).init(allocator, "abc123abc456_123abc", {});
         defer ctx.deinit();
 
         var seq = Sequence(void, void).init(&.{

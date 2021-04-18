@@ -50,8 +50,7 @@ test "optional_some" {
     nosuspend {
         const allocator = testing.allocator;
 
-        var results = try ResultStream(Result(?void)).init(allocator);
-        const ctx = Context(void, ?void).init(allocator, "hello world", &results);
+        const ctx = try Context(void, ?void).init(allocator, "hello world", {});
         defer ctx.deinit();
 
         const optional = Optional(void, void).init(&Literal.init("hello").parser);
@@ -68,8 +67,7 @@ test "optional_none" {
     nosuspend {
         const allocator = testing.allocator;
 
-        var results = try ResultStream(Result(?void)).init(allocator);
-        const ctx = Context(void, ?void).init(allocator, "hello world", &results);
+        const ctx = try Context(void, ?void).init(allocator, "hello world", {});
         defer ctx.deinit();
 
         const optional = Optional(void, void).init(&Literal.init("world").parser);

@@ -50,9 +50,11 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
         offset: usize,
         results: *ResultStream(Result(Value)),
 
-        pub fn init(allocator: *mem.Allocator, src: []const u8, results: *ResultStream(Result(Value))) @This() {
-            return .{
-                .input = {},
+        pub fn init(allocator: *mem.Allocator, src: []const u8, input: Input) !@This() {
+            var results = try allocator.create(ResultStream(Result(Value)));
+            results.* = try ResultStream(Result(Value)).init(allocator);
+            return @This(){
+                .input = input,
                 .allocator = allocator,
                 .src = src,
                 .offset = 0,
@@ -82,6 +84,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
 
         pub fn deinit(self: @This()) void {
             self.results.deinit();
+            self.allocator.destroy(self.results);
             return;
         }
 

@@ -108,8 +108,7 @@ test "oneof" {
     nosuspend {
         const allocator = testing.allocator;
 
-        var results = try ResultStream(Result(OneOfValue(void))).init(allocator);
-        const ctx = Context(void, OneOfValue(void)).init(allocator, "elloworld", &results);
+        const ctx = try Context(void, OneOfValue(void)).init(allocator, "elloworld", {});
         defer ctx.deinit();
 
         const parsers: []*const Parser(void) = &.{
@@ -134,8 +133,7 @@ test "oneof_ambiguous" {
     nosuspend {
         const allocator = testing.allocator;
 
-        var results = try ResultStream(Result(OneOfValue(void))).init(allocator);
-        const ctx = Context(void, OneOfValue(void)).init(allocator, "elloworld", &results);
+        const ctx = try Context(void, OneOfValue(void)).init(allocator, "elloworld", {});
         defer ctx.deinit();
 
         const parsers: []*const Parser(void) = &.{

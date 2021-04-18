@@ -48,8 +48,7 @@ test "oneof" {
     nosuspend {
         const allocator = testing.allocator;
 
-        var results = try ResultStream(Result([]const u8)).init(allocator);
-        const ctx = Context(void, []const u8).init(allocator, "hello world", &results);
+        const ctx = try Context(void, []const u8).init(allocator, "hello world", {});
         defer ctx.deinit();
 
         const mapTo = MapTo(void, void, []const u8).init(.{
