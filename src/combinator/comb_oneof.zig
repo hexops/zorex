@@ -65,10 +65,15 @@ pub fn OneOf(comptime Input: type, comptime Value: type) type {
             var buffer = try ResultStream(Result(OneOfValue(Value))).init(ctx.allocator);
             defer buffer.deinit();
             for (self.input) |in_parser| {
-                var child_ctx = ctx.with({});
-                child_ctx.results = &buffer;
+                var child_ctx = try ctx.with({}).initChild(Value);
+                defer child_ctx.deinit();
                 try in_parser.parse(&child_ctx);
+                var sub = child_ctx.results.subscribe();
+                while (sub.next()) |next| {
+                    try buffer.add(next);
+                }
             }
+            buffer.close();
 
             var gotValues: usize = 0;
             var gotErrors: usize = 0;

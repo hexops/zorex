@@ -204,20 +204,26 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                         // associated with A, B, C.)
                         var path_results = try ctx.allocator.create(ResultStream(Result(RepeatedValue(Value))));
                         path_results.* = try ResultStream(Result(RepeatedValue(Value))).init(ctx.allocator);
-                        var path_ctx = in_ctx.*;
+
+                        var path_ctx = try in_ctx.initChild(RepeatedValue(Value));
+                        defer path_ctx.deinitChild();
                         path_ctx.offset = child_ctx.offset;
-                        path_ctx.results = path_results;
                         var path = Repeated(Input, Value).init(.{
                             .parser = self.input.parser,
                             .min = self.input.min,
                             .max = if (self.input.max == -1) -1 else self.input.max - 1,
                         });
                         try path.parser.parse(&path_ctx);
+                        var path_results_sub = path_ctx.results.subscribe();
+                        while (path_results_sub.next()) |next| {
+                            try path_results.add(next);
+                        }
+                        path_results.close();
 
                         // Emit our top-level value tuple (e.g. (A, stream(...))
                         try ctx.results.add(Result(RepeatedValue(Value)).init(child_ctx.offset, .{
                             .node = top_level,
-                            .next = path_ctx.results,
+                            .next = path_results,
                         }));
                     },
                 }
