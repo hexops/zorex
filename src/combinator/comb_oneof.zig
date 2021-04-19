@@ -74,8 +74,8 @@ pub fn OneOf(comptime Input: type, comptime Value: type) type {
             var buffer = try ResultStream(Result(OneOfValue(Value))).init(ctx.allocator);
             defer buffer.deinit();
             for (self.input) |in_parser| {
-                var child_ctx = try ctx.with({}).initChild(Value);
-                defer child_ctx.deinit();
+                var child_ctx = try ctx.with({}).initChild(Value, in_parser.hash(), ctx.offset);
+                defer child_ctx.deinitChild();
                 try in_parser.parse(&child_ctx);
                 var sub = child_ctx.results.subscribe();
                 while (sub.next()) |next| {

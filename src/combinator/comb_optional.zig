@@ -36,7 +36,7 @@ pub fn Optional(comptime Input: type, comptime Value: type) type {
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
 
-            const child_ctx = try ctx.with({}).initChild(Value);
+            const child_ctx = try ctx.with({}).initChild(Value, ctx.input.hash(), ctx.offset);
             defer child_ctx.deinitChild();
 
             try ctx.input.parse(&child_ctx);

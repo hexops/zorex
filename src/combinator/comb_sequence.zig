@@ -139,7 +139,7 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
             // This call to `Sequence.parse` is only responsible for emitting the top level
             // (A1, A2) and invoking Sequence(next) to produce the associated `stream()` for those
             // parse states.
-            var child_ctx = try ctx.with({}).initChild(Value);
+            var child_ctx = try ctx.with({}).initChild(Value, self.input[0].hash(), ctx.offset);
             defer child_ctx.deinitChild();
 
             // For every top-level value (A1, A2 in our example above.)
@@ -152,18 +152,16 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
                         continue;
                     },
                     else => {
-                        // We got a non-error top-level value (e.g. A1, A2), consume if needed.
-                        child_ctx.offset = top_level.offset;
+                        // We got a non-error top-level value (e.g. A1, A2).
 
                         // Now get the stream that continues down this path (i.e. the stream
                         // associated with A1, A2.)
                         var path_results = try ctx.allocator.create(ResultStream(Result(SequenceValue(Value))));
                         path_results.* = try ResultStream(Result(SequenceValue(Value))).init(ctx.allocator);
 
-                        var path_ctx = try in_ctx.initChild(SequenceValue(Value));
-                        defer path_ctx.deinitChild();
-                        path_ctx.offset = child_ctx.offset;
                         var path = Sequence(Input, Value).init(self.input[1..]);
+                        var path_ctx = try in_ctx.initChild(SequenceValue(Value), path.parser.hash(), top_level.offset);
+                        defer path_ctx.deinitChild();
                         try path.parser.parse(&path_ctx);
                         var path_results_sub = path_ctx.results.subscribe();
                         while (path_results_sub.next()) |next| {
@@ -172,7 +170,7 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
                         path_results.close();
 
                         // Emit our top-level value tuple (e.g. (A1, stream(...))
-                        try ctx.results.add(Result(SequenceValue(Value)).init(child_ctx.offset, .{
+                        try ctx.results.add(Result(SequenceValue(Value)).init(top_level.offset, .{
                             .node = top_level,
                             .next = path_results,
                         }));

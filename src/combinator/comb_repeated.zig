@@ -186,13 +186,14 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
             //      ),
             //  )
             //
-            var child_ctx = try ctx.with({}).initChild(Value);
+            var child_ctx = try ctx.with({}).initChild(Value, self.input.parser.hash(), ctx.offset);
             defer child_ctx.deinitChild();
 
             // For every top-level value (A, B, C in our example above.)
             var num_values: usize = 0;
             try self.input.parser.parse(&child_ctx);
             var sub = child_ctx.results.subscribe();
+            var offset: usize = 0;
             while (sub.next()) |top_level| {
                 if (num_values >= ctx.input.max and ctx.input.max != -1) break;
                 num_values += 1;
@@ -205,24 +206,22 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                         continue;
                     },
                     else => {
-                        // We got a non-error top-level value (e.g. A, B, C), consume if needed.
-                        //
+                        // We got a non-error top-level value (e.g. A, B, C).
                         // TODO(slimsag): if no consumption, could get stuck forever!
-                        child_ctx.offset = top_level.offset;
+                        offset = top_level.offset;
 
                         // Now get the stream that continues down this path (i.e. the stream
                         // associated with A, B, C.)
                         var path_results = try ctx.allocator.create(ResultStream(Result(RepeatedValue(Value))));
                         path_results.* = try ResultStream(Result(RepeatedValue(Value))).init(ctx.allocator);
 
-                        var path_ctx = try in_ctx.initChild(RepeatedValue(Value));
-                        defer path_ctx.deinitChild();
-                        path_ctx.offset = child_ctx.offset;
                         var path = Repeated(Input, Value).init(.{
                             .parser = self.input.parser,
                             .min = self.input.min,
                             .max = if (self.input.max == -1) -1 else self.input.max - 1,
                         });
+                        var path_ctx = try in_ctx.initChild(RepeatedValue(Value), path.parser.hash(), top_level.offset);
+                        defer path_ctx.deinitChild();
                         try path.parser.parse(&path_ctx);
                         var path_results_sub = path_ctx.results.subscribe();
                         while (path_results_sub.next()) |next| {
@@ -231,7 +230,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                         path_results.close();
 
                         // Emit our top-level value tuple (e.g. (A, stream(...))
-                        try ctx.results.add(Result(RepeatedValue(Value)).init(child_ctx.offset, .{
+                        try ctx.results.add(Result(RepeatedValue(Value)).init(top_level.offset, .{
                             .node = top_level,
                             .next = path_results,
                         }));
@@ -240,7 +239,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
             }
             if (num_values < ctx.input.min) {
                 // TODO(slimsag): include number of expected/found matches
-                try ctx.results.add(Result(RepeatedValue(Value)).initError(child_ctx.offset, "expected more"));
+                try ctx.results.add(Result(RepeatedValue(Value)).initError(offset, "expected more"));
                 return;
             }
             return;
