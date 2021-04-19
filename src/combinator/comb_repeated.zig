@@ -87,7 +87,7 @@ pub fn RepeatedValue(comptime Value: type) type {
 /// The `input` parsers must remain alive for as long as the `Repeated` parser will be used.
 pub fn Repeated(comptime Input: type, comptime Value: type) type {
     return struct {
-        parser: Parser(RepeatedValue(Value)) = .{ ._parse = parse },
+        parser: Parser(RepeatedValue(Value)) = Parser(RepeatedValue(Value)).init(parse),
         input: RepeatedContext(Value),
 
         const Self = @This();

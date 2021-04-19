@@ -48,7 +48,7 @@ pub fn OneOfValue(comptime Value: type) type {
 /// The `input` parsers must remain alive for as long as the `OneOf` parser will be used.
 pub fn OneOf(comptime Input: type, comptime Value: type) type {
     return struct {
-        parser: Parser(OneOfValue(Value)) = .{ ._parse = parse },
+        parser: Parser(OneOfValue(Value)) = Parser(OneOfValue(Value)).init(parse),
         input: OneOfContext(Value),
 
         const Self = @This();

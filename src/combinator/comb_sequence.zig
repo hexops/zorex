@@ -81,7 +81,7 @@ pub fn SequenceValue(comptime Value: type) type {
 /// The `input` parsers must remain alive for as long as the `Sequence` parser will be used.
 pub fn Sequence(comptime Input: type, comptime Value: type) type {
     return struct {
-        parser: Parser(SequenceValue(Value)) = .{ ._parse = parse },
+        parser: Parser(SequenceValue(Value)) = Parser(SequenceValue(Value)).init(parse),
         input: SequenceContext(Value),
 
         const Self = @This();

@@ -14,7 +14,7 @@ pub fn OptionalContext(comptime Value: type) type {
 /// The `input.parser` must remain alive for as long as the `Optional` parser will be used.
 pub fn Optional(comptime Input: type, comptime Value: type) type {
     return struct {
-        parser: Parser(?Value) = .{ ._parse = parse },
+        parser: Parser(?Value) = Parser(?Value).init(parse),
         input: OptionalContext(Value),
 
         const Self = @This();
