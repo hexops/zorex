@@ -42,7 +42,7 @@ pub fn MapTo(comptime Input: type, comptime Value: type, comptime Target: type) 
 
             const child_ctx = try ctx.with({}).initChild(Value, ctx.input.parser.hash(), ctx.offset);
             defer child_ctx.deinitChild();
-            try ctx.input.parser.parse(&child_ctx);
+            if (!child_ctx.existing_results) try ctx.input.parser.parse(&child_ctx);
 
             var sub = child_ctx.results.subscribe();
             while (sub.next()) |next| {

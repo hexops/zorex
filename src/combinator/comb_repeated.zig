@@ -188,10 +188,10 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
             //
             var child_ctx = try ctx.with({}).initChild(Value, self.input.parser.hash(), ctx.offset);
             defer child_ctx.deinitChild();
+            if (!child_ctx.existing_results) try self.input.parser.parse(&child_ctx);
 
             // For every top-level value (A, B, C in our example above.)
             var num_values: usize = 0;
-            try self.input.parser.parse(&child_ctx);
             var sub = child_ctx.results.subscribe();
             var offset: usize = 0;
             while (sub.next()) |top_level| {
@@ -222,7 +222,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                         });
                         var path_ctx = try in_ctx.initChild(RepeatedValue(Value), path.parser.hash(), top_level.offset);
                         defer path_ctx.deinitChild();
-                        try path.parser.parse(&path_ctx);
+                        if (!path_ctx.existing_results) try path.parser.parse(&path_ctx);
                         var path_results_sub = path_ctx.results.subscribe();
                         while (path_results_sub.next()) |next| {
                             try path_results.add(next);

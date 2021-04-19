@@ -38,8 +38,7 @@ pub fn Optional(comptime Input: type, comptime Value: type) type {
 
             const child_ctx = try ctx.with({}).initChild(Value, ctx.input.hash(), ctx.offset);
             defer child_ctx.deinitChild();
-
-            try ctx.input.parse(&child_ctx);
+            if (!child_ctx.existing_results) try ctx.input.parse(&child_ctx);
 
             var sub = child_ctx.results.subscribe();
             while (sub.next()) |next| {

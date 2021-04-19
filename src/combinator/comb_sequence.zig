@@ -141,9 +141,9 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
             // parse states.
             var child_ctx = try ctx.with({}).initChild(Value, self.input[0].hash(), ctx.offset);
             defer child_ctx.deinitChild();
+            if (!child_ctx.existing_results) try self.input[0].parse(&child_ctx);
 
             // For every top-level value (A1, A2 in our example above.)
-            try self.input[0].parse(&child_ctx);
             var sub = child_ctx.results.subscribe();
             while (sub.next()) |top_level| {
                 switch (top_level.result) {
@@ -162,7 +162,7 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
                         var path = Sequence(Input, Value).init(self.input[1..]);
                         var path_ctx = try in_ctx.initChild(SequenceValue(Value), path.parser.hash(), top_level.offset);
                         defer path_ctx.deinitChild();
-                        try path.parser.parse(&path_ctx);
+                        if (!path_ctx.existing_results) try path.parser.parse(&path_ctx);
                         var path_results_sub = path_ctx.results.subscribe();
                         while (path_results_sub.next()) |next| {
                             try path_results.add(next);

@@ -132,7 +132,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
         src: []const u8,
         offset: usize,
         results: *ResultStream(Result(Value)),
-        memoized_results: bool,
+        existing_results: bool,
         memoizer: *Memoizer,
 
         pub fn init(allocator: *mem.Allocator, src: []const u8, input: Input) !@This() {
@@ -144,7 +144,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
                 .src = src,
                 .offset = 0,
                 .results = results,
-                .memoized_results = false,
+                .existing_results = false,
                 .memoizer = try Memoizer.init(allocator),
             };
         }
@@ -156,7 +156,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
                 .src = self.src,
                 .offset = offset,
                 .results = undefined,
-                .memoized_results = false,
+                .existing_results = false,
                 .memoizer = self.memoizer,
             };
 
@@ -167,7 +167,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
             });
             child_ctx.results = memoized.results;
             if (memoized.was_cached) {
-                child_ctx.memoized_results = true;
+                child_ctx.existing_results = true;
             }
             return child_ctx;
         }
@@ -179,7 +179,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
                 .src = self.src,
                 .offset = self.offset,
                 .results = self.results,
-                .memoized_results = self.memoized_results,
+                .existing_results = self.existing_results,
                 .memoizer = self.memoizer,
             };
         }
