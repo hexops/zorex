@@ -45,8 +45,12 @@ const MemoizeKey = struct {
     offset: usize,
 };
 
-// value is an untyped pointer *ResultStream(Result(Value))
-const MemoizeHashMap = std.AutoHashMap(MemoizeKey, usize);
+const MemoizeValue = struct {
+    results: usize, // untyped pointer *ResultStream(Result(Value))
+    deinit: fn(results: usize, allocator: *mem.Allocator) void,
+};
+
+const MemoizeHashMap = std.AutoHashMap(MemoizeKey, MemoizeValue);
 
 const MemoizedParser = struct {
     hash: u64,
@@ -86,10 +90,19 @@ const Memoizer = struct {
             // Create a new result stream for this input state.
             var results = try allocator.create(ResultStream(Result(Value)));
             results.* = try ResultStream(Result(Value)).init(allocator);
-            l.entry.value = @ptrToInt(results);
+            l.entry.value = .{
+                .results = @ptrToInt(results),
+                .deinit = struct{
+                    fn deinit(_resultsPtr: usize, _allocator: *mem.Allocator) void {
+                        var _results = @intToPtr(*ResultStream(Result(Value)), _resultsPtr);
+                        _results.deinit();
+                        _allocator.destroy(_results);
+                    }
+                }.deinit,
+            };
         }
         return MemoizedResult(Value){
-            .results = @intToPtr(*ResultStream(Result(Value)), l.entry.value),
+            .results = @intToPtr(*ResultStream(Result(Value)), l.entry.value.results),
             .was_cached = l.found_existing,
         };
     }
@@ -111,11 +124,7 @@ const Memoizer = struct {
 
             var local_entries = localized.iterator();
             while (local_entries.next()) |local_entry| {
-                // TODO(slimsag): really brittle, may not work with streams using non-void result
-                // types.
-                var results = @intToPtr(*ResultStream(Result(void)), local_entry.value);
-                results.deinit();
-                allocator.destroy(results);
+                local_entry.value.deinit(local_entry.value.results, allocator);
             }
         }
         self.parser_nodes.deinit();
