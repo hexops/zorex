@@ -1,7 +1,6 @@
 usingnamespace @import("gll_parser.zig");
 usingnamespace @import("parser_literal.zig");
 usingnamespace @import("comb_mapto.zig");
-usingnamespace @import("comb_optional.zig");
 
 const std = @import("std");
 const testing = std.testing;
@@ -81,13 +80,23 @@ pub fn SequenceValue(comptime Value: type) type {
 /// The `input` parsers must remain alive for as long as the `Sequence` parser will be used.
 pub fn Sequence(comptime Input: type, comptime Value: type) type {
     return struct {
-        parser: Parser(SequenceValue(Value)) = Parser(SequenceValue(Value)).init(parse),
+        parser: Parser(SequenceValue(Value)) = Parser(SequenceValue(Value)).init(parse, hash),
         input: SequenceContext(Value),
 
         const Self = @This();
 
         pub fn init(input: SequenceContext(Value)) Self {
             return Self{ .input = input };
+        }
+
+        pub fn hash(parser: *const Parser(SequenceValue(Value))) u64 {
+            const self = @fieldParentPtr(Self, "parser", parser);
+
+            var v = std.hash_map.hashString("Sequence");
+            for (self.input) |in_parser| {
+                v +%= in_parser.hash();
+            }
+            return v;
         }
 
         pub fn parse(parser: *const Parser(SequenceValue(Value)), in_ctx: *const Context(void, SequenceValue(Value))) callconv(.Async) Error!void {

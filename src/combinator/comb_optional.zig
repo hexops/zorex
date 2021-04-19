@@ -14,13 +14,21 @@ pub fn OptionalContext(comptime Value: type) type {
 /// The `input.parser` must remain alive for as long as the `Optional` parser will be used.
 pub fn Optional(comptime Input: type, comptime Value: type) type {
     return struct {
-        parser: Parser(?Value) = Parser(?Value).init(parse),
+        parser: Parser(?Value) = Parser(?Value).init(parse, hash),
         input: OptionalContext(Value),
 
         const Self = @This();
 
         pub fn init(input: OptionalContext(Value)) Self {
             return Self{ .input = input };
+        }
+
+        pub fn hash(parser: *const Parser(?Value)) u64 {
+            const self = @fieldParentPtr(Self, "parser", parser);
+
+            var v = std.hash_map.hashString("Optional");
+            v +%= self.input.hash();
+            return v;
         }
 
         pub fn parse(parser: *const Parser(?Value), in_ctx: *const Context(void, ?Value)) callconv(.Async) Error!void {

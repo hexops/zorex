@@ -87,13 +87,23 @@ pub fn RepeatedValue(comptime Value: type) type {
 /// The `input` parsers must remain alive for as long as the `Repeated` parser will be used.
 pub fn Repeated(comptime Input: type, comptime Value: type) type {
     return struct {
-        parser: Parser(RepeatedValue(Value)) = Parser(RepeatedValue(Value)).init(parse),
+        parser: Parser(RepeatedValue(Value)) = Parser(RepeatedValue(Value)).init(parse, hash),
         input: RepeatedContext(Value),
 
         const Self = @This();
 
         pub fn init(input: RepeatedContext(Value)) Self {
             return Self{ .input = input };
+        }
+
+        pub fn hash(parser: *const Parser(RepeatedValue(Value))) u64 {
+            const self = @fieldParentPtr(Self, "parser", parser);
+
+            var v = std.hash_map.hashString("Repeated");
+            v +%= self.input.parser.hash();
+            v +%= std.hash_map.getAutoHashFn(usize)(self.input.min);
+            v +%= std.hash_map.getAutoHashFn(isize)(self.input.max);
+            return v;
         }
 
         pub fn parse(parser: *const Parser(RepeatedValue(Value)), in_ctx: *const Context(void, RepeatedValue(Value))) callconv(.Async) Error!void {

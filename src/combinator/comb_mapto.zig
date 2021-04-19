@@ -17,13 +17,22 @@ pub fn MapToContext(comptime Value: type, comptime Target: type) type {
 /// The `input.parser` must remain alive for as long as the `MapTo` parser will be used.
 pub fn MapTo(comptime Input: type, comptime Value: type, comptime Target: type) type {
     return struct {
-        parser: Parser(Target) = Parser(Target).init(parse),
+        parser: Parser(Target) = Parser(Target).init(parse, hash),
         input: MapToContext(Value, Target),
 
         const Self = @This();
 
         pub fn init(input: MapToContext(Value, Target)) Self {
             return Self{ .input = input };
+        }
+
+        pub fn hash(parser: *const Parser(Target)) u64 {
+            const self = @fieldParentPtr(Self, "parser", parser);
+
+            var v = std.hash_map.hashString("MapTo");
+            v +%= self.input.parser.hash();
+            v +%= @ptrToInt(self.input.mapTo);
+            return v;
         }
 
         pub fn parse(parser: *const Parser(Target), in_ctx: *const Context(void, Target)) callconv(.Async) !void {

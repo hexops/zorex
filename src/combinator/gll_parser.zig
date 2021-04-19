@@ -104,15 +104,23 @@ pub fn Parser(comptime Value: type) type {
     return struct {
         const Self = @This();
         _parse: fn (self: *const Self, ctx: *const Context(void, Value)) callconv(.Async) Error!void,
+        _hash: fn (self: *const Self) u64,
 
-        pub fn init(parseImpl: fn (self: *const Self, ctx: *const Context(void, Value)) callconv(.Async) Error!void) @This() {
-            return .{ ._parse = parseImpl };
+        pub fn init(
+            parseImpl: fn (self: *const Self, ctx: *const Context(void, Value)) callconv(.Async) Error!void,
+            hashImpl: fn (self: *const Self) u64,
+        ) @This() {
+            return .{ ._parse = parseImpl, ._hash = hashImpl };
         }
 
         pub fn parse(self: *const Self, ctx: *const Context(void, Value)) callconv(.Async) Error!void {
             var frame = try std.heap.page_allocator.allocAdvanced(u8, 16, @frameSize(self._parse), std.mem.Allocator.Exact.at_least);
             defer std.heap.page_allocator.free(frame);
             return try await @asyncCall(frame, {}, self._parse, .{ self, ctx });
+        }
+
+        pub fn hash(self: *const Self) u64 {
+            return self._hash(self);
         }
     };
 }

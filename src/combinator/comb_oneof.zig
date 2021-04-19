@@ -1,6 +1,5 @@
 usingnamespace @import("gll_parser.zig");
 usingnamespace @import("parser_literal.zig");
-usingnamespace @import("comb_repeated.zig");
 
 const std = @import("std");
 const testing = std.testing;
@@ -48,13 +47,23 @@ pub fn OneOfValue(comptime Value: type) type {
 /// The `input` parsers must remain alive for as long as the `OneOf` parser will be used.
 pub fn OneOf(comptime Input: type, comptime Value: type) type {
     return struct {
-        parser: Parser(OneOfValue(Value)) = Parser(OneOfValue(Value)).init(parse),
+        parser: Parser(OneOfValue(Value)) = Parser(OneOfValue(Value)).init(parse, hash),
         input: OneOfContext(Value),
 
         const Self = @This();
 
         pub fn init(input: OneOfContext(Value)) Self {
             return Self{ .input = input };
+        }
+
+        pub fn hash(parser: *const Parser(Value)) u64 {
+            const self = @fieldParentPtr(Self, "parser", parser);
+
+            var v = std.hash_map.hashString("OneOf");
+            for (self.input) |in_parser| {
+                v +%= in_parser.hash();
+            }
+            return v;
         }
 
         pub fn parse(parser: *const Parser(Value), in_ctx: *const Context(void, Value)) callconv(.Async) !void {

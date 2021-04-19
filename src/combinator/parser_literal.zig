@@ -10,13 +10,21 @@ pub const LiteralContext = []const u8;
 ///
 /// The `input` string must remain alive for as long as the `Literal` parser will be used.
 pub const Literal = struct {
-    parser: Parser(void) = Parser(void).init(parse),
+    parser: Parser(void) = Parser(void).init(parse, hash),
     input: LiteralContext,
 
     const Self = @This();
 
     pub fn init(input: LiteralContext) Self {
         return Self{ .input = input };
+    }
+
+    pub fn hash(parser: *const Parser(void)) u64 {
+        const self = @fieldParentPtr(Self, "parser", parser);
+
+        var v = std.hash_map.hashString("Literal");
+        v +%= std.hash_map.hashString(self.input);
+        return v;
     }
 
     pub fn parse(parser: *const Parser(void), in_ctx: *const Context(void, void)) callconv(.Async) !void {
