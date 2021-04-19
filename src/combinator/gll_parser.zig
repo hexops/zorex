@@ -43,23 +43,10 @@ pub fn Result(comptime Value: type) type {
 const MemoizeKey = struct {
     src_ptr: usize,
     offset: usize,
-
-    pub fn hashFn(key: MemoizeKey) u64 {
-        return std.hash_map.getAutoHashFn(@This())(key);
-    }
-
-    pub fn eqlFn(a: MemoizeKey, b: MemoizeKey) bool {
-        return std.hash_map.getAutoEqlFn(@This())(a, b);
-    }
 };
 
-const MemoizeHashMap = std.HashMap(
-    MemoizeKey,
-    usize, // untyped pointer *ResultStream(Result(Value)),
-    MemoizeKey.hashFn,
-    MemoizeKey.eqlFn,
-    std.hash_map.default_max_load_percentage,
-);
+// value is an untyped pointer *ResultStream(Result(Value))
+const MemoizeHashMap = std.AutoHashMap(MemoizeKey, usize);
 
 const MemoizedParser = struct {
     hash: u64,
