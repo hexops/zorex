@@ -23,11 +23,11 @@ pub fn Optional(comptime Input: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn hash(parser: *const Parser(?Value)) u64 {
+        pub fn hash(parser: *const Parser(?Value), hash_cache: *std.AutoHashMap(usize, u64)) Error!u64 {
             const self = @fieldParentPtr(Self, "parser", parser);
 
             var v = std.hash_map.hashString("Optional");
-            v +%= self.input.hash();
+            v +%= try self.input.hash(hash_cache);
             return v;
         }
 
@@ -36,7 +36,8 @@ pub fn Optional(comptime Input: type, comptime Value: type) type {
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
 
-            const child_ctx = try ctx.with({}).initChild(Value, ctx.input.hash(), ctx.offset);
+            const child_hash = try ctx.input.hash(&in_ctx.memoizer.hash_cache);
+            const child_ctx = try ctx.with({}).initChild(Value, child_hash, ctx.offset);
             defer child_ctx.deinitChild();
             if (!child_ctx.existing_results) try ctx.input.parse(&child_ctx);
 

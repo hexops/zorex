@@ -56,12 +56,12 @@ pub fn OneOf(comptime Input: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn hash(parser: *const Parser(Value)) u64 {
+        pub fn hash(parser: *const Parser(Value), hash_cache: *std.AutoHashMap(usize, u64)) Error!u64 {
             const self = @fieldParentPtr(Self, "parser", parser);
 
             var v = std.hash_map.hashString("OneOf");
             for (self.input) |in_parser| {
-                v +%= in_parser.hash();
+                v +%= try in_parser.hash(hash_cache);
             }
             return v;
         }
@@ -74,7 +74,8 @@ pub fn OneOf(comptime Input: type, comptime Value: type) type {
             var buffer = try ResultStream(Result(OneOfValue(Value))).init(ctx.allocator);
             defer buffer.deinit();
             for (self.input) |in_parser| {
-                var child_ctx = try ctx.with({}).initChild(Value, in_parser.hash(), ctx.offset);
+                const child_hash = try in_parser.hash(&in_ctx.memoizer.hash_cache);
+                var child_ctx = try ctx.with({}).initChild(Value, child_hash, ctx.offset);
                 defer child_ctx.deinitChild();
                 if (!child_ctx.existing_results) try in_parser.parse(&child_ctx);
                 var sub = child_ctx.results.subscribe();

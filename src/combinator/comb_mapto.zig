@@ -26,11 +26,11 @@ pub fn MapTo(comptime Input: type, comptime Value: type, comptime Target: type) 
             return Self{ .input = input };
         }
 
-        pub fn hash(parser: *const Parser(Target)) u64 {
+        pub fn hash(parser: *const Parser(Target), hash_cache: *std.AutoHashMap(usize, u64)) Error!u64 {
             const self = @fieldParentPtr(Self, "parser", parser);
 
             var v = std.hash_map.hashString("MapTo");
-            v +%= self.input.parser.hash();
+            v +%= try self.input.parser.hash(hash_cache);
             v +%= @ptrToInt(self.input.mapTo);
             return v;
         }
@@ -40,7 +40,8 @@ pub fn MapTo(comptime Input: type, comptime Value: type, comptime Target: type) 
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
 
-            const child_ctx = try ctx.with({}).initChild(Value, ctx.input.parser.hash(), ctx.offset);
+            const child_hash = try ctx.input.parser.hash(&in_ctx.memoizer.hash_cache);
+            const child_ctx = try ctx.with({}).initChild(Value, child_hash, ctx.offset);
             defer child_ctx.deinitChild();
             if (!child_ctx.existing_results) try ctx.input.parser.parse(&child_ctx);
 

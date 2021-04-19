@@ -19,7 +19,7 @@ pub const Literal = struct {
         return Self{ .input = input };
     }
 
-    pub fn hash(parser: *const Parser(void)) u64 {
+    pub fn hash(parser: *const Parser(void), hash_cache: *std.AutoHashMap(usize, u64)) Error!u64 {
         const self = @fieldParentPtr(Self, "parser", parser);
 
         var v = std.hash_map.hashString("Literal");

@@ -47,7 +47,7 @@ const MemoizeKey = struct {
 
 const MemoizeValue = struct {
     results: usize, // untyped pointer *ResultStream(Result(Value))
-    deinit: fn(results: usize, allocator: *mem.Allocator) void,
+    deinit: fn (results: usize, allocator: *mem.Allocator) void,
 };
 
 const MemoizeHashMap = std.AutoHashMap(MemoizeKey, MemoizeValue);
@@ -68,6 +68,9 @@ fn MemoizedResult(comptime Value: type) type {
 const Memoizer = struct {
     // Parser node names -> localized parser memoization maps
     parser_nodes: std.AutoHashMap(u64, *MemoizeHashMap),
+
+    // *Parser(T) -> computed hash.
+    hash_cache: std.AutoHashMap(usize, u64),
 
     pub fn get(self: *@This(), comptime Value: type, allocator: *mem.Allocator, parser: MemoizedParser) !MemoizedResult(Value) {
         // Does a localized hashmap for this parser node exist already?
@@ -92,7 +95,7 @@ const Memoizer = struct {
             results.* = try ResultStream(Result(Value)).init(allocator);
             l.entry.value = .{
                 .results = @ptrToInt(results),
-                .deinit = struct{
+                .deinit = struct {
                     fn deinit(_resultsPtr: usize, _allocator: *mem.Allocator) void {
                         var _results = @intToPtr(*ResultStream(Result(Value)), _resultsPtr);
                         _results.deinit();
@@ -111,6 +114,7 @@ const Memoizer = struct {
         var self = try allocator.create(@This());
         self.* = .{
             .parser_nodes = std.AutoHashMap(u64, *MemoizeHashMap).init(allocator),
+            .hash_cache = std.AutoHashMap(usize, u64).init(allocator),
         };
         return self;
     }
@@ -128,6 +132,7 @@ const Memoizer = struct {
             }
         }
         self.parser_nodes.deinit();
+        self.hash_cache.deinit();
         allocator.destroy(self);
     }
 };
@@ -212,11 +217,11 @@ pub fn Parser(comptime Value: type) type {
     return struct {
         const Self = @This();
         _parse: fn (self: *const Self, ctx: *const Context(void, Value)) callconv(.Async) Error!void,
-        _hash: fn (self: *const Self) u64,
+        _hash: fn (self: *const Self, hash_cache: *std.AutoHashMap(usize, u64)) Error!u64,
 
         pub fn init(
             parseImpl: fn (self: *const Self, ctx: *const Context(void, Value)) callconv(.Async) Error!void,
-            hashImpl: fn (self: *const Self) u64,
+            hashImpl: fn (self: *const Self, hash_cache: *std.AutoHashMap(usize, u64)) Error!u64,
         ) @This() {
             return .{ ._parse = parseImpl, ._hash = hashImpl };
         }
@@ -227,8 +232,12 @@ pub fn Parser(comptime Value: type) type {
             return try await @asyncCall(frame, {}, self._parse, .{ self, ctx });
         }
 
-        pub fn hash(self: *const Self) u64 {
-            return self._hash(self);
+        pub fn hash(self: *const Self, hash_cache: *std.AutoHashMap(usize, u64)) Error!u64 {
+            var v = try hash_cache.getOrPut(@ptrToInt(self));
+            if (!v.found_existing) {
+                v.entry.value = try self._hash(self, hash_cache);
+            }
+            return v.entry.value;
         }
     };
 }

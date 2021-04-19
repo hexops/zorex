@@ -89,12 +89,12 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn hash(parser: *const Parser(SequenceValue(Value))) u64 {
+        pub fn hash(parser: *const Parser(SequenceValue(Value)), hash_cache: *std.AutoHashMap(usize, u64)) Error!u64 {
             const self = @fieldParentPtr(Self, "parser", parser);
 
             var v = std.hash_map.hashString("Sequence");
             for (self.input) |in_parser| {
-                v +%= in_parser.hash();
+                v +%= try in_parser.hash(hash_cache);
             }
             return v;
         }
@@ -139,7 +139,8 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
             // This call to `Sequence.parse` is only responsible for emitting the top level
             // (A1, A2) and invoking Sequence(next) to produce the associated `stream()` for those
             // parse states.
-            var child_ctx = try ctx.with({}).initChild(Value, self.input[0].hash(), ctx.offset);
+            const child_hash = try self.input[0].hash(&in_ctx.memoizer.hash_cache);
+            var child_ctx = try ctx.with({}).initChild(Value, child_hash, ctx.offset);
             defer child_ctx.deinitChild();
             if (!child_ctx.existing_results) try self.input[0].parse(&child_ctx);
 
@@ -160,7 +161,8 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
                         path_results.* = try ResultStream(Result(SequenceValue(Value))).init(ctx.allocator);
 
                         var path = Sequence(Input, Value).init(self.input[1..]);
-                        var path_ctx = try in_ctx.initChild(SequenceValue(Value), path.parser.hash(), top_level.offset);
+                        const path_hash = try path.parser.hash(&in_ctx.memoizer.hash_cache);
+                        var path_ctx = try in_ctx.initChild(SequenceValue(Value), path_hash, top_level.offset);
                         defer path_ctx.deinitChild();
                         if (!path_ctx.existing_results) try path.parser.parse(&path_ctx);
                         var path_results_sub = path_ctx.results.subscribe();

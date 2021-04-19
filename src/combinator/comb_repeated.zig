@@ -96,11 +96,11 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn hash(parser: *const Parser(RepeatedValue(Value))) u64 {
+        pub fn hash(parser: *const Parser(RepeatedValue(Value)), hash_cache: *std.AutoHashMap(usize, u64)) Error!u64 {
             const self = @fieldParentPtr(Self, "parser", parser);
 
             var v = std.hash_map.hashString("Repeated");
-            v +%= self.input.parser.hash();
+            v +%= try self.input.parser.hash(hash_cache);
             v +%= std.hash_map.getAutoHashFn(usize)(self.input.min);
             v +%= std.hash_map.getAutoHashFn(isize)(self.input.max);
             return v;
@@ -186,7 +186,8 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
             //      ),
             //  )
             //
-            var child_ctx = try ctx.with({}).initChild(Value, self.input.parser.hash(), ctx.offset);
+            const child_hash = try self.input.parser.hash(&in_ctx.memoizer.hash_cache);
+            var child_ctx = try ctx.with({}).initChild(Value, child_hash, ctx.offset);
             defer child_ctx.deinitChild();
             if (!child_ctx.existing_results) try self.input.parser.parse(&child_ctx);
 
@@ -220,7 +221,8 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                             .min = self.input.min,
                             .max = if (self.input.max == -1) -1 else self.input.max - 1,
                         });
-                        var path_ctx = try in_ctx.initChild(RepeatedValue(Value), path.parser.hash(), top_level.offset);
+                        const path_hash = try path.parser.hash(&in_ctx.memoizer.hash_cache);
+                        var path_ctx = try in_ctx.initChild(RepeatedValue(Value), path_hash, top_level.offset);
                         defer path_ctx.deinitChild();
                         if (!path_ctx.existing_results) try path.parser.parse(&path_ctx);
                         var path_results_sub = path_ctx.results.subscribe();
