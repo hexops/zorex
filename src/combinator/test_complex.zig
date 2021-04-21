@@ -4,6 +4,7 @@ usingnamespace @import("comb_sequence.zig");
 usingnamespace @import("comb_mapto.zig");
 
 const std = @import("std");
+const mem = std.mem;
 const testing = std.testing;
 
 // Confirms that a direct left-recursive grammar for an empty languages actually rejects
@@ -32,14 +33,11 @@ test "direct_left_recursion_empty_language" {
         var expr = MapTo(void, SequenceValue(node), node).init(.{
             .parser = &Sequence(void, node).init(&parsers).parser,
             .mapTo = struct {
-                fn mapTo(in: Result(SequenceValue(node))) Error!Result(node) {
+                fn mapTo(in: Result(SequenceValue(node)), _allocator: *mem.Allocator, state_hash: u64, path: ParserPath) Error!Result(node) {
                     switch (in.result) {
                         .err => return Result(node).initError(in.offset, in.result.err),
                         else => {
-                            // TODO(slimsag): testing.allocator shouldn't need to be used here, should come from MapTo
-                            // TODO(slimsag): subscriber_id is wrong, should come from MapTo
-                            // TODO(slimsag): parser path is wrong, should come from MapTo
-                            var flattened = try in.result.value.flatten(testing.allocator, 0, ParserPath.init());
+                            var flattened = try in.result.value.flatten(_allocator, state_hash, path);
                             defer flattened.deinit();
                             return Result(node).init(in.offset, node{ .name = "Expr" });
                         },

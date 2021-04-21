@@ -8,7 +8,7 @@ const mem = std.mem;
 pub fn MapToContext(comptime Value: type, comptime Target: type) type {
     return struct {
         parser: *const Parser(Value),
-        mapTo: fn (Result(Value)) Error!Result(Target),
+        mapTo: fn (in: Result(Value), allocator: *mem.Allocator, state_hash: u64, path: ParserPath) Error!Result(Target),
     };
 }
 
@@ -47,7 +47,7 @@ pub fn MapTo(comptime Input: type, comptime Value: type, comptime Target: type) 
 
             var sub = child_ctx.results.subscribe(ctx.state_hash, ctx.path);
             while (sub.next()) |next| {
-                try ctx.results.add(try ctx.input.mapTo(next));
+                try ctx.results.add(try ctx.input.mapTo(next, ctx.allocator, ctx.state_hash, ctx.path));
             }
         }
     };
@@ -63,7 +63,7 @@ test "oneof" {
         const mapTo = MapTo(void, void, []const u8).init(.{
             .parser = &Literal.init("hello").parser,
             .mapTo = struct {
-                fn mapTo(in: Result(void)) Error!Result([]const u8) {
+                fn mapTo(in: Result(void), _allocator: *mem.Allocator, state_hash: u64, path: ParserPath) Error!Result([]const u8) {
                     switch (in.result) {
                         .err => return Result([]const u8).initError(in.offset, in.result.err),
                         else => return Result([]const u8).init(in.offset, "hello"),
