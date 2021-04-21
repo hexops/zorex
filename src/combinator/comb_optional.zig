@@ -41,7 +41,7 @@ pub fn Optional(comptime Input: type, comptime Value: type) type {
             defer child_ctx.deinitChild();
             if (!child_ctx.existing_results) try ctx.input.parse(&child_ctx);
 
-            var sub = child_ctx.results.subscribe();
+            var sub = child_ctx.results.subscribe(ctx.state_hash, ctx.path);
             while (sub.next()) |next| {
                 switch (next.result) {
                     .err => try ctx.results.add(Result(?Value).init(0, null)),
@@ -64,7 +64,7 @@ test "optional_some" {
 
         try optional.parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe();
+        var sub = ctx.results.subscribe(ctx.state_hash, ctx.path);
         testing.expectEqual(@as(?Result(?void), Result(?void).init(5, {})), sub.next());
         testing.expectEqual(@as(?Result(?void), null), sub.next());
     }
@@ -81,7 +81,7 @@ test "optional_none" {
 
         try optional.parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe();
+        var sub = ctx.results.subscribe(ctx.state_hash, ctx.path);
         testing.expectEqual(@as(?Result(?void), Result(?void).init(0, null)), sub.next());
         testing.expectEqual(@as(?Result(?void), null), sub.next());
     }

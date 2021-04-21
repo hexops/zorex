@@ -53,7 +53,7 @@ test "literal" {
         var want = "hello";
         var l = Literal.init(want);
         try l.parser.parse(&ctx);
-        var sub = ctx.results.subscribe();
+        var sub = ctx.results.subscribe(ctx.state_hash, ctx.path);
         testing.expectEqual(@as(?Result(void), Result(void).init(want.len, {})), sub.next());
         testing.expectEqual(@as(?Result(void), null), sub.next());
     }

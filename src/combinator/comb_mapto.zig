@@ -45,7 +45,7 @@ pub fn MapTo(comptime Input: type, comptime Value: type, comptime Target: type) 
             defer child_ctx.deinitChild();
             if (!child_ctx.existing_results) try ctx.input.parser.parse(&child_ctx);
 
-            var sub = child_ctx.results.subscribe();
+            var sub = child_ctx.results.subscribe(ctx.state_hash, ctx.path);
             while (sub.next()) |next| {
                 try ctx.results.add(try ctx.input.mapTo(next));
             }
@@ -74,7 +74,7 @@ test "oneof" {
 
         try mapTo.parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe();
+        var sub = ctx.results.subscribe(ctx.state_hash, ctx.path);
         testing.expectEqual(@as(?Result([]const u8), Result([]const u8).init(5, "hello")), sub.next());
         testing.expectEqual(@as(?Result([]const u8), null), sub.next());
     }

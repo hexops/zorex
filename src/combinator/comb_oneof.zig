@@ -71,14 +71,14 @@ pub fn OneOf(comptime Input: type, comptime Value: type) type {
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
 
-            var buffer = try ResultStream(Result(OneOfValue(Value))).init(ctx.allocator);
+            var buffer = try ResultStream(Result(OneOfValue(Value))).init(ctx.allocator, ctx.state_hash);
             defer buffer.deinit();
             for (self.input) |in_parser| {
                 const child_hash = try in_parser.hash(&in_ctx.memoizer.hash_cache);
                 var child_ctx = try ctx.with({}).initChild(Value, child_hash, ctx.offset);
                 defer child_ctx.deinitChild();
                 if (!child_ctx.existing_results) try in_parser.parse(&child_ctx);
-                var sub = child_ctx.results.subscribe();
+                var sub = child_ctx.results.subscribe(ctx.state_hash, ctx.path);
                 while (sub.next()) |next| {
                     try buffer.add(next);
                 }
@@ -87,7 +87,7 @@ pub fn OneOf(comptime Input: type, comptime Value: type) type {
 
             var gotValues: usize = 0;
             var gotErrors: usize = 0;
-            var sub = buffer.subscribe();
+            var sub = buffer.subscribe(ctx.state_hash, ctx.path);
             while (sub.next()) |next| {
                 switch (next.result) {
                     .err => gotErrors += 1,
@@ -96,7 +96,7 @@ pub fn OneOf(comptime Input: type, comptime Value: type) type {
             }
             if (gotValues > 0) {
                 // At least one parse path succeeded, so discard all error'd parse paths.
-                var sub2 = buffer.subscribe();
+                var sub2 = buffer.subscribe(ctx.state_hash, ctx.path);
                 while (sub2.next()) |next| {
                     switch (next.result) {
                         .err => {},
@@ -132,7 +132,7 @@ test "oneof" {
         };
         var helloOrWorld = OneOf(void, void).init(parsers);
         try helloOrWorld.parser.parse(&ctx);
-        var sub = ctx.results.subscribe();
+        var sub = ctx.results.subscribe(ctx.state_hash, ctx.path);
         testing.expectEqual(@as(?Result(OneOfValue(void)), Result(OneOfValue(void)).init(4, .{})), sub.next());
         testing.expect(sub.next() == null); // stream closed
     }
@@ -157,7 +157,7 @@ test "oneof_ambiguous" {
         };
         var helloOrWorld = OneOf(void, void).init(parsers);
         try helloOrWorld.parser.parse(&ctx);
-        var sub = ctx.results.subscribe();
+        var sub = ctx.results.subscribe(ctx.state_hash, ctx.path);
         testing.expectEqual(@as(?Result(OneOfValue(void)), Result(OneOfValue(void)).init(4, .{})), sub.next());
         testing.expectEqual(@as(?Result(OneOfValue(void)), Result(OneOfValue(void)).init(9, .{})), sub.next());
         testing.expect(sub.next() == null); // stream closed
