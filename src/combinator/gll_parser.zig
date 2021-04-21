@@ -1,4 +1,5 @@
 pub usingnamespace @import("gll_result_stream.zig");
+pub usingnamespace @import("gll_parser_path.zig");
 
 const std = @import("std");
 const testing = std.testing;
@@ -56,6 +57,10 @@ const MemoizedParser = struct {
     hash: u64,
     src_ptr: usize,
     offset: usize,
+
+    pub fn state_hash(self: MemoizedParser) u64 {
+        return std.hash_map.getAutoHashFn(@This())(self);
+    }
 };
 
 fn MemoizedResult(comptime Value: type) type {
@@ -92,7 +97,7 @@ const Memoizer = struct {
         if (!l.found_existing) {
             // Create a new result stream for this input state.
             var results = try allocator.create(ResultStream(Result(Value)));
-            results.* = try ResultStream(Result(Value)).init(allocator);
+            results.* = try ResultStream(Result(Value)).init(allocator, parser.state_hash());
             l.entry.value = .{
                 .results = @ptrToInt(results),
                 .deinit = struct {
@@ -148,10 +153,18 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
         results: *ResultStream(Result(Value)),
         existing_results: bool,
         memoizer: *Memoizer,
+        state_hash: u64,
+        path: ParserPath,
 
         pub fn init(allocator: *mem.Allocator, src: []const u8, input: Input) !@This() {
+            const state_hash = (MemoizedParser{
+                .hash = 0,
+                .src_ptr = @ptrToInt(&src[0]),
+                .offset = 0,
+            }).state_hash();
+
             var results = try allocator.create(ResultStream(Result(Value)));
-            results.* = try ResultStream(Result(Value)).init(allocator);
+            results.* = try ResultStream(Result(Value)).init(allocator, state_hash);
             return @This(){
                 .input = input,
                 .allocator = allocator,
@@ -160,10 +173,17 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
                 .results = results,
                 .existing_results = false,
                 .memoizer = try Memoizer.init(allocator),
+                .state_hash = state_hash,
+                .path = ParserPath.init(),
             };
         }
 
         pub fn initChild(self: @This(), comptime NewValue: type, parser_hash: u64, offset: usize) !Context(Input, NewValue) {
+            const memoized_parser = MemoizedParser{
+                .hash = parser_hash,
+                .src_ptr = @ptrToInt(&self.src[0]),
+                .offset = offset,
+            };
             var child_ctx = Context(Input, NewValue){
                 .input = self.input,
                 .allocator = self.allocator,
@@ -172,13 +192,12 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
                 .results = undefined,
                 .existing_results = false,
                 .memoizer = self.memoizer,
+                .state_hash = memoized_parser.state_hash(),
+                .path = try self.path.clone(self.allocator),
             };
+            try child_ctx.path.push(child_ctx.state_hash, self.allocator);
 
-            var memoized = try self.memoizer.get(NewValue, self.allocator, .{
-                .hash = parser_hash,
-                .src_ptr = @ptrToInt(&self.src[0]),
-                .offset = offset,
-            });
+            var memoized = try self.memoizer.get(NewValue, self.allocator, memoized_parser);
             child_ctx.results = memoized.results;
             if (memoized.was_cached) {
                 child_ctx.existing_results = true;
@@ -195,6 +214,8 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
                 .results = self.results,
                 .existing_results = self.existing_results,
                 .memoizer = self.memoizer,
+                .state_hash = self.state_hash,
+                .path = self.path,
             };
         }
 
@@ -202,10 +223,12 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
             self.results.deinit();
             self.allocator.destroy(self.results);
             self.memoizer.deinit(self.allocator);
+            self.path.deinit(self.allocator);
             return;
         }
 
         pub fn deinitChild(self: @This()) void {
+            self.path.deinit(self.allocator);
             return;
         }
     };
