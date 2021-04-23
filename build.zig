@@ -7,6 +7,7 @@ pub fn build(b: *Builder) void {
     lib.install();
 
     var main_tests = b.addTest("src/main.zig");
+    main_tests.test_evented_io = true;
     main_tests.setBuildMode(mode);
 
     const test_step = b.step("test", "Run library tests");
