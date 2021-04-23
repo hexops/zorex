@@ -49,7 +49,6 @@ test "direct_left_recursion_empty_language" {
         try expr.parser.parse(&ctx);
 
         var sub = ctx.results.subscribe(ctx.state_hash, ctx.path);
-        var list = sub.next();
         testing.expect(sub.next() == null); // stream closed
     }
 }
