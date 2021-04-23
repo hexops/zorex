@@ -68,7 +68,7 @@ pub fn RepeatedValue(comptime Value: type) type {
 
             defer allocator.destroy(self.next);
             defer self.next.deinit();
-            var sub = self.next.subscribe(subscriber_id, path);
+            var sub = self.next.subscribe(subscriber_id, path, Result(RepeatedValue(Value)).initError(0, "matches only the empty language"));
 
             nosuspend {
                 while (sub.next()) |next_path| {
@@ -193,7 +193,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
 
             // For every top-level value (A, B, C in our example above.)
             var num_values: usize = 0;
-            var sub = child_ctx.results.subscribe(ctx.state_hash, ctx.path);
+            var sub = child_ctx.results.subscribe(ctx.state_hash, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"));
             var offset: usize = 0;
             while (sub.next()) |top_level| {
                 if (num_values >= ctx.input.max and ctx.input.max != -1) break;
@@ -224,7 +224,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                         var path_ctx = try in_ctx.initChild(RepeatedValue(Value), path_hash, top_level.offset);
                         defer path_ctx.deinitChild();
                         if (!path_ctx.existing_results) try path.parser.parse(&path_ctx);
-                        var path_results_sub = path_ctx.results.subscribe(ctx.state_hash, ctx.path);
+                        var path_results_sub = path_ctx.results.subscribe(ctx.state_hash, ctx.path, Result(RepeatedValue(Value)).initError(ctx.offset, "matches only the empty language"));
                         while (path_results_sub.next()) |next| {
                             try path_results.add(next);
                         }
@@ -262,7 +262,7 @@ test "repeated" {
         });
         try abcInfinity.parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe(ctx.state_hash, ctx.path);
+        var sub = ctx.results.subscribe(ctx.state_hash, ctx.path, Result(RepeatedValue(void)).initError(ctx.offset, "matches only the empty language"));
         var list = sub.next();
         testing.expect(sub.next() == null); // stream closed
 
@@ -274,7 +274,7 @@ test "repeated" {
         // this is fine to do and makes testing far easier.
         var flattened = try list.?.result.value.flatten(allocator, ctx.state_hash, ctx.path);
         defer flattened.deinit();
-        var flat = flattened.subscribe(ctx.state_hash, ctx.path);
+        var flat = flattened.subscribe(ctx.state_hash, ctx.path, Result(void).initError(ctx.offset, "matches only the empty language"));
         testing.expectEqual(@as(usize, 3), flat.next().?.offset);
         testing.expectEqual(@as(usize, 6), flat.next().?.offset);
         testing.expectEqual(@as(usize, 9), flat.next().?.offset);

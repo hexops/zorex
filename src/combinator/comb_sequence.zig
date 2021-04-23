@@ -60,7 +60,7 @@ pub fn SequenceValue(comptime Value: type) type {
 
             defer allocator.destroy(self.next);
             defer self.next.deinit();
-            var sub = self.next.subscribe(subscriber_id, path);
+            var sub = self.next.subscribe(subscriber_id, path, Result(SequenceValue(Value)).initError(0, "matches only the empty language"));
 
             nosuspend {
                 while (sub.next()) |next_path| {
@@ -145,7 +145,7 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
             if (!child_ctx.existing_results) try self.input[0].parse(&child_ctx);
 
             // For every top-level value (A1, A2 in our example above.)
-            var sub = child_ctx.results.subscribe(ctx.state_hash, ctx.path);
+            var sub = child_ctx.results.subscribe(ctx.state_hash, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"));
             while (sub.next()) |top_level| {
                 switch (top_level.result) {
                     .err => {
@@ -164,7 +164,7 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
                         var path_ctx = try in_ctx.initChild(SequenceValue(Value), path_hash, top_level.offset);
                         defer path_ctx.deinitChild();
                         if (!path_ctx.existing_results) try path.parser.parse(&path_ctx);
-                        var path_results_sub = path_ctx.results.subscribe(ctx.state_hash, ctx.path);
+                        var path_results_sub = path_ctx.results.subscribe(ctx.state_hash, ctx.path, Result(SequenceValue(Value)).initError(ctx.offset, "matches only the empty language"));
                         while (path_results_sub.next()) |next| {
                             try path_results.add(next);
                         }
@@ -197,7 +197,7 @@ test "sequence" {
         });
         try seq.parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe(ctx.state_hash, ctx.path);
+        var sub = ctx.results.subscribe(ctx.state_hash, ctx.path, Result(SequenceValue(void)).initError(ctx.offset, "matches only the empty language"));
         var list = sub.next();
         testing.expect(sub.next() == null); // stream closed
 
@@ -209,7 +209,7 @@ test "sequence" {
         // this is fine to do and makes testing far easier.
         var flattened = try list.?.result.value.flatten(allocator, ctx.state_hash, ctx.path);
         defer flattened.deinit();
-        var flat = flattened.subscribe(ctx.state_hash, ctx.path);
+        var flat = flattened.subscribe(ctx.state_hash, ctx.path, Result(void).initError(ctx.offset, "matches only the empty language"));
         testing.expectEqual(@as(usize, 3), flat.next().?.offset);
         testing.expectEqual(@as(usize, 8), flat.next().?.offset);
         testing.expectEqual(@as(usize, 11), flat.next().?.offset);

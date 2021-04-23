@@ -10,6 +10,8 @@ pub fn Iterator(comptime T: type) type {
         index: usize = 0,
         subscriber_id: u64,
         path: ParserPath,
+        cyclic_closed: bool = false,
+        cyclic_error: T,
 
         const Self = @This();
 
@@ -19,7 +21,7 @@ pub fn Iterator(comptime T: type) type {
         /// a new value is added.
         pub fn next(self: *Self) callconv(.Async) ?T {
             if (self.stream.past_values.items.len == 0 or self.index >= self.stream.past_values.items.len) {
-                if (self.stream.closed) {
+                if (self.stream.closed or self.cyclic_closed) {
                     return null; // no more results
                 }
                 if (self.path.contains(self.subscriber_id)) {
@@ -33,7 +35,8 @@ pub fn Iterator(comptime T: type) type {
                     //
                     // In practice it may be a more complex form; but regardless this means that
                     // the subscriber should recieve no results.
-                    return null;
+                    self.cyclic_closed = true;
+                    return self.cyclic_error;
                 }
                 // set ourselves up to be resumed later:
                 self.stream.listeners.append(@frame()) catch unreachable;
@@ -108,11 +111,12 @@ pub fn ResultStream(comptime T: type) type {
         ///
         /// Uses of the returned iterator are valid for as long as the result stream is not
         /// deinitialized.
-        pub fn subscribe(self: *Self, subscriber_id: u64, path: ParserPath) Iterator(T) {
+        pub fn subscribe(self: *Self, subscriber_id: u64, path: ParserPath, cyclic_error: T) Iterator(T) {
             return Iterator(T){
                 .stream = self,
                 .subscriber_id = subscriber_id,
                 .path = path,
+                .cyclic_error = cyclic_error,
             };
         }
     };
@@ -128,7 +132,7 @@ test "result_stream" {
 
         // Subscribe and begin to query a value (next() will suspend) before any values have been added
         // to the stream.
-        var sub1 = stream.subscribe(subscriber_id, path);
+        var sub1 = stream.subscribe(subscriber_id, path, -1);
         var sub1first = async sub1.next();
 
         // Add a value to the stream, our first subscription will get it.
@@ -147,7 +151,7 @@ test "result_stream" {
         testing.expectEqual(@as(?i32, null), sub1.next());
 
         // Now that the stream is closed, add a new subscription and confirm we get all prior values.
-        var sub2 = stream.subscribe(subscriber_id, path);
+        var sub2 = stream.subscribe(subscriber_id, path, -1);
         testing.expectEqual(@as(?i32, 1), sub2.next());
         testing.expectEqual(@as(?i32, 2), sub2.next());
         testing.expectEqual(@as(?i32, null), sub2.next());

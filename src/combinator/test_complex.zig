@@ -49,8 +49,13 @@ test "direct_left_recursion_empty_language" {
         parsers[0] = &expr.parser;
         try expr.parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe(ctx.state_hash, ctx.path);
+        var sub = ctx.results.subscribe(ctx.state_hash, ctx.path, Result(node).initError(ctx.offset, "matches only the empty language"));
+        var first = sub.next().?;
         testing.expect(sub.next() == null); // stream closed
+
+        // TODO(slimsag): perhaps better if it's not an error?
+        testing.expectEqual(@as(usize, 0), first.offset);
+        testing.expectEqualStrings("matches only the empty language", first.result.err);
     }
 }
 
@@ -103,7 +108,7 @@ test "direct_left_recursion" {
                         var flattened = try in.result.value.flatten(_allocator, state_hash, path);
                         defer flattened.deinit();
                         nosuspend {
-                            var sub = flattened.subscribe(state_hash, path);
+                            var sub = flattened.subscribe(state_hash, path, Result(node).initError(0, "matches only the empty language"));
                             try name.appendSlice("Expr(");
                             while (sub.next()) |next| {
                                 try name.appendSlice(next.result.value.name.items);
@@ -125,7 +130,6 @@ test "direct_left_recursion" {
                 switch (in.result) {
                     .err => return Result(node).initError(in.offset, in.result.err),
                     else => {
-                        std.debug.print("\nGOT RESULT {s}\n", .{in.result.value});
                         if (in.result.value == null) {
                             var name = std.ArrayList(u8).init(_allocator);
                             try name.appendSlice("Optional(null)");
@@ -146,7 +150,12 @@ test "direct_left_recursion" {
     parsers[0] = &optionalExpr.parser;
     try expr.parser.parse(&ctx);
 
-    var sub = ctx.results.subscribe(ctx.state_hash, ctx.path);
-    // TODO(slimsag): Should emit "abc" 3 times! It does not!
+    var sub = ctx.results.subscribe(ctx.state_hash, ctx.path, Result(node).initError(ctx.offset, "matches only the empty language"));
+    var first = sub.next().?;
     testing.expect(sub.next() == null); // stream closed
+
+    testing.expectEqual(@as(usize, 0), first.offset);
+    // TODO(slimsag): Should emit "abc" 3 times! It does not!
+    testing.expectEqualStrings("Expr(Optional(null),abc,)", first.result.value.name.items);
+    first.result.value.name.deinit();
 }
