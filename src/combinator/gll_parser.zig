@@ -53,14 +53,10 @@ const MemoizeValue = struct {
 
 const MemoizeHashMap = std.AutoHashMap(MemoizeKey, MemoizeValue);
 
-const MemoizedParser = struct {
+pub const ParserPosKey = struct {
     hash: u64,
     src_ptr: usize,
     offset: usize,
-
-    pub fn state_hash(self: MemoizedParser) u64 {
-        return std.hash_map.getAutoHashFn(@This())(self);
-    }
 };
 
 fn MemoizedResult(comptime Value: type) type {
@@ -77,7 +73,7 @@ const Memoizer = struct {
     // *Parser(T) -> computed hash.
     hash_cache: std.AutoHashMap(usize, u64),
 
-    pub fn get(self: *@This(), comptime Value: type, allocator: *mem.Allocator, parser: MemoizedParser) !MemoizedResult(Value) {
+    pub fn get(self: *@This(), comptime Value: type, allocator: *mem.Allocator, parser: ParserPosKey) !MemoizedResult(Value) {
         // Does a localized hashmap for this parser node exist already?
         const v = try self.parser_nodes.getOrPut(parser.hash);
         if (!v.found_existing) {
@@ -97,7 +93,7 @@ const Memoizer = struct {
         if (!l.found_existing) {
             // Create a new result stream for this input state.
             var results = try allocator.create(ResultStream(Result(Value)));
-            results.* = try ResultStream(Result(Value)).init(allocator, parser.state_hash());
+            results.* = try ResultStream(Result(Value)).init(allocator, parser);
             l.entry.value = .{
                 .results = @ptrToInt(results),
                 .deinit = struct {
@@ -153,18 +149,18 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
         results: *ResultStream(Result(Value)),
         existing_results: bool,
         memoizer: *Memoizer,
-        state_hash: u64,
+        key: ParserPosKey,
         path: ParserPath,
 
         pub fn init(allocator: *mem.Allocator, src: []const u8, input: Input) !@This() {
-            const state_hash = (MemoizedParser{
+            const key = .{
                 .hash = 0,
                 .src_ptr = @ptrToInt(&src[0]),
                 .offset = 0,
-            }).state_hash();
+            };
 
             var results = try allocator.create(ResultStream(Result(Value)));
-            results.* = try ResultStream(Result(Value)).init(allocator, state_hash);
+            results.* = try ResultStream(Result(Value)).init(allocator, key);
             return @This(){
                 .input = input,
                 .allocator = allocator,
@@ -173,13 +169,13 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
                 .results = results,
                 .existing_results = false,
                 .memoizer = try Memoizer.init(allocator),
-                .state_hash = state_hash,
+                .key = key,
                 .path = ParserPath.init(),
             };
         }
 
         pub fn initChild(self: @This(), comptime NewValue: type, parser_hash: u64, offset: usize) !Context(Input, NewValue) {
-            const memoized_parser = MemoizedParser{
+            const key = ParserPosKey{
                 .hash = parser_hash,
                 .src_ptr = @ptrToInt(&self.src[0]),
                 .offset = offset,
@@ -192,12 +188,12 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
                 .results = undefined,
                 .existing_results = false,
                 .memoizer = self.memoizer,
-                .state_hash = memoized_parser.state_hash(),
+                .key = key,
                 .path = try self.path.clone(self.allocator),
             };
-            try child_ctx.path.push(child_ctx.state_hash, self.allocator);
+            try child_ctx.path.push(child_ctx.key, self.allocator);
 
-            var memoized = try self.memoizer.get(NewValue, self.allocator, memoized_parser);
+            var memoized = try self.memoizer.get(NewValue, self.allocator, key);
             child_ctx.results = memoized.results;
             if (memoized.was_cached) {
                 child_ctx.existing_results = true;
@@ -214,7 +210,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
                 .results = self.results,
                 .existing_results = self.existing_results,
                 .memoizer = self.memoizer,
-                .state_hash = self.state_hash,
+                .key = self.key,
                 .path = self.path,
             };
         }

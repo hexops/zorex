@@ -48,25 +48,25 @@ pub fn SequenceValue(comptime Value: type) type {
         node: Result(Value),
         next: *ResultStream(Result(@This())),
 
-        pub fn flatten(self: *const @This(), allocator: *mem.Allocator, subscriber_id: u64, path: ParserPath) Error!ResultStream(Result(Value)) {
-            var dst = try ResultStream(Result(Value)).init(allocator, subscriber_id);
-            try self.flatten_into(&dst, allocator, subscriber_id, path);
+        pub fn flatten(self: *const @This(), allocator: *mem.Allocator, subscriber: ParserPosKey, path: ParserPath) Error!ResultStream(Result(Value)) {
+            var dst = try ResultStream(Result(Value)).init(allocator, subscriber);
+            try self.flatten_into(&dst, allocator, subscriber, path);
             dst.close(); // TODO(slimsag): why does deferring this not work?
             return dst;
         }
 
-        pub fn flatten_into(self: *const @This(), dst: *ResultStream(Result(Value)), allocator: *mem.Allocator, subscriber_id: u64, path: ParserPath) Error!void {
+        pub fn flatten_into(self: *const @This(), dst: *ResultStream(Result(Value)), allocator: *mem.Allocator, subscriber: ParserPosKey, path: ParserPath) Error!void {
             try dst.add(self.node);
 
             defer allocator.destroy(self.next);
             defer self.next.deinit();
-            var sub = self.next.subscribe(subscriber_id, path, Result(SequenceValue(Value)).initError(0, "matches only the empty language"));
+            var sub = self.next.subscribe(subscriber, path, Result(SequenceValue(Value)).initError(0, "matches only the empty language"));
 
             nosuspend {
                 while (sub.next()) |next_path| {
                     switch (next_path.result) {
                         .err => try dst.add(Result(Value).initError(next_path.offset, next_path.result.err)),
-                        else => try next_path.result.value.flatten_into(dst, allocator, subscriber_id, path),
+                        else => try next_path.result.value.flatten_into(dst, allocator, subscriber, path),
                     }
                 }
             }
@@ -145,7 +145,7 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
             if (!child_ctx.existing_results) try self.input[0].parse(&child_ctx);
 
             // For every top-level value (A1, A2 in our example above.)
-            var sub = child_ctx.results.subscribe(ctx.state_hash, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"));
+            var sub = child_ctx.results.subscribe(ctx.key, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"));
             while (sub.next()) |top_level| {
                 switch (top_level.result) {
                     .err => {
@@ -158,13 +158,13 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
                         // Now get the stream that continues down this path (i.e. the stream
                         // associated with A1, A2.)
                         var path_results = try ctx.allocator.create(ResultStream(Result(SequenceValue(Value))));
-                        path_results.* = try ResultStream(Result(SequenceValue(Value))).init(ctx.allocator, ctx.state_hash);
+                        path_results.* = try ResultStream(Result(SequenceValue(Value))).init(ctx.allocator, ctx.key);
                         var path = Sequence(Input, Value).init(self.input[1..]);
                         const path_hash = try path.parser.hash(&in_ctx.memoizer.hash_cache);
                         var path_ctx = try in_ctx.initChild(SequenceValue(Value), path_hash, top_level.offset);
                         defer path_ctx.deinitChild();
                         if (!path_ctx.existing_results) try path.parser.parse(&path_ctx);
-                        var path_results_sub = path_ctx.results.subscribe(ctx.state_hash, ctx.path, Result(SequenceValue(Value)).initError(ctx.offset, "matches only the empty language"));
+                        var path_results_sub = path_ctx.results.subscribe(ctx.key, ctx.path, Result(SequenceValue(Value)).initError(ctx.offset, "matches only the empty language"));
                         while (path_results_sub.next()) |next| {
                             try path_results.add(next);
                         }
@@ -197,7 +197,7 @@ test "sequence" {
         });
         try seq.parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe(ctx.state_hash, ctx.path, Result(SequenceValue(void)).initError(ctx.offset, "matches only the empty language"));
+        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(SequenceValue(void)).initError(ctx.offset, "matches only the empty language"));
         var list = sub.next();
         testing.expect(sub.next() == null); // stream closed
 
@@ -207,9 +207,9 @@ test "sequence" {
 
         // flatten the nested multi-dimensional array, since our grammar above is not ambiguous
         // this is fine to do and makes testing far easier.
-        var flattened = try list.?.result.value.flatten(allocator, ctx.state_hash, ctx.path);
+        var flattened = try list.?.result.value.flatten(allocator, ctx.key, ctx.path);
         defer flattened.deinit();
-        var flat = flattened.subscribe(ctx.state_hash, ctx.path, Result(void).initError(ctx.offset, "matches only the empty language"));
+        var flat = flattened.subscribe(ctx.key, ctx.path, Result(void).initError(ctx.offset, "matches only the empty language"));
         testing.expectEqual(@as(usize, 3), flat.next().?.offset);
         testing.expectEqual(@as(usize, 8), flat.next().?.offset);
         testing.expectEqual(@as(usize, 11), flat.next().?.offset);

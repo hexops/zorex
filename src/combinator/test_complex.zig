@@ -34,11 +34,11 @@ test "direct_left_recursion_empty_language" {
         var expr = MapTo(void, SequenceValue(node), node).init(.{
             .parser = &Sequence(void, node).init(&parsers).parser,
             .mapTo = struct {
-                fn mapTo(in: Result(SequenceValue(node)), _allocator: *mem.Allocator, state_hash: u64, path: ParserPath) Error!Result(node) {
+                fn mapTo(in: Result(SequenceValue(node)), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(node) {
                     switch (in.result) {
                         .err => return Result(node).initError(in.offset, in.result.err),
                         else => {
-                            var flattened = try in.result.value.flatten(_allocator, state_hash, path);
+                            var flattened = try in.result.value.flatten(_allocator, key, path);
                             defer flattened.deinit();
                             return Result(node).init(in.offset, node{ .name = "Expr" });
                         },
@@ -49,7 +49,7 @@ test "direct_left_recursion_empty_language" {
         parsers[0] = &expr.parser;
         try expr.parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe(ctx.state_hash, ctx.path, Result(node).initError(ctx.offset, "matches only the empty language"));
+        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(node).initError(ctx.offset, "matches only the empty language"));
         var first = sub.next().?;
         testing.expect(sub.next() == null); // stream closed
 
@@ -79,7 +79,7 @@ test "direct_left_recursion" {
     var abcAsNode = MapTo(void, void, node).init(.{
         .parser = &Literal.init("abc").parser,
         .mapTo = struct {
-            fn mapTo(in: Result(void), _allocator: *mem.Allocator, state_hash: u64, path: ParserPath) Error!Result(node) {
+            fn mapTo(in: Result(void), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(node) {
                 switch (in.result) {
                     .err => return Result(node).initError(in.offset, in.result.err),
                     else => {
@@ -99,16 +99,16 @@ test "direct_left_recursion" {
     var expr = MapTo(void, SequenceValue(node), node).init(.{
         .parser = &Sequence(void, node).init(&parsers).parser,
         .mapTo = struct {
-            fn mapTo(in: Result(SequenceValue(node)), _allocator: *mem.Allocator, state_hash: u64, path: ParserPath) Error!Result(node) {
+            fn mapTo(in: Result(SequenceValue(node)), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(node) {
                 switch (in.result) {
                     .err => return Result(node).initError(in.offset, in.result.err),
                     else => {
                         var name = std.ArrayList(u8).init(_allocator);
 
-                        var flattened = try in.result.value.flatten(_allocator, state_hash, path);
+                        var flattened = try in.result.value.flatten(_allocator, key, path);
                         defer flattened.deinit();
                         nosuspend {
-                            var sub = flattened.subscribe(state_hash, path, Result(node).initError(0, "matches only the empty language"));
+                            var sub = flattened.subscribe(key, path, Result(node).initError(0, "matches only the empty language"));
                             try name.appendSlice("(");
                             var prev = false;
                             while (sub.next()) |next| {
@@ -130,7 +130,7 @@ test "direct_left_recursion" {
     var optionalExpr = MapTo(void, ?node, node).init(.{
         .parser = &Optional(void, node).init(&expr.parser).parser,
         .mapTo = struct {
-            fn mapTo(in: Result(?node), _allocator: *mem.Allocator, state_hash: u64, path: ParserPath) Error!Result(node) {
+            fn mapTo(in: Result(?node), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(node) {
                 switch (in.result) {
                     .err => return Result(node).initError(in.offset, in.result.err),
                     else => {
@@ -152,7 +152,7 @@ test "direct_left_recursion" {
     parsers[0] = &optionalExpr.parser;
     try expr.parser.parse(&ctx);
 
-    var sub = ctx.results.subscribe(ctx.state_hash, ctx.path, Result(node).initError(ctx.offset, "matches only the empty language"));
+    var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(node).initError(ctx.offset, "matches only the empty language"));
     var first = sub.next().?;
     testing.expect(sub.next() == null); // stream closed
 

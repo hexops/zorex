@@ -2,13 +2,14 @@ const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
 pub usingnamespace @import("gll_parser_path.zig");
+const ParserPosKey = @import("gll_parser.zig").ParserPosKey;
 
 /// A ResultStream iterator.
 pub fn Iterator(comptime T: type) type {
     return struct {
         stream: *ResultStream(T),
         index: usize = 0,
-        subscriber_id: u64,
+        subscriber: ParserPosKey,
         path: ParserPath,
         cyclic_closed: bool = false,
         cyclic_error: T,
@@ -24,8 +25,8 @@ pub fn Iterator(comptime T: type) type {
                 if (self.stream.closed or self.cyclic_closed) {
                     return null; // no more results
                 }
-                if (self.path.contains(self.subscriber_id)) {
-                    // The parser waiting on these results (self.subscriber_id) is itself a part of
+                if (self.path.contains(self.subscriber)) {
+                    // The parser waiting on these results (self.subscriber) is itself a part of
                     // a larger path of parsers which depend on this result in order to produce a
                     // result. This indicates a cyclic grammar which parses the empty language,
                     // e.g. in the most simple form:
@@ -64,16 +65,16 @@ pub fn ResultStream(comptime T: type) type {
         past_values: std.ArrayList(T),
         listeners: std.ArrayList(anyframe),
         closed: bool,
-        source_id: u64,
+        source: ParserPosKey,
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, source_id: u64) !Self {
+        pub fn init(allocator: *mem.Allocator, source: ParserPosKey) !Self {
             return Self{
                 .past_values = std.ArrayList(T).init(allocator),
                 .listeners = std.ArrayList(anyframe).init(allocator),
                 .closed = false,
-                .source_id = source_id,
+                .source = source,
             };
         }
 
@@ -111,10 +112,10 @@ pub fn ResultStream(comptime T: type) type {
         ///
         /// Uses of the returned iterator are valid for as long as the result stream is not
         /// deinitialized.
-        pub fn subscribe(self: *Self, subscriber_id: u64, path: ParserPath, cyclic_error: T) Iterator(T) {
+        pub fn subscribe(self: *Self, subscriber: ParserPosKey, path: ParserPath, cyclic_error: T) Iterator(T) {
             return Iterator(T){
                 .stream = self,
-                .subscriber_id = subscriber_id,
+                .subscriber = subscriber,
                 .path = path,
                 .cyclic_error = cyclic_error,
             };
@@ -124,15 +125,19 @@ pub fn ResultStream(comptime T: type) type {
 
 test "result_stream" {
     nosuspend {
-        const subscriber_id = 0;
-        const source_id = 0;
+        const subscriber = ParserPosKey{
+            .hash = 0,
+            .src_ptr = 0,
+            .offset = 0,
+        };
+        const source = subscriber;
         const path = ParserPath.init();
-        var stream = try ResultStream(i32).init(testing.allocator, source_id);
+        var stream = try ResultStream(i32).init(testing.allocator, source);
         defer stream.deinit();
 
         // Subscribe and begin to query a value (next() will suspend) before any values have been added
         // to the stream.
-        var sub1 = stream.subscribe(subscriber_id, path, -1);
+        var sub1 = stream.subscribe(subscriber, path, -1);
         var sub1first = async sub1.next();
 
         // Add a value to the stream, our first subscription will get it.
@@ -151,7 +156,7 @@ test "result_stream" {
         testing.expectEqual(@as(?i32, null), sub1.next());
 
         // Now that the stream is closed, add a new subscription and confirm we get all prior values.
-        var sub2 = stream.subscribe(subscriber_id, path, -1);
+        var sub2 = stream.subscribe(subscriber, path, -1);
         testing.expectEqual(@as(?i32, 1), sub2.next());
         testing.expectEqual(@as(?i32, 2), sub2.next());
         testing.expectEqual(@as(?i32, null), sub2.next());

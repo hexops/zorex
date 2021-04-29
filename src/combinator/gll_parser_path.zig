@@ -1,14 +1,15 @@
 const std = @import("std");
 const mem = std.mem;
+const ParserPosKey = @import("gll_parser.zig").ParserPosKey;
 
 /// Maintains the path which a parser took, i.e. which parser states were taken
 /// and in which order by maintaining a stack of parser state hashes.
 pub const ParserPath = struct {
-    stack: std.atomic.Stack(u64),
+    stack: std.atomic.Stack(ParserPosKey),
 
     pub fn init() ParserPath {
         return .{
-            .stack = std.atomic.Stack(u64).init(),
+            .stack = std.atomic.Stack(ParserPosKey).init(),
         };
     }
 
@@ -21,12 +22,12 @@ pub const ParserPath = struct {
         }
     }
 
-    pub fn push(self: *ParserPath, state_hash: u64, allocator: *mem.Allocator) !void {
-        const Node = std.atomic.Stack(u64).Node;
+    pub fn push(self: *ParserPath, key: ParserPosKey, allocator: *mem.Allocator) !void {
+        const Node = std.atomic.Stack(ParserPosKey).Node;
         const pathNode = try allocator.create(Node);
         pathNode.* = .{
             .next = undefined,
-            .data = state_hash,
+            .data = key,
         };
         self.stack.push(pathNode);
     }
@@ -40,10 +41,11 @@ pub const ParserPath = struct {
         return new;
     }
 
-    pub fn contains(self: ParserPath, state_hash: u64) bool {
+    pub fn contains(self: ParserPath, key: ParserPosKey) bool {
         var next = self.stack.root;
+        const eql = std.hash_map.getAutoEqlFn(ParserPosKey);
         while (next != null) : (next = next.?.next) {
-            if (next.?.data == state_hash) return true;
+            if (eql(next.?.data, key)) return true;
         }
         return false;
     }

@@ -56,25 +56,25 @@ pub fn RepeatedValue(comptime Value: type) type {
         node: Result(Value),
         next: *ResultStream(Result(@This())),
 
-        pub fn flatten(self: *const @This(), allocator: *mem.Allocator, subscriber_id: u64, path: ParserPath) Error!ResultStream(Result(Value)) {
-            var dst = try ResultStream(Result(Value)).init(allocator, subscriber_id);
-            try self.flatten_into(&dst, allocator, subscriber_id, path);
+        pub fn flatten(self: *const @This(), allocator: *mem.Allocator, subscriber: ParserPosKey, path: ParserPath) Error!ResultStream(Result(Value)) {
+            var dst = try ResultStream(Result(Value)).init(allocator, subscriber);
+            try self.flatten_into(&dst, allocator, subscriber, path);
             dst.close(); // TODO(slimsag): why does deferring this not work?
             return dst;
         }
 
-        pub fn flatten_into(self: *const @This(), dst: *ResultStream(Result(Value)), allocator: *mem.Allocator, subscriber_id: u64, path: ParserPath) Error!void {
+        pub fn flatten_into(self: *const @This(), dst: *ResultStream(Result(Value)), allocator: *mem.Allocator, subscriber: ParserPosKey, path: ParserPath) Error!void {
             try dst.add(self.node);
 
             defer allocator.destroy(self.next);
             defer self.next.deinit();
-            var sub = self.next.subscribe(subscriber_id, path, Result(RepeatedValue(Value)).initError(0, "matches only the empty language"));
+            var sub = self.next.subscribe(subscriber, path, Result(RepeatedValue(Value)).initError(0, "matches only the empty language"));
 
             nosuspend {
                 while (sub.next()) |next_path| {
                     switch (next_path.result) {
                         .err => try dst.add(Result(Value).initError(next_path.offset, next_path.result.err)),
-                        else => try next_path.result.value.flatten_into(dst, allocator, subscriber_id, path),
+                        else => try next_path.result.value.flatten_into(dst, allocator, subscriber, path),
                     }
                 }
             }
@@ -193,7 +193,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
 
             // For every top-level value (A, B, C in our example above.)
             var num_values: usize = 0;
-            var sub = child_ctx.results.subscribe(ctx.state_hash, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"));
+            var sub = child_ctx.results.subscribe(ctx.key, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"));
             var offset: usize = 0;
             while (sub.next()) |top_level| {
                 if (num_values >= ctx.input.max and ctx.input.max != -1) break;
@@ -214,7 +214,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                         // Now get the stream that continues down this path (i.e. the stream
                         // associated with A, B, C.)
                         var path_results = try ctx.allocator.create(ResultStream(Result(RepeatedValue(Value))));
-                        path_results.* = try ResultStream(Result(RepeatedValue(Value))).init(ctx.allocator, ctx.state_hash);
+                        path_results.* = try ResultStream(Result(RepeatedValue(Value))).init(ctx.allocator, ctx.key);
                         var path = Repeated(Input, Value).init(.{
                             .parser = self.input.parser,
                             .min = self.input.min,
@@ -224,7 +224,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                         var path_ctx = try in_ctx.initChild(RepeatedValue(Value), path_hash, top_level.offset);
                         defer path_ctx.deinitChild();
                         if (!path_ctx.existing_results) try path.parser.parse(&path_ctx);
-                        var path_results_sub = path_ctx.results.subscribe(ctx.state_hash, ctx.path, Result(RepeatedValue(Value)).initError(ctx.offset, "matches only the empty language"));
+                        var path_results_sub = path_ctx.results.subscribe(ctx.key, ctx.path, Result(RepeatedValue(Value)).initError(ctx.offset, "matches only the empty language"));
                         while (path_results_sub.next()) |next| {
                             try path_results.add(next);
                         }
@@ -262,7 +262,7 @@ test "repeated" {
         });
         try abcInfinity.parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe(ctx.state_hash, ctx.path, Result(RepeatedValue(void)).initError(ctx.offset, "matches only the empty language"));
+        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(RepeatedValue(void)).initError(ctx.offset, "matches only the empty language"));
         var list = sub.next();
         testing.expect(sub.next() == null); // stream closed
 
@@ -272,9 +272,9 @@ test "repeated" {
 
         // flatten the nested multi-dimensional array, since our grammar above is not ambiguous
         // this is fine to do and makes testing far easier.
-        var flattened = try list.?.result.value.flatten(allocator, ctx.state_hash, ctx.path);
+        var flattened = try list.?.result.value.flatten(allocator, ctx.key, ctx.path);
         defer flattened.deinit();
-        var flat = flattened.subscribe(ctx.state_hash, ctx.path, Result(void).initError(ctx.offset, "matches only the empty language"));
+        var flat = flattened.subscribe(ctx.key, ctx.path, Result(void).initError(ctx.offset, "matches only the empty language"));
         testing.expectEqual(@as(usize, 3), flat.next().?.offset);
         testing.expectEqual(@as(usize, 6), flat.next().?.offset);
         testing.expectEqual(@as(usize, 9), flat.next().?.offset);
