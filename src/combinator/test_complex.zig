@@ -109,10 +109,14 @@ test "direct_left_recursion" {
                         defer flattened.deinit();
                         nosuspend {
                             var sub = flattened.subscribe(state_hash, path, Result(node).initError(0, "matches only the empty language"));
-                            try name.appendSlice("Expr(");
+                            try name.appendSlice("(");
+                            var prev = false;
                             while (sub.next()) |next| {
+                                if (prev) {
+                                    try name.appendSlice(",");
+                                }
+                                prev = true;
                                 try name.appendSlice(next.result.value.name.items);
-                                try name.appendSlice(",");
                                 next.result.value.name.deinit();
                             }
                             try name.appendSlice(")");
@@ -132,15 +136,13 @@ test "direct_left_recursion" {
                     else => {
                         if (in.result.value == null) {
                             var name = std.ArrayList(u8).init(_allocator);
-                            try name.appendSlice("Optional(null)");
+                            try name.appendSlice("null");
                             return Result(node).init(in.offset, node{ .name = name });
                         }
                         defer in.result.value.?.name.deinit();
 
                         var name = std.ArrayList(u8).init(_allocator);
-                        try name.appendSlice("Optional(");
                         try name.appendSlice(in.result.value.?.name.items);
-                        try name.appendSlice(")");
                         return Result(node).init(in.offset, node{ .name = name });
                     },
                 }
@@ -156,6 +158,6 @@ test "direct_left_recursion" {
 
     testing.expectEqual(@as(usize, 0), first.offset);
     // TODO(slimsag): Should emit "abc" 3 times! It does not!
-    testing.expectEqualStrings("Expr(Optional(null),abc,)", first.result.value.name.items);
+    testing.expectEqualStrings("(null,abc)", first.result.value.name.items);
     first.result.value.name.deinit();
 }
