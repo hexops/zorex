@@ -76,10 +76,10 @@ test "direct_left_recursion" {
     const ctx = try Context(void, node).init(allocator, "abcabcabc123abc", {});
     defer ctx.deinit();
 
-    var abcAsNode = MapTo(void, void, node).init(.{
+    var abcAsNode = MapTo(void, LiteralValue, node).init(.{
         .parser = &Literal.init("abc").parser,
         .mapTo = struct {
-            fn mapTo(in: Result(void), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(node) {
+            fn mapTo(in: Result(LiteralValue), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(node) {
                 switch (in.result) {
                     .err => return Result(node).initError(in.offset, in.result.err),
                     else => {

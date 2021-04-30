@@ -57,16 +57,17 @@ test "optional_some" {
     nosuspend {
         const allocator = testing.allocator;
 
-        const ctx = try Context(void, ?void).init(allocator, "hello world", {});
+        const ctx = try Context(void, ?LiteralValue).init(allocator, "hello world", {});
         defer ctx.deinit();
 
-        const optional = Optional(void, void).init(&Literal.init("hello").parser);
+        const optional = Optional(void, LiteralValue).init(&Literal.init("hello").parser);
 
         try optional.parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(?void).initError(ctx.offset, "matches only the empty language"));
-        testing.expectEqual(@as(?Result(?void), Result(?void).init(5, {})), sub.next());
-        testing.expectEqual(@as(?Result(?void), null), sub.next());
+        defer ctx.results.deinitAll(ctx.key, ctx.path, Result(?LiteralValue).initError(ctx.offset, "matches only the empty language"));
+        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(?LiteralValue).initError(ctx.offset, "matches only the empty language"));
+        testing.expectEqual(@as(?Result(?LiteralValue), Result(?LiteralValue).init(5, LiteralValue{})), sub.next());
+        testing.expectEqual(@as(?Result(?LiteralValue), null), sub.next());
     }
 }
 
@@ -74,15 +75,16 @@ test "optional_none" {
     nosuspend {
         const allocator = testing.allocator;
 
-        const ctx = try Context(void, ?void).init(allocator, "hello world", {});
+        const ctx = try Context(void, ?LiteralValue).init(allocator, "hello world", {});
         defer ctx.deinit();
 
-        const optional = Optional(void, void).init(&Literal.init("world").parser);
+        const optional = Optional(void, LiteralValue).init(&Literal.init("world").parser);
 
         try optional.parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(?void).initError(ctx.offset, "matches only the empty language"));
-        testing.expectEqual(@as(?Result(?void), Result(?void).init(0, null)), sub.next());
-        testing.expectEqual(@as(?Result(?void), null), sub.next());
+        defer ctx.results.deinitAll(ctx.key, ctx.path, Result(?LiteralValue).initError(ctx.offset, "matches only the empty language"));
+        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(?LiteralValue).initError(ctx.offset, "matches only the empty language"));
+        testing.expectEqual(@as(?Result(?LiteralValue), Result(?LiteralValue).init(0, null)), sub.next());
+        testing.expectEqual(@as(?Result(?LiteralValue), null), sub.next());
     }
 }

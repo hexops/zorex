@@ -56,6 +56,19 @@ pub fn RepeatedValue(comptime Value: type) type {
         node: Result(Value),
         next: *ResultStream(Result(@This())),
 
+        pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
+            self.node.deinit();
+
+            defer allocator.destroy(self.next);
+            defer self.next.deinit();
+            var sub = self.next.subscribe(subscriber, path, Result(RepeatedValue(Value)).initError(0, "matches only the empty language"));
+            nosuspend {
+                while (sub.next()) |next_path| {
+                    next_path.deinit();
+                }
+            }
+        }
+
         pub fn flatten(self: *const @This(), allocator: *mem.Allocator, subscriber: ParserPosKey, path: ParserPath) Error!ResultStream(Result(Value)) {
             var dst = try ResultStream(Result(Value)).init(allocator, subscriber);
             try self.flatten_into(&dst, allocator, subscriber, path);
@@ -252,17 +265,17 @@ test "repeated" {
     nosuspend {
         const allocator = testing.allocator;
 
-        const ctx = try Context(void, RepeatedValue(void)).init(allocator, "abcabcabc123abc", {});
+        const ctx = try Context(void, RepeatedValue(LiteralValue)).init(allocator, "abcabcabc123abc", {});
         defer ctx.deinit();
 
-        var abcInfinity = Repeated(void, void).init(.{
+        var abcInfinity = Repeated(void, LiteralValue).init(.{
             .parser = &Literal.init("abc").parser,
             .min = 0,
             .max = -1,
         });
         try abcInfinity.parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(RepeatedValue(void)).initError(ctx.offset, "matches only the empty language"));
+        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(RepeatedValue(LiteralValue)).initError(ctx.offset, "matches only the empty language"));
         var list = sub.next();
         testing.expect(sub.next() == null); // stream closed
 
@@ -274,7 +287,7 @@ test "repeated" {
         // this is fine to do and makes testing far easier.
         var flattened = try list.?.result.value.flatten(allocator, ctx.key, ctx.path);
         defer flattened.deinit();
-        var flat = flattened.subscribe(ctx.key, ctx.path, Result(void).initError(ctx.offset, "matches only the empty language"));
+        var flat = flattened.subscribe(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"));
         testing.expectEqual(@as(usize, 3), flat.next().?.offset);
         testing.expectEqual(@as(usize, 6), flat.next().?.offset);
         testing.expectEqual(@as(usize, 9), flat.next().?.offset);

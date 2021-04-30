@@ -6,11 +6,15 @@ const mem = std.mem;
 
 pub const LiteralContext = []const u8;
 
+pub const LiteralValue = struct {
+    pub fn deinit(self: @This()) void {}
+};
+
 /// Matches the literal `input` string.
 ///
 /// The `input` string must remain alive for as long as the `Literal` parser will be used.
 pub const Literal = struct {
-    parser: Parser(void) = Parser(void).init(parse, hash),
+    parser: Parser(LiteralValue) = Parser(LiteralValue).init(parse, hash),
     input: LiteralContext,
 
     const Self = @This();
@@ -19,7 +23,7 @@ pub const Literal = struct {
         return Self{ .input = input };
     }
 
-    pub fn hash(parser: *const Parser(void), hash_cache: *std.AutoHashMap(usize, u64)) Error!u64 {
+    pub fn hash(parser: *const Parser(LiteralValue), hash_cache: *std.AutoHashMap(usize, u64)) Error!u64 {
         const self = @fieldParentPtr(Self, "parser", parser);
 
         var v = std.hash_map.hashString("Literal");
@@ -27,7 +31,7 @@ pub const Literal = struct {
         return v;
     }
 
-    pub fn parse(parser: *const Parser(void), in_ctx: *const Context(void, void)) callconv(.Async) !void {
+    pub fn parse(parser: *const Parser(LiteralValue), in_ctx: *const Context(void, LiteralValue)) callconv(.Async) !void {
         const self = @fieldParentPtr(Self, "parser", parser);
         var ctx = in_ctx.with(self.input);
         defer ctx.results.close();
@@ -35,10 +39,10 @@ pub const Literal = struct {
         const src = ctx.src[ctx.offset..];
         if (!mem.startsWith(u8, src, ctx.input)) {
             // TODO(slimsag): include what literal was expected
-            try ctx.results.add(Result(void).initError(ctx.offset + 1, "expected literal"));
+            try ctx.results.add(Result(LiteralValue).initError(ctx.offset + 1, "expected literal"));
             return;
         }
-        try ctx.results.add(Result(void).init(ctx.offset + ctx.input.len, {}));
+        try ctx.results.add(Result(LiteralValue).init(ctx.offset + ctx.input.len, .{}));
         return;
     }
 };
@@ -47,14 +51,15 @@ test "literal" {
     nosuspend {
         const allocator = testing.allocator;
 
-        var ctx = try Context(void, void).init(allocator, "hello world", {});
+        var ctx = try Context(void, LiteralValue).init(allocator, "hello world", {});
         defer ctx.deinit();
 
         var want = "hello";
         var l = Literal.init(want);
         try l.parser.parse(&ctx);
-        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(void).initError(ctx.offset, "matches only the empty language"));
-        testing.expectEqual(@as(?Result(void), Result(void).init(want.len, {})), sub.next());
-        testing.expectEqual(@as(?Result(void), null), sub.next());
+        defer ctx.results.deinitAll(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"));
+        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"));
+        testing.expectEqual(@as(?Result(LiteralValue), Result(LiteralValue).init(want.len, .{})), sub.next());
+        testing.expectEqual(@as(?Result(LiteralValue), null), sub.next());
     }
 }

@@ -108,6 +108,13 @@ pub fn ResultStream(comptime T: type) type {
             self.listeners.deinit();
         }
 
+        pub fn deinitAll(self: *Self, subscriber: ParserPosKey, path: ParserPath, cyclic_error: T) void {
+            var sub = self.subscribe(subscriber, path, cyclic_error);
+            while (sub.next()) |next| {
+                next.deinit();
+            }
+        }
+
         /// subscribes to all past and future values of the stream, producing an async iterator.
         ///
         /// Uses of the returned iterator are valid for as long as the result stream is not

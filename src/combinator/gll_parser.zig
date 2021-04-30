@@ -17,6 +17,7 @@ const ResultTag = enum {
 /// 1. A `value` and new `offset` into the input `src`.
 /// 2. An `err` and new `offset` ito the input `src` ((i.e. position of error).
 ///
+/// A Result always knows how to `deinit` itself.
 pub fn Result(comptime Value: type) type {
     return struct {
         offset: usize,
@@ -30,6 +31,18 @@ pub fn Result(comptime Value: type) type {
                 .offset = offset,
                 .result = .{ .value = value },
             };
+        }
+
+        pub fn deinit(self: @This()) void {
+            switch (self.result) {
+                .value => |value| {
+                    switch (@typeInfo(@TypeOf(value))) {
+                        .Optional => if (value) |v| v.deinit(),
+                        else => value.deinit(),
+                    }
+                },
+                else => {},
+            }
         }
 
         pub fn initError(offset: usize, err: []const u8) @This() {

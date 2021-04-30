@@ -57,16 +57,26 @@ test "oneof" {
     nosuspend {
         const allocator = testing.allocator;
 
-        const ctx = try Context(void, []const u8).init(allocator, "hello world", {});
+        const String = struct {
+            value: []const u8,
+
+            pub fn init(value: []const u8) @This() {
+                return .{ .value = value };
+            }
+
+            pub fn deinit(self: @This()) void {}
+        };
+
+        const ctx = try Context(void, String).init(allocator, "hello world", {});
         defer ctx.deinit();
 
-        const mapTo = MapTo(void, void, []const u8).init(.{
+        const mapTo = MapTo(void, LiteralValue, String).init(.{
             .parser = &Literal.init("hello").parser,
             .mapTo = struct {
-                fn mapTo(in: Result(void), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result([]const u8) {
+                fn mapTo(in: Result(LiteralValue), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(String) {
                     switch (in.result) {
-                        .err => return Result([]const u8).initError(in.offset, in.result.err),
-                        else => return Result([]const u8).init(in.offset, "hello"),
+                        .err => return Result(String).initError(in.offset, in.result.err),
+                        else => return Result(String).init(in.offset, String.init("hello")),
                     }
                 }
             }.mapTo,
@@ -74,8 +84,9 @@ test "oneof" {
 
         try mapTo.parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result([]const u8).initError(ctx.offset, "matches only the empty language"));
-        testing.expectEqual(@as(?Result([]const u8), Result([]const u8).init(5, "hello")), sub.next());
-        testing.expectEqual(@as(?Result([]const u8), null), sub.next());
+        defer ctx.results.deinitAll(ctx.key, ctx.path, Result(String).initError(ctx.offset, "matches only the empty language"));
+        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(String).initError(ctx.offset, "matches only the empty language"));
+        testing.expectEqual(@as(?Result(String), Result(String).init(5, String.init("hello"))), sub.next());
+        testing.expectEqual(@as(?Result(String), null), sub.next());
     }
 }

@@ -123,17 +123,18 @@ test "oneof" {
     nosuspend {
         const allocator = testing.allocator;
 
-        const ctx = try Context(void, OneOfValue(void)).init(allocator, "elloworld", {});
+        const ctx = try Context(void, OneOfValue(LiteralValue)).init(allocator, "elloworld", {});
         defer ctx.deinit();
 
-        const parsers: []*const Parser(void) = &.{
+        const parsers: []*const Parser(LiteralValue) = &.{
             &Literal.init("ello").parser,
             &Literal.init("world").parser,
         };
-        var helloOrWorld = OneOf(void, void).init(parsers);
+        var helloOrWorld = OneOf(void, LiteralValue).init(parsers);
         try helloOrWorld.parser.parse(&ctx);
-        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(OneOfValue(void)).initError(ctx.offset, "matches only the empty language"));
-        testing.expectEqual(@as(?Result(OneOfValue(void)), Result(OneOfValue(void)).init(4, .{})), sub.next());
+        defer ctx.results.deinitAll(ctx.key, ctx.path, Result(OneOfValue(LiteralValue)).initError(ctx.offset, "matches only the empty language"));
+        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(OneOfValue(LiteralValue)).initError(ctx.offset, "matches only the empty language"));
+        testing.expectEqual(@as(?Result(OneOfValue(LiteralValue)), Result(OneOfValue(LiteralValue)).init(4, .{})), sub.next());
         testing.expect(sub.next() == null); // stream closed
     }
 }
@@ -148,18 +149,19 @@ test "oneof_ambiguous" {
     nosuspend {
         const allocator = testing.allocator;
 
-        const ctx = try Context(void, OneOfValue(void)).init(allocator, "elloworld", {});
+        const ctx = try Context(void, OneOfValue(LiteralValue)).init(allocator, "elloworld", {});
         defer ctx.deinit();
 
-        const parsers: []*const Parser(void) = &.{
+        const parsers: []*const Parser(LiteralValue) = &.{
             &Literal.init("ello").parser,
             &Literal.init("elloworld").parser,
         };
-        var helloOrWorld = OneOf(void, void).init(parsers);
+        var helloOrWorld = OneOf(void, LiteralValue).init(parsers);
         try helloOrWorld.parser.parse(&ctx);
-        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(OneOfValue(void)).initError(ctx.offset, "matches only the empty language"));
-        testing.expectEqual(@as(?Result(OneOfValue(void)), Result(OneOfValue(void)).init(4, .{})), sub.next());
-        testing.expectEqual(@as(?Result(OneOfValue(void)), Result(OneOfValue(void)).init(9, .{})), sub.next());
+        defer ctx.results.deinitAll(ctx.key, ctx.path, Result(OneOfValue(LiteralValue)).initError(ctx.offset, "matches only the empty language"));
+        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(OneOfValue(LiteralValue)).initError(ctx.offset, "matches only the empty language"));
+        testing.expectEqual(@as(?Result(OneOfValue(LiteralValue)), Result(OneOfValue(LiteralValue)).init(4, .{})), sub.next());
+        testing.expectEqual(@as(?Result(OneOfValue(LiteralValue)), Result(OneOfValue(LiteralValue)).init(9, .{})), sub.next());
         testing.expect(sub.next() == null); // stream closed
     }
 }
