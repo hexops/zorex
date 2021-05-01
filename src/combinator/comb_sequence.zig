@@ -48,17 +48,12 @@ pub fn SequenceValue(comptime Value: type) type {
         node: Result(Value),
         next: *ResultStream(Result(@This())),
 
-        pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
+        pub fn deinit(self: *const @This()) void {
             self.node.deinit();
-
-            defer allocator.destroy(self.next);
-            defer self.next.deinit();
-            var sub = self.next.subscribe(subscriber, path, Result(SequenceValue(Value)).initError(0, "matches only the empty language"));
-            nosuspend {
-                while (sub.next()) |next_path| {
-                    next_path.deinit();
-                }
-            }
+            self.next.deinitAll();
+            self.next.deinit();
+            // TODO(slimsag):
+            //allocator.destroy(self.next);
         }
 
         pub fn flatten(self: *const @This(), allocator: *mem.Allocator, subscriber: ParserPosKey, path: ParserPath) Error!ResultStream(Result(Value)) {
