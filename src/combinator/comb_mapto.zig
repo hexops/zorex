@@ -84,7 +84,7 @@ test "oneof" {
 
         try mapTo.parser.parse(&ctx);
 
-        defer ctx.results.deinitAll(ctx.key, ctx.path, Result(String).initError(ctx.offset, "matches only the empty language"));
+        defer ctx.results.deinitAll();
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(String).initError(ctx.offset, "matches only the empty language"));
         testing.expectEqual(@as(?Result(String), Result(String).init(5, String.init("hello"))), sub.next());
         testing.expectEqual(@as(?Result(String), null), sub.next());

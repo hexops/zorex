@@ -12,7 +12,7 @@ pub fn Iterator(comptime T: type) type {
         subscriber: ParserPosKey,
         path: ParserPath,
         cyclic_closed: bool = false,
-        cyclic_error: T,
+        cyclic_error: ?T,
 
         const Self = @This();
 
@@ -22,7 +22,7 @@ pub fn Iterator(comptime T: type) type {
         /// a new value is added.
         pub fn next(self: *Self) callconv(.Async) ?T {
             if (self.stream.past_values.items.len == 0 or self.index >= self.stream.past_values.items.len) {
-                if (self.stream.closed or self.cyclic_closed) {
+                if (self.stream.closed or self.cyclic_closed or self.cyclic_error == null) {
                     return null; // no more results
                 }
                 if (self.path.contains(self.subscriber)) {
@@ -37,7 +37,7 @@ pub fn Iterator(comptime T: type) type {
                     // In practice it may be a more complex form; but regardless this means that
                     // the subscriber should recieve no results.
                     self.cyclic_closed = true;
-                    return self.cyclic_error;
+                    return self.cyclic_error.?;
                 }
                 // set ourselves up to be resumed later:
                 self.stream.listeners.append(@frame()) catch unreachable;
@@ -108,10 +108,17 @@ pub fn ResultStream(comptime T: type) type {
             self.listeners.deinit();
         }
 
-        pub fn deinitAll(self: *Self, subscriber: ParserPosKey, path: ParserPath, cyclic_error: T) void {
-            var sub = self.subscribe(subscriber, path, cyclic_error);
-            while (sub.next()) |next| {
-                next.deinit();
+        pub fn deinitAll(self: *Self) void {
+            nosuspend {
+                var sub = Iterator(T){
+                    .stream = self,
+                    .subscriber = mem.zeroes(ParserPosKey),
+                    .path = ParserPath.init(),
+                    .cyclic_error = null,
+                };
+                while (sub.next()) |next| {
+                    next.deinit();
+                }
             }
         }
 
