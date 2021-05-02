@@ -54,17 +54,10 @@ pub fn Result(comptime Value: type) type {
     };
 }
 
-const MemoizeKey = struct {
-    src_ptr: usize,
-    offset: usize,
-};
-
 const MemoizeValue = struct {
     results: usize, // untyped pointer *ResultStream(Result(Value))
     deinit: fn (results: usize, allocator: *mem.Allocator) void,
 };
-
-const MemoizeHashMap = std.AutoHashMap(MemoizeKey, MemoizeValue);
 
 fn MemoizedResult(comptime Value: type) type {
     return struct {
@@ -97,34 +90,20 @@ pub const ParserPosKey = struct {
 pub const ParserNodeName = u64;
 
 const Memoizer = struct {
-    // Parser node names -> localized parser memoization maps
-    parser_nodes: std.AutoHashMap(ParserNodeName, *MemoizeHashMap),
+    // Parser position keys -> memoized results
+    memoized: std.AutoHashMap(ParserPosKey, MemoizeValue),
 
     // *Parser(T) -> computed parser node name.
     node_name_cache: std.AutoHashMap(usize, ParserNodeName),
 
     pub fn get(self: *@This(), comptime Value: type, allocator: *mem.Allocator, parser: ParserPosKey) !MemoizedResult(Value) {
-        // Does a localized hashmap for this parser node exist already?
-        const v = try self.parser_nodes.getOrPut(parser.node_name);
-        if (!v.found_existing) {
-            // Create a new localized hashmap for this parser node.
-            var localized = try allocator.create(MemoizeHashMap);
-            localized.* = MemoizeHashMap.init(allocator);
-            v.entry.value = localized;
-        }
-
-        // Does the localized hashmap for this node contain an existing result stream for the input
-        // state?
-        var localized = v.entry.value;
-        const l = try localized.getOrPut(MemoizeKey{
-            .src_ptr = parser.src_ptr,
-            .offset = parser.offset,
-        });
-        if (!l.found_existing) {
-            // Create a new result stream for this input state.
+        // Do we have an existing result stream for this parser position key?
+        const m = try self.memoized.getOrPut(parser);
+        if (!m.found_existing) {
+            // Create a new result stream for this parser position key.
             var results = try allocator.create(ResultStream(Result(Value)));
             results.* = try ResultStream(Result(Value)).init(allocator, parser);
-            l.entry.value = .{
+            m.entry.value = MemoizeValue{
                 .results = @ptrToInt(results),
                 .deinit = struct {
                     fn deinit(_resultsPtr: usize, _allocator: *mem.Allocator) void {
@@ -136,33 +115,26 @@ const Memoizer = struct {
             };
         }
         return MemoizedResult(Value){
-            .results = @intToPtr(*ResultStream(Result(Value)), l.entry.value.results),
-            .was_cached = l.found_existing,
+            .results = @intToPtr(*ResultStream(Result(Value)), m.entry.value.results),
+            .was_cached = m.found_existing,
         };
     }
 
     pub fn init(allocator: *mem.Allocator) !*@This() {
         var self = try allocator.create(@This());
         self.* = .{
-            .parser_nodes = std.AutoHashMap(u64, *MemoizeHashMap).init(allocator),
+            .memoized = std.AutoHashMap(ParserPosKey, MemoizeValue).init(allocator),
             .node_name_cache = std.AutoHashMap(usize, ParserNodeName).init(allocator),
         };
         return self;
     }
 
     pub fn deinit(self: *@This(), allocator: *mem.Allocator) void {
-        var parser_nodes = self.parser_nodes.iterator();
-        while (parser_nodes.next()) |parser_node| {
-            var localized = parser_node.value;
-            defer allocator.destroy(localized);
-            defer localized.deinit();
-
-            var local_entries = localized.iterator();
-            while (local_entries.next()) |local_entry| {
-                local_entry.value.deinit(local_entry.value.results, allocator);
-            }
+        var iter = self.memoized.iterator();
+        while (iter.next()) |memoized| {
+            memoized.value.deinit(memoized.value.results, allocator);
         }
-        self.parser_nodes.deinit();
+        self.memoized.deinit();
         self.node_name_cache.deinit();
         allocator.destroy(self);
     }
