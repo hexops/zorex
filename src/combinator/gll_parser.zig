@@ -66,18 +66,19 @@ const MemoizeValue = struct {
 
 const MemoizeHashMap = std.AutoHashMap(MemoizeKey, MemoizeValue);
 
-pub const ParserPosKey = struct {
-    node_name: ParserNodeName,
-    src_ptr: usize,
-    offset: usize,
-};
-
 fn MemoizedResult(comptime Value: type) type {
     return struct {
         results: *ResultStream(Result(Value)),
         was_cached: bool,
     };
 }
+
+/// Describes the exact string and offset into it that a parser node is parsing.
+pub const ParserPosKey = struct {
+    node_name: ParserNodeName,
+    src_ptr: usize,
+    offset: usize,
+};
 
 /// The name of a parser node. This includes hashes of:
 ///
