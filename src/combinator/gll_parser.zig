@@ -267,7 +267,16 @@ pub fn Parser(comptime Value: type) type {
         pub fn hash(self: *const Self, hash_cache: *std.AutoHashMap(usize, u64)) Error!u64 {
             var v = try hash_cache.getOrPut(@ptrToInt(self));
             if (!v.found_existing) {
-                v.entry.value = try self._hash(self, hash_cache);
+                v.entry.value = 1337; // "currently hashing" code
+                const calculated = try self._hash(self, hash_cache);
+
+                // If self._hash added more entries to hash_cache, ours is now potentially invalid.
+                var vv = hash_cache.getEntry(@ptrToInt(self));
+                vv.?.value = calculated;
+                return calculated;
+            }
+            if (v.entry.value == 1337) {
+                return 0; // reentrant, don't bother trying to hash any more recursively
             }
             return v.entry.value;
         }
