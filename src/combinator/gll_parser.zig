@@ -67,7 +67,7 @@ const MemoizeValue = struct {
 const MemoizeHashMap = std.AutoHashMap(MemoizeKey, MemoizeValue);
 
 pub const ParserPosKey = struct {
-    hash: u64,
+    node_name: ParserNodeName,
     src_ptr: usize,
     offset: usize,
 };
@@ -79,16 +79,32 @@ fn MemoizedResult(comptime Value: type) type {
     };
 }
 
+/// The name of a parser node. This includes hashes of:
+///
+/// * The parser's type name (e.g. "MapTo", "Sequence", etc.)
+/// * The actual parser inputs (e.g. the list of parsers to match in a Sequence parser, or for a
+///   MapTo parser the input parser to match and the actual function that does mapping.)
+///
+/// It is enough to distinctly represent a _single node in the parser graph._ Note that it is NOT
+/// the same as:
+///
+/// * Identifying a singular parser instance (two parser instances with the same inputs will be
+///   "deduplicated" and have the same parser node name.)
+/// * Identifying a parser node at a particular position: the parser `offset` position and `src`
+///   string to parse are NOT parse of a parser node name, for that see `ParserPosKey`.
+///
+pub const ParserNodeName = u64;
+
 const Memoizer = struct {
     // Parser node names -> localized parser memoization maps
-    parser_nodes: std.AutoHashMap(u64, *MemoizeHashMap),
+    parser_nodes: std.AutoHashMap(ParserNodeName, *MemoizeHashMap),
 
-    // *Parser(T) -> computed hash.
-    hash_cache: std.AutoHashMap(usize, u64),
+    // *Parser(T) -> computed parser node name.
+    node_name_cache: std.AutoHashMap(usize, ParserNodeName),
 
     pub fn get(self: *@This(), comptime Value: type, allocator: *mem.Allocator, parser: ParserPosKey) !MemoizedResult(Value) {
         // Does a localized hashmap for this parser node exist already?
-        const v = try self.parser_nodes.getOrPut(parser.hash);
+        const v = try self.parser_nodes.getOrPut(parser.node_name);
         if (!v.found_existing) {
             // Create a new localized hashmap for this parser node.
             var localized = try allocator.create(MemoizeHashMap);
@@ -128,7 +144,7 @@ const Memoizer = struct {
         var self = try allocator.create(@This());
         self.* = .{
             .parser_nodes = std.AutoHashMap(u64, *MemoizeHashMap).init(allocator),
-            .hash_cache = std.AutoHashMap(usize, u64).init(allocator),
+            .node_name_cache = std.AutoHashMap(usize, ParserNodeName).init(allocator),
         };
         return self;
     }
@@ -146,7 +162,7 @@ const Memoizer = struct {
             }
         }
         self.parser_nodes.deinit();
-        self.hash_cache.deinit();
+        self.node_name_cache.deinit();
         allocator.destroy(self);
     }
 };
@@ -167,7 +183,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
 
         pub fn init(allocator: *mem.Allocator, src: []const u8, input: Input) !@This() {
             const key = .{
-                .hash = 0,
+                .node_name = 0,
                 .src_ptr = @ptrToInt(&src[0]),
                 .offset = 0,
             };
@@ -187,9 +203,9 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
             };
         }
 
-        pub fn initChild(self: @This(), comptime NewValue: type, parser_hash: u64, offset: usize) !Context(Input, NewValue) {
+        pub fn initChild(self: @This(), comptime NewValue: type, parser_node_name: u64, offset: usize) !Context(Input, NewValue) {
             const key = ParserPosKey{
-                .hash = parser_hash,
+                .node_name = parser_node_name,
                 .src_ptr = @ptrToInt(&self.src[0]),
                 .offset = offset,
             };
@@ -249,13 +265,13 @@ pub fn Parser(comptime Value: type) type {
     return struct {
         const Self = @This();
         _parse: fn (self: *const Self, ctx: *const Context(void, Value)) callconv(.Async) Error!void,
-        _hash: fn (self: *const Self, hash_cache: *std.AutoHashMap(usize, u64)) Error!u64,
+        _nodeName: fn (self: *const Self, node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64,
 
         pub fn init(
             parseImpl: fn (self: *const Self, ctx: *const Context(void, Value)) callconv(.Async) Error!void,
-            hashImpl: fn (self: *const Self, hash_cache: *std.AutoHashMap(usize, u64)) Error!u64,
+            nodeNameImpl: fn (self: *const Self, node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64,
         ) @This() {
-            return .{ ._parse = parseImpl, ._hash = hashImpl };
+            return .{ ._parse = parseImpl, ._nodeName = nodeNameImpl };
         }
 
         pub fn parse(self: *const Self, ctx: *const Context(void, Value)) callconv(.Async) Error!void {
@@ -264,19 +280,19 @@ pub fn Parser(comptime Value: type) type {
             return try await @asyncCall(frame, {}, self._parse, .{ self, ctx });
         }
 
-        pub fn hash(self: *const Self, hash_cache: *std.AutoHashMap(usize, u64)) Error!u64 {
-            var v = try hash_cache.getOrPut(@ptrToInt(self));
+        pub fn nodeName(self: *const Self, node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+            var v = try node_name_cache.getOrPut(@ptrToInt(self));
             if (!v.found_existing) {
-                v.entry.value = 1337; // "currently hashing" code
-                const calculated = try self._hash(self, hash_cache);
+                v.entry.value = 1337; // "currently calculating" code
+                const calculated = try self._nodeName(self, node_name_cache);
 
-                // If self._hash added more entries to hash_cache, ours is now potentially invalid.
-                var vv = hash_cache.getEntry(@ptrToInt(self));
+                // If self._nodeName added more entries to node_name_cache, ours is now potentially invalid.
+                var vv = node_name_cache.getEntry(@ptrToInt(self));
                 vv.?.value = calculated;
                 return calculated;
             }
             if (v.entry.value == 1337) {
-                return 0; // reentrant, don't bother trying to hash any more recursively
+                return 0; // reentrant, don't bother trying to calculate any more recursively
             }
             return v.entry.value;
         }

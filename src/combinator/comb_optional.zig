@@ -14,7 +14,7 @@ pub fn OptionalContext(comptime Value: type) type {
 /// The `input.parser` must remain alive for as long as the `Optional` parser will be used.
 pub fn Optional(comptime Input: type, comptime Value: type) type {
     return struct {
-        parser: Parser(?Value) = Parser(?Value).init(parse, hash),
+        parser: Parser(?Value) = Parser(?Value).init(parse, nodeName),
         input: OptionalContext(Value),
 
         const Self = @This();
@@ -23,11 +23,11 @@ pub fn Optional(comptime Input: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn hash(parser: *const Parser(?Value), hash_cache: *std.AutoHashMap(usize, u64)) Error!u64 {
+        pub fn nodeName(parser: *const Parser(?Value), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
             const self = @fieldParentPtr(Self, "parser", parser);
 
             var v = std.hash_map.hashString("Optional");
-            v +%= try self.input.hash(hash_cache);
+            v +%= try self.input.nodeName(node_name_cache);
             return v;
         }
 
@@ -36,8 +36,8 @@ pub fn Optional(comptime Input: type, comptime Value: type) type {
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
 
-            const child_hash = try ctx.input.hash(&in_ctx.memoizer.hash_cache);
-            const child_ctx = try ctx.with({}).initChild(Value, child_hash, ctx.offset);
+            const child_node_name = try ctx.input.nodeName(&in_ctx.memoizer.node_name_cache);
+            const child_ctx = try ctx.with({}).initChild(Value, child_node_name, ctx.offset);
             defer child_ctx.deinitChild();
             if (!child_ctx.existing_results) try ctx.input.parse(&child_ctx);
 

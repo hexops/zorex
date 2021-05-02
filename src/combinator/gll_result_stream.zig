@@ -140,7 +140,7 @@ pub fn ResultStream(comptime T: type) type {
 test "result_stream" {
     nosuspend {
         const subscriber = ParserPosKey{
-            .hash = 0,
+            .node_name = 0,
             .src_ptr = 0,
             .offset = 0,
         };

@@ -47,7 +47,7 @@ pub fn OneOfValue(comptime Value: type) type {
 /// The `input` parsers must remain alive for as long as the `OneOf` parser will be used.
 pub fn OneOf(comptime Input: type, comptime Value: type) type {
     return struct {
-        parser: Parser(OneOfValue(Value)) = Parser(OneOfValue(Value)).init(parse, hash),
+        parser: Parser(OneOfValue(Value)) = Parser(OneOfValue(Value)).init(parse, nodeName),
         input: OneOfContext(Value),
 
         const Self = @This();
@@ -56,12 +56,12 @@ pub fn OneOf(comptime Input: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn hash(parser: *const Parser(Value), hash_cache: *std.AutoHashMap(usize, u64)) Error!u64 {
+        pub fn nodeName(parser: *const Parser(Value), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
             const self = @fieldParentPtr(Self, "parser", parser);
 
             var v = std.hash_map.hashString("OneOf");
             for (self.input) |in_parser| {
-                v +%= try in_parser.hash(hash_cache);
+                v +%= try in_parser.nodeName(node_name_cache);
             }
             return v;
         }
@@ -74,8 +74,8 @@ pub fn OneOf(comptime Input: type, comptime Value: type) type {
             var buffer = try ResultStream(Result(OneOfValue(Value))).init(ctx.allocator, ctx.key);
             defer buffer.deinit();
             for (self.input) |in_parser| {
-                const child_hash = try in_parser.hash(&in_ctx.memoizer.hash_cache);
-                var child_ctx = try ctx.with({}).initChild(Value, child_hash, ctx.offset);
+                const child_node_name = try in_parser.nodeName(&in_ctx.memoizer.node_name_cache);
+                var child_ctx = try ctx.with({}).initChild(Value, child_node_name, ctx.offset);
                 defer child_ctx.deinitChild();
                 if (!child_ctx.existing_results) try in_parser.parse(&child_ctx);
                 var sub = child_ctx.results.subscribe(ctx.key, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"));

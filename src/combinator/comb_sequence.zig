@@ -88,7 +88,7 @@ pub fn SequenceValue(comptime Value: type) type {
 /// The `input` parsers must remain alive for as long as the `Sequence` parser will be used.
 pub fn Sequence(comptime Input: type, comptime Value: type) type {
     return struct {
-        parser: Parser(SequenceValue(Value)) = Parser(SequenceValue(Value)).init(parse, hash),
+        parser: Parser(SequenceValue(Value)) = Parser(SequenceValue(Value)).init(parse, nodeName),
         input: SequenceContext(Value),
 
         const Self = @This();
@@ -97,12 +97,12 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn hash(parser: *const Parser(SequenceValue(Value)), hash_cache: *std.AutoHashMap(usize, u64)) Error!u64 {
+        pub fn nodeName(parser: *const Parser(SequenceValue(Value)), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
             const self = @fieldParentPtr(Self, "parser", parser);
 
             var v = std.hash_map.hashString("Sequence");
             for (self.input) |in_parser| {
-                v +%= try in_parser.hash(hash_cache);
+                v +%= try in_parser.nodeName(node_name_cache);
             }
             return v;
         }
@@ -147,8 +147,8 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
             // This call to `Sequence.parse` is only responsible for emitting the top level
             // (A1, A2) and invoking Sequence(next) to produce the associated `stream()` for those
             // parse states.
-            const child_hash = try self.input[0].hash(&in_ctx.memoizer.hash_cache);
-            var child_ctx = try ctx.with({}).initChild(Value, child_hash, ctx.offset);
+            const child_node_name = try self.input[0].nodeName(&in_ctx.memoizer.node_name_cache);
+            var child_ctx = try ctx.with({}).initChild(Value, child_node_name, ctx.offset);
             defer child_ctx.deinitChild();
             if (!child_ctx.existing_results) try self.input[0].parse(&child_ctx);
 
@@ -168,8 +168,8 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
                         var path_results = try ctx.allocator.create(ResultStream(Result(SequenceValue(Value))));
                         path_results.* = try ResultStream(Result(SequenceValue(Value))).init(ctx.allocator, ctx.key);
                         var path = Sequence(Input, Value).init(self.input[1..]);
-                        const path_hash = try path.parser.hash(&in_ctx.memoizer.hash_cache);
-                        var path_ctx = try in_ctx.initChild(SequenceValue(Value), path_hash, top_level.offset);
+                        const path_node_name = try path.parser.nodeName(&in_ctx.memoizer.node_name_cache);
+                        var path_ctx = try in_ctx.initChild(SequenceValue(Value), path_node_name, top_level.offset);
                         defer path_ctx.deinitChild();
                         if (!path_ctx.existing_results) try path.parser.parse(&path_ctx);
                         var path_results_sub = path_ctx.results.subscribe(ctx.key, ctx.path, Result(SequenceValue(Value)).initError(ctx.offset, "matches only the empty language"));

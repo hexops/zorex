@@ -14,7 +14,7 @@ pub const LiteralValue = struct {
 ///
 /// The `input` string must remain alive for as long as the `Literal` parser will be used.
 pub const Literal = struct {
-    parser: Parser(LiteralValue) = Parser(LiteralValue).init(parse, hash),
+    parser: Parser(LiteralValue) = Parser(LiteralValue).init(parse, nodeName),
     input: LiteralContext,
 
     const Self = @This();
@@ -23,7 +23,7 @@ pub const Literal = struct {
         return Self{ .input = input };
     }
 
-    pub fn hash(parser: *const Parser(LiteralValue), hash_cache: *std.AutoHashMap(usize, u64)) Error!u64 {
+    pub fn nodeName(parser: *const Parser(LiteralValue), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
         const self = @fieldParentPtr(Self, "parser", parser);
 
         var v = std.hash_map.hashString("Literal");
