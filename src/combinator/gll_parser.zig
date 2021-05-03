@@ -66,6 +66,13 @@ fn MemoizedResult(comptime Value: type) type {
     };
 }
 
+/// A key describing a parser node at a specific position in an input string, as well as the number
+/// of times it reentrantly called itself at that exact position.
+const ParserPosDepthKey = struct {
+    pos_key: ParserPosKey,
+    reentrant_depth: usize,
+};
+
 /// Describes the exact string and offset into it that a parser node is parsing.
 pub const ParserPosKey = struct {
     node_name: ParserNodeName,
@@ -89,18 +96,140 @@ pub const ParserPosKey = struct {
 ///
 pub const ParserNodeName = u64;
 
-const Memoizer = struct {
-    // Parser position keys -> memoized results
-    memoized: std.AutoHashMap(ParserPosKey, MemoizeValue),
+/// Records a single recursion retry for a parser.
+const RecursionRetry = struct {
+    /// The current reentrant depth of the parser. 
+    depth: usize,
 
-    // *Parser(T) -> computed parser node name.
+    /// The maximum reentrant depth before this retry attempt will be stopped.
+    max_depth: usize,
+};
+
+const Memoizer = struct {
+    /// Parser position & reentrant depth key -> memoized results
+    memoized: std.AutoHashMap(ParserPosDepthKey, MemoizeValue),
+
+    /// *Parser(T) -> computed parser node name.
     node_name_cache: std.AutoHashMap(usize, ParserNodeName),
 
-    pub fn get(self: *@This(), comptime Value: type, allocator: *mem.Allocator, parser: ParserPosKey) !MemoizedResult(Value) {
-        // Do we have an existing result stream for this parser position key?
-        const m = try self.memoized.getOrPut(parser);
+    /// Maps position key -> the currently active recursion retry attempt, if any.
+    recursion: std.AutoHashMap(ParserPosKey, RecursionRetry),
+
+    /// Memoized values to cleanup later, because freeing them inside a reentrant parser
+    /// invocation is not possible as the parent still intends to use it.
+    ///
+    /// TODO(slimsag): consider something like reference counting here to reduce memory
+    /// footprint.
+    deferred_cleanups: std.ArrayList(MemoizeValue),
+
+    /// Tells if the given parser node is currently being retried at different maximum reentrant
+    /// depths as part of a Reentrant combinator.
+    pub fn isRetrying(self: *@This(), key: ParserPosKey) bool {
+        const recursion = self.recursion.get(key);
+        if (recursion == null) return false;
+        return true;
+    }
+
+    fn clearPastRecursions(self: *@This(), parser: ParserPosKey, new_max_depth: usize) !void {
+        var i: usize = 0;
+        while (i <= new_max_depth) : (i += 1) {
+            var removed_entry = self.memoized.remove(ParserPosDepthKey{
+                .pos_key = parser,
+                .reentrant_depth = i,
+            });
+            if (removed_entry) |e| try self.deferred_cleanups.append(e.value);
+        }
+    }
+
+    pub fn get(self: *@This(), comptime Value: type, allocator: *mem.Allocator, parser_path: ParserPath, parser: ParserPosKey, new_max_depth: ?usize) !MemoizedResult(Value) {
+        // We memoize results for each unique ParserPosDepthKey, meaning that a parser node can be
+        // invoked to parse a specific input string at a specific offset recursively in a reentrant
+        // way up to a maximum depth (new_max_depth). This enables our GLL parser to handle grammars
+        // that are left-recursive, such as:
+        //
+        // ```ebnf
+        // Expr = Expr?, "abc" ;
+        // Grammar = Expr ;
+        // ```
+        //
+        // Where an input string "abcabcabc" would require `Expr` be parsed at offset=0 in the
+        // input string multiple times. How many times? We start out with a maximum reentry depth
+        // of zero, and if we determine that the parsing is cyclic (a ResultStream subscriber is in
+        // fact itself the source) we consider that parse path as failed (it matches only the empty
+        // language) and retry with a new_max_depth of N+1 and retry the whole parse path,
+        // repeating this process until eventually we find the parsing is not cyclic.
+        //
+        // It is important to note that this is for handling reentrant parsing _at the same exact
+        // offset position in the input string_, the GLL parsing algorithm itself handles left
+        // recursive and right recursive parsing fine on its own, as long as the parse position is
+        // changing, but many implementations cannot handle reentrant parsing at the same exact
+        // offset position in the input string (I am unsure if this is by design, or a limitation
+        // of the implementations themselves). Packrattle[1] which uses an "optimized" GLL parsing
+        // algorithm (memoization is localized to parse nodes) is the closest to our algorithm, and
+        // can handle this type of same-position left recursion in some instances such as with:
+        //
+        // ```ebnf
+        // Expr = Expr?, "abc" ;
+        // Grammar = Expr, EOF ;
+        // ```
+        //
+        // However, it does so using a _globalized_ retry mechanism[2] which in this event resets
+        // the entire parser back to an earlier point in time, only if the overall parse failed.
+        // This also coincidently means that if the `EOF` matcher is removed (`Grammar = Expr ;`)
+        // then `Expr` matching becomes "non-greedy" matching just one "abc" value instead of all
+        // three as when the EOF matcher is in place.
+        //
+        // Our implementation here uses node-localized retries, which makes us not subject to the
+        // same bug as packrattle and more optimized (the entire parse need not fail for us to
+        // detect and retry in this case, we do so exactly at the reentrant parser node itself.)
+        //
+        // [1] https://github.com/robey/packrattle
+        // [2] https://github.com/robey/packrattle/blob/3db99f2d87abdddb9d29a0d0cf86e272c59d4ddb/src/packrattle/engine.js#L137-L177
+        //
+        var reentrant_depth: usize = 0;
+        const recursionEntry = self.recursion.get(parser);
+        if (recursionEntry) |entry| {
+            if (new_max_depth != null) {
+                // Existing entry, but we want to retry with a new_max_depth;
+                reentrant_depth = new_max_depth.?;
+                try self.recursion.put(parser, .{ .depth = new_max_depth.?, .max_depth = new_max_depth.? });
+                try self.clearPastRecursions(parser, new_max_depth.?);
+            } else {
+                // Existing entry, so increment the depth and continue.
+                var depth = entry.depth;
+                if (depth > 0) {
+                    depth -= 1;
+                }
+                try self.recursion.put(parser, .{ .depth = depth, .max_depth = entry.max_depth });
+                reentrant_depth = depth;
+            }
+        } else if (new_max_depth != null) {
+            // No existing entry, want to retry with new_max_depth.
+            reentrant_depth = new_max_depth.?;
+            try self.recursion.put(parser, .{ .depth = new_max_depth.?, .max_depth = new_max_depth.? });
+            try self.clearPastRecursions(parser, new_max_depth.?);
+        } else {
+            // No existing entry, but a distant parent parser may be retrying with a max depth that
+            // we should respect.
+            var next_node = parser_path.stack.root;
+            while (next_node) |next| {
+                const parentRecursionEntry = self.recursion.get(next.data);
+                if (parentRecursionEntry) |parent_entry| {
+                    reentrant_depth = parent_entry.depth;
+                    try self.clearPastRecursions(parser, parent_entry.max_depth);
+                    break;
+                }
+                next_node = next.next;
+            }
+        }
+
+        // Do we have an existing result stream for this key?
+        const m = try self.memoized.getOrPut(ParserPosDepthKey{
+            .pos_key = parser,
+            .reentrant_depth = reentrant_depth,
+        });
         if (!m.found_existing) {
-            // Create a new result stream for this parser position key.
+            // Create a new result stream for this key.
             var results = try allocator.create(ResultStream(Result(Value)));
             results.* = try ResultStream(Result(Value)).init(allocator, parser);
             m.entry.value = MemoizeValue{
@@ -123,8 +252,10 @@ const Memoizer = struct {
     pub fn init(allocator: *mem.Allocator) !*@This() {
         var self = try allocator.create(@This());
         self.* = .{
-            .memoized = std.AutoHashMap(ParserPosKey, MemoizeValue).init(allocator),
+            .memoized = std.AutoHashMap(ParserPosDepthKey, MemoizeValue).init(allocator),
             .node_name_cache = std.AutoHashMap(usize, ParserNodeName).init(allocator),
+            .recursion = std.AutoHashMap(ParserPosKey, RecursionRetry).init(allocator),
+            .deferred_cleanups = std.ArrayList(MemoizeValue).init(allocator),
         };
         return self;
     }
@@ -136,6 +267,11 @@ const Memoizer = struct {
         }
         self.memoized.deinit();
         self.node_name_cache.deinit();
+        self.recursion.deinit();
+        for (self.deferred_cleanups.items) |item| {
+            item.deinit(item.results, allocator);
+        }
+        self.deferred_cleanups.deinit();
         allocator.destroy(self);
     }
 };
@@ -176,9 +312,16 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
             };
         }
 
-        pub fn initChild(self: @This(), comptime NewValue: type, parser_node_name: u64, offset: usize) !Context(Input, NewValue) {
+        pub fn initChild(self: @This(), comptime NewValue: type, node_name: ParserNodeName, offset: usize) !Context(Input, NewValue) {
+            return self.initChildRetry(NewValue, node_name, offset, null);
+        }
+
+        /// initChildRetry initializes a child context to be used as a single retry attempt with a
+        /// new maximum depth of reentrant parser invocations for the child and all of its
+        /// children.
+        pub fn initChildRetry(self: @This(), comptime NewValue: type, node_name: ParserNodeName, offset: usize, max_depth: ?usize) !Context(Input, NewValue) {
             const key = ParserPosKey{
-                .node_name = parser_node_name,
+                .node_name = node_name,
                 .src_ptr = @ptrToInt(&self.src[0]),
                 .offset = offset,
             };
@@ -195,12 +338,23 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
             };
             try child_ctx.path.push(child_ctx.key, self.allocator);
 
-            var memoized = try self.memoizer.get(NewValue, self.allocator, key);
+            var memoized = try self.memoizer.get(NewValue, self.allocator, child_ctx.path, key, max_depth);
             child_ctx.results = memoized.results;
             if (memoized.was_cached) {
                 child_ctx.existing_results = true;
             }
             return child_ctx;
+        }
+
+        /// isRetrying tells if this context represents a retry initiated previously via
+        /// initChildRetry, potentially by a distant parent recursive call, indicating that a new
+        /// reentrant retry should not be attempted.
+        pub fn isRetrying(self: @This(), node_name: ParserNodeName, offset: usize) bool {
+            return self.memoizer.isRetrying(ParserPosKey{
+                .node_name = node_name,
+                .src_ptr = @ptrToInt(&self.src[0]),
+                .offset = offset,
+            });
         }
 
         pub fn with(self: @This(), new_input: anytype) Context(@TypeOf(new_input), Value) {

@@ -3,6 +3,7 @@ usingnamespace @import("parser_literal.zig");
 usingnamespace @import("comb_sequence.zig");
 usingnamespace @import("comb_mapto.zig");
 usingnamespace @import("comb_optional.zig");
+usingnamespace @import("comb_reentrant.zig");
 
 const std = @import("std");
 const mem = std.mem;
@@ -103,7 +104,7 @@ test "direct_left_recursion" {
         undefined, // placeholder for left-recursive Expr itself
         &abcAsNode.parser,
     };
-    var expr = MapTo(void, SequenceValue(node), node).init(.{
+    var expr = Reentrant(void, node).init(&MapTo(void, SequenceValue(node), node).init(.{
         .parser = &Sequence(void, node).init(&parsers).parser,
         .mapTo = struct {
             fn mapTo(in: Result(SequenceValue(node)), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(node) {
@@ -133,7 +134,7 @@ test "direct_left_recursion" {
                 }
             }
         }.mapTo,
-    });
+    }).parser);
     var optionalExpr = MapTo(void, ?node, node).init(.{
         .parser = &Optional(void, node).init(&expr.parser).parser,
         .mapTo = struct {
@@ -165,6 +166,5 @@ test "direct_left_recursion" {
     testing.expect(sub.next() == null); // stream closed
 
     testing.expectEqual(@as(usize, 0), first.offset);
-    // TODO(slimsag): Should emit "abc" 3 times! It does not!
-    testing.expectEqualStrings("(null,abc)", first.result.value.name.items);
+    testing.expectEqualStrings("(((null,abc),abc),abc)", first.result.value.name.items);
 }
