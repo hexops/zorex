@@ -1,8 +1,8 @@
 const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
-const ParserPath = @import("gll_parser_path.zig").ParserPath;
-const ParserPosKey = @import("gll_parser.zig").ParserPosKey;
+const ParserPath = @import("parser_path.zig").ParserPath;
+const ParserPosKey = @import("parser.zig").ParserPosKey;
 
 /// A ResultStream iterator.
 pub fn Iterator(comptime T: type) type {

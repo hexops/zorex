@@ -1,5 +1,5 @@
-const ResultStream = @import("gll_result_stream.zig").ResultStream;
-const ParserPath = @import("gll_parser_path.zig").ParserPath;
+const ResultStream = @import("result_stream.zig").ResultStream;
+const ParserPath = @import("parser_path.zig").ParserPath;
 
 const std = @import("std");
 const testing = std.testing;

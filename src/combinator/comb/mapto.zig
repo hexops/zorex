@@ -1,13 +1,6 @@
-const Parser = @import("gll_parser.zig").Parser;
-const ParserNodeName = @import("gll_parser.zig").ParserNodeName;
-const ParserPosKey = @import("gll_parser.zig").ParserPosKey;
-const Result = @import("gll_parser.zig").Result;
-const ResultStream = @import("gll_parser.zig").ResultStream;
-const Error = @import("gll_parser.zig").Error;
-const Context = @import("gll_parser.zig").Context;
-const ParserPath = @import("gll_parser_path.zig").ParserPath;
-const Literal = @import("parser_literal.zig").Literal;
-const LiteralValue = @import("parser_literal.zig").LiteralValue;
+usingnamespace @import("../gll/gll.zig");
+const Literal = @import("../parser/literal.zig").Literal;
+const LiteralValue = @import("../parser/literal.zig").LiteralValue;
 
 const std = @import("std");
 const testing = std.testing;

@@ -1,9 +1,5 @@
-usingnamespace @import("gll_parser.zig");
-usingnamespace @import("parser_literal.zig");
-usingnamespace @import("comb_mapto.zig");
-usingnamespace @import("comb_oneof.zig");
-usingnamespace @import("comb_optional.zig");
-usingnamespace @import("comb_reentrant.zig");
-usingnamespace @import("comb_repeated.zig");
-usingnamespace @import("comb_sequence.zig");
+pub const comb = @import("comb/comb.zig");
+pub usingnamespace @import("gll/gll.zig");
+pub const parser = @import("parser/parser.zig");
+
 usingnamespace @import("test_complex.zig");

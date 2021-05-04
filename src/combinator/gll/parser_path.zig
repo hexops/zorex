@@ -1,6 +1,6 @@
 const std = @import("std");
 const mem = std.mem;
-const ParserPosKey = @import("gll_parser.zig").ParserPosKey;
+const ParserPosKey = @import("parser.zig").ParserPosKey;
 
 /// Maintains the path which a parser took, i.e. which parser states were taken
 /// and in which order by maintaining a stack of parser position keys.
