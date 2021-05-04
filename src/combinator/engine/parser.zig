@@ -7,7 +7,7 @@ const mem = std.mem;
 
 pub const Error = error{OutOfMemory};
 
-const ResultTag = enum {
+pub const ResultTag = enum {
     value,
     err,
 };
@@ -291,9 +291,13 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
         path: ParserPath,
 
         pub fn init(allocator: *mem.Allocator, src: []const u8, input: Input) !@This() {
+            var src_ptr: usize = 0;
+            if (src.len > 0) {
+                src_ptr = @ptrToInt(&src[0]);
+            }
             const key = .{
                 .node_name = 0,
-                .src_ptr = @ptrToInt(&src[0]),
+                .src_ptr = src_ptr,
                 .offset = 0,
             };
 
