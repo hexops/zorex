@@ -1,4 +1,11 @@
-usingnamespace @import("gll_parser.zig");
+const Parser = @import("gll_parser.zig").Parser;
+const ParserNodeName = @import("gll_parser.zig").ParserNodeName;
+const ParserPosKey = @import("gll_parser.zig").ParserPosKey;
+const Result = @import("gll_parser.zig").Result;
+const ResultStream = @import("gll_parser.zig").ResultStream;
+const Error = @import("gll_parser.zig").Error;
+const Context = @import("gll_parser.zig").Context;
+const ParserPath = @import("gll_parser_path.zig").ParserPath;
 
 const std = @import("std");
 const testing = std.testing;

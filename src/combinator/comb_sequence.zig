@@ -1,6 +1,15 @@
-usingnamespace @import("gll_parser.zig");
-usingnamespace @import("parser_literal.zig");
-usingnamespace @import("comb_mapto.zig");
+const Parser = @import("gll_parser.zig").Parser;
+const ParserNodeName = @import("gll_parser.zig").ParserNodeName;
+const ParserPosKey = @import("gll_parser.zig").ParserPosKey;
+const Result = @import("gll_parser.zig").Result;
+const Error = @import("gll_parser.zig").Error;
+const Context = @import("gll_parser.zig").Context;
+const Literal = @import("parser_literal.zig").Literal;
+const LiteralValue = @import("parser_literal.zig").LiteralValue;
+const ParserPath = @import("gll_parser_path.zig").ParserPath;
+const ResultStream = @import("gll_result_stream.zig").ResultStream;
+const MapTo = @import("comb_mapto.zig").MapTo;
+const MapToValue = @import("comb_mapto.zig").MapToValue;
 
 const std = @import("std");
 const testing = std.testing;

@@ -1,7 +1,7 @@
 const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
-pub usingnamespace @import("gll_parser_path.zig");
+const ParserPath = @import("gll_parser_path.zig").ParserPath;
 const ParserPosKey = @import("gll_parser.zig").ParserPosKey;
 
 /// A ResultStream iterator.
