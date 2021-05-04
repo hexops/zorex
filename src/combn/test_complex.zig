@@ -1,4 +1,4 @@
-usingnamespace @import("main.zig");
+usingnamespace @import("combn.zig");
 
 const std = @import("std");
 const mem = std.mem;

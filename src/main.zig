@@ -1,1 +1,1 @@
-usingnamespace @import("combinator/main.zig");
+usingnamespace @import("combn/combn.zig");
