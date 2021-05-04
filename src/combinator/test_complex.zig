@@ -1,16 +1,5 @@
 usingnamespace @import("main.zig");
 
-const Sequence = comb.Sequence;
-const SequenceValue = comb.SequenceValue;
-const MapTo = comb.MapTo;
-const MapToValue = comb.MapToValue;
-const Optional = comb.Optional;
-const OptionalValue = comb.OptionalValue;
-const Reentrant = comb.Reentrant;
-
-const Literal = parser.Literal;
-const LiteralValue = parser.LiteralValue;
-
 const std = @import("std");
 const mem = std.mem;
 const testing = std.testing;

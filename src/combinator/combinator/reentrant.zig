@@ -1,4 +1,4 @@
-usingnamespace @import("../gll/gll.zig");
+usingnamespace @import("../engine/engine.zig");
 
 const std = @import("std");
 const testing = std.testing;

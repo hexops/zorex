@@ -1,5 +1,5 @@
-pub const comb = @import("comb/comb.zig");
-pub usingnamespace @import("gll/gll.zig");
-pub const parser = @import("parser/parser.zig");
+pub usingnamespace @import("combinator/combinator.zig");
+pub usingnamespace @import("engine/engine.zig");
+pub usingnamespace @import("parser/parser.zig");
 
 usingnamespace @import("test_complex.zig");
