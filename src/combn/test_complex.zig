@@ -4,7 +4,7 @@ const std = @import("std");
 const mem = std.mem;
 const testing = std.testing;
 
-// Confirms that a direct left-recursive grammar for an empty languages actually rejects
+// Confirms that a direct left-recursive grammar for an empty language actually rejects
 // all input strings, and does not just hang indefinitely:
 //
 // ```ebnf
