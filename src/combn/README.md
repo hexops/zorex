@@ -32,7 +32,9 @@ Combn has a few advantages over other GLL parsers:
 
 ### Optimized parse-node-localized memoization
 
-Combn uses a more optimized GLL parsing algorithm with parse-node-localized memoization, approximately the same as described in:
+The original GLL parsing algorithm is O(n^3) worst-case, better than GLR which is O(n^4) worst-case.
+
+Combn uses an even more optimized GLL parsing algorithm than the original, with parse-node-localized memoization, approximately the same as described in:
 
 > "Faster, Practical GLL Parsing", Ali Afroozeh and Anastasia Izmaylova, Centrum Wiskunde & Informatica,1098 XG Amsterdam, The Netherlands, 
 
@@ -56,3 +58,13 @@ Combn uses parse-node-localized retries in the case of same-position reentrant g
 Many parser combinator frameworks opt to only enable navigating down one possible "committed" path of ambiguous grammars, this makes dealing with the resulting data types easier but means it is not possible to enumerate all possible ways an ambiguous grammar would have been parsed.
 
 Combn uses fully generic type parameters, which does make it slightly more complex than other parser libraries but also enables enumerating all possible parse paths.
+
+## How do I use it?
+
+You can look at [`test_complex.zig`](test_complex.zig) for some ideas, but note a few things:
+
+1. **The usage is quite complex**
+  - Due to being type-agnostic (you can define your own "AST node" result value, or compute and return results directly from within parsers) AND due to supporting full enumeration of ambiguous grammars, there is a lot of type munging required.
+2. **You probably don't want to use this API directly**
+  - I am working on an EBNF-like DSL grammar on top of this API which will enable you to quickly define a language in EBNF form and get a parser for parsing it (at runtime), which will be a far more reasonable interface.
+3. Some parts of the API are still in motion / can be simplified.
