@@ -68,3 +68,5 @@ You can look at [`test_complex.zig`](test_complex.zig) for some ideas, but note 
 2. **You probably don't want to use this API directly**
   - I am working on an EBNF-like DSL grammar on top of this API which will enable you to quickly define a language in EBNF form and get a parser for parsing it (at runtime), which will be a far more reasonable interface.
 3. Some parts of the API are still in motion / can be simplified.
+
+[Follow me on Twitter](https://twitter.com/slimsag) for updates.
