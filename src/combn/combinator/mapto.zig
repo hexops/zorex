@@ -54,7 +54,7 @@ pub fn MapTo(comptime Input: type, comptime Value: type, comptime Target: type) 
     };
 }
 
-test "oneof" {
+test "mapto" {
     nosuspend {
         const allocator = testing.allocator;
 
