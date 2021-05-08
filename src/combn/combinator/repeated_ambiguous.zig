@@ -6,7 +6,7 @@ const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
 
-pub fn RepeatedContext(comptime Value: type) type {
+pub fn RepeatedAmbiguousContext(comptime Value: type) type {
     return struct {
         /// The parser which should be repeatedly parsed.
         parser: *const Parser(Value),
@@ -21,12 +21,12 @@ pub fn RepeatedContext(comptime Value: type) type {
 
 /// Represents a single value in the stream of repeated values.
 ///
-/// In the case of a non-ambiguous grammar, a `Repeated` combinator will yield:
+/// In the case of a non-ambiguous grammar, a `RepeatedAmbiguous` combinator will yield:
 ///
 /// ```
-/// RepeatedValue{
+/// RepeatedAmbiguousValue{
 ///     node: value1,
-///     next: ResultStream(RepeatedValue{
+///     next: ResultStream(RepeatedAmbiguousValue{
 ///         node: value2,
 ///         next: ...,
 ///     })
@@ -37,14 +37,14 @@ pub fn RepeatedContext(comptime Value: type) type {
 /// (each representing one possible parse path / interpretation of the grammar):
 ///
 /// ```
-/// RepeatedValue{
+/// RepeatedAmbiguousValue{
 ///     node: value1,
 ///     next: ResultStream(
-///         RepeatedValue{
+///         RepeatedAmbiguousValue{
 ///             node: value2variant1,
 ///             next: ...,
 ///         },
-///         RepeatedValue{
+///         RepeatedAmbiguousValue{
 ///             node: value2variant2,
 ///             next: ...,
 ///         },
@@ -52,7 +52,7 @@ pub fn RepeatedContext(comptime Value: type) type {
 /// }
 /// ```
 ///
-pub fn RepeatedValue(comptime Value: type) type {
+pub fn RepeatedAmbiguousValue(comptime Value: type) type {
     return struct {
         node: Result(Value),
         next: *ResultStream(Result(@This())),
@@ -77,7 +77,7 @@ pub fn RepeatedValue(comptime Value: type) type {
 
             defer allocator.destroy(self.next);
             defer self.next.deinit();
-            var sub = self.next.subscribe(subscriber, path, Result(RepeatedValue(Value)).initError(0, "matches only the empty language"));
+            var sub = self.next.subscribe(subscriber, path, Result(RepeatedAmbiguousValue(Value)).initError(0, "matches only the empty language"));
 
             nosuspend {
                 while (sub.next()) |next_path| {
@@ -93,29 +93,29 @@ pub fn RepeatedValue(comptime Value: type) type {
 
 /// Matches the `input` repeatedly, between `[min, max]` times (inclusive.)
 ///
-/// The `input` parsers must remain alive for as long as the `Repeated` parser will be used.
-pub fn Repeated(comptime Input: type, comptime Value: type) type {
+/// The `input` parsers must remain alive for as long as the `RepeatedAmbiguous` parser will be used.
+pub fn RepeatedAmbiguous(comptime Input: type, comptime Value: type) type {
     return struct {
-        parser: Parser(RepeatedValue(Value)) = Parser(RepeatedValue(Value)).init(parse, nodeName),
-        input: RepeatedContext(Value),
+        parser: Parser(RepeatedAmbiguousValue(Value)) = Parser(RepeatedAmbiguousValue(Value)).init(parse, nodeName),
+        input: RepeatedAmbiguousContext(Value),
 
         const Self = @This();
 
-        pub fn init(input: RepeatedContext(Value)) Self {
+        pub fn init(input: RepeatedAmbiguousContext(Value)) Self {
             return Self{ .input = input };
         }
 
-        pub fn nodeName(parser: *const Parser(RepeatedValue(Value)), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+        pub fn nodeName(parser: *const Parser(RepeatedAmbiguousValue(Value)), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
             const self = @fieldParentPtr(Self, "parser", parser);
 
-            var v = std.hash_map.hashString("Repeated");
+            var v = std.hash_map.hashString("RepeatedAmbiguous");
             v +%= try self.input.parser.nodeName(node_name_cache);
             v +%= std.hash_map.getAutoHashFn(usize)(self.input.min);
             v +%= std.hash_map.getAutoHashFn(isize)(self.input.max);
             return v;
         }
 
-        pub fn parse(parser: *const Parser(RepeatedValue(Value)), in_ctx: *const Context(void, RepeatedValue(Value))) callconv(.Async) Error!void {
+        pub fn parse(parser: *const Parser(RepeatedAmbiguousValue(Value)), in_ctx: *const Context(void, RepeatedAmbiguousValue(Value))) callconv(.Async) Error!void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
@@ -175,7 +175,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
             }
 
             // First we need to actually invoke the child parser. This will give us [A, B, C] and
-            // we then invoke Repeated(child) on the proceeding states to get the associated stream:
+            // we then invoke RepeatedAmbiguous(child) on the proceeding states to get the associated stream:
             //
             //  stream(
             //      (A, stream(
@@ -211,7 +211,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                     .err => {
                         // Going down the path of this top-level value terminated with an error.
                         if (num_values < 1 or num_values < ctx.input.min) {
-                            try ctx.results.add(Result(RepeatedValue(Value)).initError(top_level.offset, top_level.result.err));
+                            try ctx.results.add(Result(RepeatedAmbiguousValue(Value)).initError(top_level.offset, top_level.result.err));
                         }
                         continue;
                     },
@@ -222,25 +222,25 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
 
                         // Now get the stream that continues down this path (i.e. the stream
                         // associated with A, B, C.)
-                        var path_results = try ctx.allocator.create(ResultStream(Result(RepeatedValue(Value))));
-                        path_results.* = try ResultStream(Result(RepeatedValue(Value))).init(ctx.allocator, ctx.key);
-                        var path = Repeated(Input, Value).init(.{
+                        var path_results = try ctx.allocator.create(ResultStream(Result(RepeatedAmbiguousValue(Value))));
+                        path_results.* = try ResultStream(Result(RepeatedAmbiguousValue(Value))).init(ctx.allocator, ctx.key);
+                        var path = RepeatedAmbiguous(Input, Value).init(.{
                             .parser = self.input.parser,
                             .min = self.input.min,
                             .max = if (self.input.max == -1) -1 else self.input.max - 1,
                         });
                         const path_node_name = try path.parser.nodeName(&in_ctx.memoizer.node_name_cache);
-                        var path_ctx = try in_ctx.initChild(RepeatedValue(Value), path_node_name, top_level.offset);
+                        var path_ctx = try in_ctx.initChild(RepeatedAmbiguousValue(Value), path_node_name, top_level.offset);
                         defer path_ctx.deinitChild();
                         if (!path_ctx.existing_results) try path.parser.parse(&path_ctx);
-                        var path_results_sub = path_ctx.results.subscribe(ctx.key, ctx.path, Result(RepeatedValue(Value)).initError(ctx.offset, "matches only the empty language"));
+                        var path_results_sub = path_ctx.results.subscribe(ctx.key, ctx.path, Result(RepeatedAmbiguousValue(Value)).initError(ctx.offset, "matches only the empty language"));
                         while (path_results_sub.next()) |next| {
                             try path_results.add(next);
                         }
                         path_results.close();
 
                         // Emit our top-level value tuple (e.g. (A, stream(...))
-                        try ctx.results.add(Result(RepeatedValue(Value)).init(top_level.offset, .{
+                        try ctx.results.add(Result(RepeatedAmbiguousValue(Value)).init(top_level.offset, .{
                             .node = top_level,
                             .next = path_results,
                         }));
@@ -249,7 +249,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
             }
             if (num_values < ctx.input.min) {
                 // TODO(slimsag): include number of expected/found matches
-                try ctx.results.add(Result(RepeatedValue(Value)).initError(offset, "expected more"));
+                try ctx.results.add(Result(RepeatedAmbiguousValue(Value)).initError(offset, "expected more"));
                 return;
             }
             return;
@@ -261,17 +261,17 @@ test "repeated" {
     nosuspend {
         const allocator = testing.allocator;
 
-        const ctx = try Context(void, RepeatedValue(LiteralValue)).init(allocator, "abcabcabc123abc", {});
+        const ctx = try Context(void, RepeatedAmbiguousValue(LiteralValue)).init(allocator, "abcabcabc123abc", {});
         defer ctx.deinit();
 
-        var abcInfinity = Repeated(void, LiteralValue).init(.{
+        var abcInfinity = RepeatedAmbiguous(void, LiteralValue).init(.{
             .parser = &Literal.init("abc").parser,
             .min = 0,
             .max = -1,
         });
         try abcInfinity.parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(RepeatedValue(LiteralValue)).initError(ctx.offset, "matches only the empty language"));
+        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(RepeatedAmbiguousValue(LiteralValue)).initError(ctx.offset, "matches only the empty language"));
         var list = sub.next();
         testing.expect(sub.next() == null); // stream closed
 
