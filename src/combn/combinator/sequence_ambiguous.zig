@@ -8,18 +8,18 @@ const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
 
-pub fn SequenceContext(comptime Value: type) type {
+pub fn SequenceAmbiguousContext(comptime Value: type) type {
     return []const *const Parser(Value);
 }
 
 /// Represents a sequence of parsed values. 
 ///
-/// In the case of a non-ambiguous grammar, a `Sequence` combinator will yield:
+/// In the case of a non-ambiguous grammar, a `SequenceAmbiguous` combinator will yield:
 ///
 /// ```
-/// SequenceValue{
+/// SequenceAmbiguousValue{
 ///     node: value1,
-///     next: ResultStream(SequenceValue{
+///     next: ResultStream(SequenceAmbiguousValue{
 ///         node: value2,
 ///         next: ...,
 ///     })
@@ -30,14 +30,14 @@ pub fn SequenceContext(comptime Value: type) type {
 /// (each representing one possible parse path / interpretation of the grammar):
 ///
 /// ```
-/// SequenceValue{
+/// SequenceAmbiguousValue{
 ///     node: value1,
 ///     next: ResultStream(
-///         SequenceValue{
+///         SequenceAmbiguousValue{
 ///             node: value2variant1,
 ///             next: ...,
 ///         },
-///         SequenceValue{
+///         SequenceAmbiguousValue{
 ///             node: value2variant2,
 ///             next: ...,
 ///         },
@@ -45,7 +45,7 @@ pub fn SequenceContext(comptime Value: type) type {
 /// }
 /// ```
 ///
-pub fn SequenceValue(comptime Value: type) type {
+pub fn SequenceAmbiguousValue(comptime Value: type) type {
     return struct {
         node: Result(Value),
         next: *ResultStream(Result(@This())),
@@ -70,7 +70,7 @@ pub fn SequenceValue(comptime Value: type) type {
 
             defer allocator.destroy(self.next);
             defer self.next.deinit();
-            var sub = self.next.subscribe(subscriber, path, Result(SequenceValue(Value)).initError(0, "matches only the empty language"));
+            var sub = self.next.subscribe(subscriber, path, Result(SequenceAmbiguousValue(Value)).initError(0, "matches only the empty language"));
 
             nosuspend {
                 while (sub.next()) |next_path| {
@@ -87,29 +87,29 @@ pub fn SequenceValue(comptime Value: type) type {
 /// Matches the `input` parsers sequentially. The parsers must produce the same data type (use
 /// MapTo, if needed.)
 ///
-/// The `input` parsers must remain alive for as long as the `Sequence` parser will be used.
-pub fn Sequence(comptime Input: type, comptime Value: type) type {
+/// The `input` parsers must remain alive for as long as the `SequenceAmbiguous` parser will be used.
+pub fn SequenceAmbiguous(comptime Input: type, comptime Value: type) type {
     return struct {
-        parser: Parser(SequenceValue(Value)) = Parser(SequenceValue(Value)).init(parse, nodeName),
-        input: SequenceContext(Value),
+        parser: Parser(SequenceAmbiguousValue(Value)) = Parser(SequenceAmbiguousValue(Value)).init(parse, nodeName),
+        input: SequenceAmbiguousContext(Value),
 
         const Self = @This();
 
-        pub fn init(input: SequenceContext(Value)) Self {
+        pub fn init(input: SequenceAmbiguousContext(Value)) Self {
             return Self{ .input = input };
         }
 
-        pub fn nodeName(parser: *const Parser(SequenceValue(Value)), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+        pub fn nodeName(parser: *const Parser(SequenceAmbiguousValue(Value)), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
             const self = @fieldParentPtr(Self, "parser", parser);
 
-            var v = std.hash_map.hashString("Sequence");
+            var v = std.hash_map.hashString("SequenceAmbiguous");
             for (self.input) |in_parser| {
                 v +%= try in_parser.nodeName(node_name_cache);
             }
             return v;
         }
 
-        pub fn parse(parser: *const Parser(SequenceValue(Value)), in_ctx: *const Context(void, SequenceValue(Value))) callconv(.Async) Error!void {
+        pub fn parse(parser: *const Parser(SequenceAmbiguousValue(Value)), in_ctx: *const Context(void, SequenceAmbiguousValue(Value))) callconv(.Async) Error!void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
@@ -146,8 +146,8 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
             //     )),
             // )
             //
-            // This call to `Sequence.parse` is only responsible for emitting the top level
-            // (A1, A2) and invoking Sequence(next) to produce the associated `stream()` for those
+            // This call to `SequenceAmbiguous.parse` is only responsible for emitting the top level
+            // (A1, A2) and invoking SequenceAmbiguous(next) to produce the associated `stream()` for those
             // parse states.
             const child_node_name = try self.input[0].nodeName(&in_ctx.memoizer.node_name_cache);
             var child_ctx = try ctx.with({}).initChild(Value, child_node_name, ctx.offset);
@@ -159,7 +159,7 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
             while (sub.next()) |top_level| {
                 switch (top_level.result) {
                     .err => {
-                        try ctx.results.add(Result(SequenceValue(Value)).initError(top_level.offset, top_level.result.err));
+                        try ctx.results.add(Result(SequenceAmbiguousValue(Value)).initError(top_level.offset, top_level.result.err));
                         continue;
                     },
                     else => {
@@ -167,21 +167,21 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
 
                         // Now get the stream that continues down this path (i.e. the stream
                         // associated with A1, A2.)
-                        var path_results = try ctx.allocator.create(ResultStream(Result(SequenceValue(Value))));
-                        path_results.* = try ResultStream(Result(SequenceValue(Value))).init(ctx.allocator, ctx.key);
-                        var path = Sequence(Input, Value).init(self.input[1..]);
+                        var path_results = try ctx.allocator.create(ResultStream(Result(SequenceAmbiguousValue(Value))));
+                        path_results.* = try ResultStream(Result(SequenceAmbiguousValue(Value))).init(ctx.allocator, ctx.key);
+                        var path = SequenceAmbiguous(Input, Value).init(self.input[1..]);
                         const path_node_name = try path.parser.nodeName(&in_ctx.memoizer.node_name_cache);
-                        var path_ctx = try in_ctx.initChild(SequenceValue(Value), path_node_name, top_level.offset);
+                        var path_ctx = try in_ctx.initChild(SequenceAmbiguousValue(Value), path_node_name, top_level.offset);
                         defer path_ctx.deinitChild();
                         if (!path_ctx.existing_results) try path.parser.parse(&path_ctx);
-                        var path_results_sub = path_ctx.results.subscribe(ctx.key, ctx.path, Result(SequenceValue(Value)).initError(ctx.offset, "matches only the empty language"));
+                        var path_results_sub = path_ctx.results.subscribe(ctx.key, ctx.path, Result(SequenceAmbiguousValue(Value)).initError(ctx.offset, "matches only the empty language"));
                         while (path_results_sub.next()) |next| {
                             try path_results.add(next);
                         }
                         path_results.close();
 
                         // Emit our top-level value tuple (e.g. (A1, stream(...))
-                        try ctx.results.add(Result(SequenceValue(Value)).init(top_level.offset, .{
+                        try ctx.results.add(Result(SequenceAmbiguousValue(Value)).init(top_level.offset, .{
                             .node = top_level,
                             .next = path_results,
                         }));
@@ -196,10 +196,10 @@ test "sequence" {
     nosuspend {
         const allocator = testing.allocator;
 
-        const ctx = try Context(void, SequenceValue(LiteralValue)).init(allocator, "abc123abc456_123abc", {});
+        const ctx = try Context(void, SequenceAmbiguousValue(LiteralValue)).init(allocator, "abc123abc456_123abc", {});
         defer ctx.deinit();
 
-        var seq = Sequence(void, LiteralValue).init(&.{
+        var seq = SequenceAmbiguous(void, LiteralValue).init(&.{
             &Literal.init("abc").parser,
             &Literal.init("123ab").parser,
             &Literal.init("c45").parser,
@@ -207,7 +207,7 @@ test "sequence" {
         });
         try seq.parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(SequenceValue(LiteralValue)).initError(ctx.offset, "matches only the empty language"));
+        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(SequenceAmbiguousValue(LiteralValue)).initError(ctx.offset, "matches only the empty language"));
         var list = sub.next();
         testing.expect(sub.next() == null); // stream closed
 
