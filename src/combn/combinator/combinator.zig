@@ -1,3 +1,4 @@
+pub usingnamespace @import("always.zig");
 pub usingnamespace @import("mapto.zig");
 pub usingnamespace @import("oneof_ambiguous.zig");
 pub usingnamespace @import("oneof.zig");
