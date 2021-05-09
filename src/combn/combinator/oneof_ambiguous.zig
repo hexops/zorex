@@ -141,7 +141,7 @@ test "oneof" {
         try helloOrWorld.parser.parse(&ctx);
         defer ctx.results.deinitAll();
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(OneOfAmbiguousValue(LiteralValue)).initError(ctx.offset, "matches only the empty language"));
-        testing.expectEqual(@as(?Result(OneOfAmbiguousValue(LiteralValue)), Result(OneOfAmbiguousValue(LiteralValue)).init(4, .{})), sub.next());
+        testing.expectEqual(@as(?Result(OneOfAmbiguousValue(LiteralValue)), Result(OneOfAmbiguousValue(LiteralValue)).init(4, .{ .value = "ello" })), sub.next());
         testing.expect(sub.next() == null); // stream closed
     }
 }
@@ -167,8 +167,12 @@ test "oneof_ambiguous" {
         try helloOrWorld.parser.parse(&ctx);
         defer ctx.results.deinitAll();
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(OneOfAmbiguousValue(LiteralValue)).initError(ctx.offset, "matches only the empty language"));
-        testing.expectEqual(@as(?Result(OneOfAmbiguousValue(LiteralValue)), Result(OneOfAmbiguousValue(LiteralValue)).init(4, .{})), sub.next());
-        testing.expectEqual(@as(?Result(OneOfAmbiguousValue(LiteralValue)), Result(OneOfAmbiguousValue(LiteralValue)).init(9, .{})), sub.next());
+        var r1 = sub.next().?;
+        testing.expectEqual(@as(usize, 4), r1.offset);
+        testing.expectEqualStrings("ello", r1.result.value.value);
+        var r2 = sub.next().?;
+        testing.expectEqual(@as(usize, 9), r2.offset);
+        testing.expectEqualStrings("elloworld", r2.result.value.value);
         testing.expect(sub.next() == null); // stream closed
     }
 }

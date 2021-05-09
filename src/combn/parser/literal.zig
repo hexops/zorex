@@ -7,6 +7,9 @@ const mem = std.mem;
 pub const LiteralContext = []const u8;
 
 pub const LiteralValue = struct {
+    /// The `input` string itself.
+    value: []const u8,
+
     pub fn deinit(self: @This()) void {}
 };
 
@@ -42,7 +45,7 @@ pub const Literal = struct {
             try ctx.results.add(Result(LiteralValue).initError(ctx.offset + 1, "expected literal"));
             return;
         }
-        try ctx.results.add(Result(LiteralValue).init(ctx.offset + ctx.input.len, .{}));
+        try ctx.results.add(Result(LiteralValue).init(ctx.offset + ctx.input.len, .{ .value = self.input }));
         return;
     }
 };
@@ -59,7 +62,7 @@ test "literal" {
         try l.parser.parse(&ctx);
         defer ctx.results.deinitAll();
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"));
-        testing.expectEqual(@as(?Result(LiteralValue), Result(LiteralValue).init(want.len, .{})), sub.next());
+        testing.expectEqual(@as(?Result(LiteralValue), Result(LiteralValue).init(want.len, .{ .value = "hello" })), sub.next());
         testing.expectEqual(@as(?Result(LiteralValue), null), sub.next());
     }
 }
