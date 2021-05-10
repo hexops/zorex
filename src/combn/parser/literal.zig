@@ -10,7 +10,7 @@ pub const LiteralValue = struct {
     /// The `input` string itself.
     value: []const u8,
 
-    pub fn deinit(self: @This()) void {}
+    pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {}
 };
 
 /// Matches the literal `input` string.
@@ -60,7 +60,8 @@ test "literal" {
         var want = "hello";
         var l = Literal.init(want);
         try l.parser.parse(&ctx);
-        defer ctx.results.deinitAll();
+        defer ctx.results.deinitAll(ctx.allocator);
+
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"));
         testing.expectEqual(@as(?Result(LiteralValue), Result(LiteralValue).init(want.len, .{ .value = "hello" })), sub.next());
         testing.expectEqual(@as(?Result(LiteralValue), null), sub.next());

@@ -5,7 +5,7 @@ const testing = std.testing;
 const mem = std.mem;
 
 pub const EndValue = struct {
-    pub fn deinit(self: @This()) void {}
+    pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {}
 };
 
 /// Matches the end of the `input` string.
@@ -46,7 +46,8 @@ test "end" {
 
         var e = End.init();
         try e.parser.parse(&ctx);
-        defer ctx.results.deinitAll();
+        defer ctx.results.deinitAll(ctx.allocator);
+
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(EndValue).initError(ctx.offset, "matches only the empty language"));
         testing.expectEqual(@as(?Result(EndValue), Result(EndValue).init(0, .{})), sub.next());
         testing.expectEqual(@as(?Result(EndValue), null), sub.next());

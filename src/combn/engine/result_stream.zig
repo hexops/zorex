@@ -108,7 +108,7 @@ pub fn ResultStream(comptime T: type) type {
             self.listeners.deinit();
         }
 
-        pub fn deinitAll(self: *Self) void {
+        pub fn deinitAll(self: *Self, allocator: *mem.Allocator) void {
             nosuspend {
                 var sub = Iterator(T){
                     .stream = self,
@@ -117,7 +117,7 @@ pub fn ResultStream(comptime T: type) type {
                     .cyclic_error = null,
                 };
                 while (sub.next()) |next| {
-                    next.deinit();
+                    next.deinit(allocator);
                 }
             }
         }

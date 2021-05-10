@@ -33,12 +33,12 @@ pub fn Result(comptime Value: type) type {
             };
         }
 
-        pub fn deinit(self: @This()) void {
+        pub fn deinit(self: @This(), allocator: *mem.Allocator) void {
             switch (self.result) {
                 .value => |value| {
                     switch (@typeInfo(@TypeOf(value))) {
-                        .Optional => if (value) |v| v.deinit(),
-                        else => value.deinit(),
+                        .Optional => if (value) |v| v.deinit(allocator),
+                        else => value.deinit(allocator),
                     }
                 },
                 else => {},
@@ -375,7 +375,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
             };
         }
 
-        pub fn deinit(self: @This()) void {
+        pub fn deinit(self: *const @This()) void {
             self.results.deinit();
             self.allocator.destroy(self.results);
             self.memoizer.deinit(self.allocator);

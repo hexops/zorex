@@ -5,7 +5,7 @@ const testing = std.testing;
 const mem = std.mem;
 
 pub const AlwaysVoid = struct {
-    pub fn deinit(self: *const @This()) void {}
+    pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {}
 };
 
 pub fn AlwaysContext(comptime Value: type) type {
@@ -57,7 +57,7 @@ test "always" {
 
         try noop.parser.parse(&ctx);
 
-        defer ctx.results.deinitAll();
+        defer ctx.results.deinitAll(ctx.allocator);
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(AlwaysVoid).initError(ctx.offset, "matches only the empty language"));
         testing.expectEqual(@as(?Result(AlwaysVoid), null), sub.next());
     }

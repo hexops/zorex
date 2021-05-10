@@ -26,11 +26,10 @@ pub fn SequenceValue(comptime Value: type) type {
     return struct {
         results: *ResultStream(Result(Value)),
 
-        pub fn deinit(self: *const @This()) void {
-            self.results.deinitAll();
+        pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
+            self.results.deinitAll(allocator);
             self.results.deinit();
-            // TODO(slimsag):
-            //allocator.destroy(self.next);
+            allocator.destroy(self.results);
         }
     };
 }
@@ -108,7 +107,7 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
                     }
                 }
             }
-            try ctx.results.add(Result(SequenceValue(Value)).init(offset, .{.results = buffer}));
+            try ctx.results.add(Result(SequenceValue(Value)).init(offset, .{ .results = buffer }));
         }
     };
 }
@@ -130,7 +129,7 @@ test "sequence" {
 
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(SequenceValue(LiteralValue)).initError(ctx.offset, "matches only the empty language"));
         var sequence = sub.next().?.result.value;
-        defer sequence.deinit();
+        defer sequence.deinit(ctx.allocator);
         testing.expect(sub.next() == null); // stream closed
 
         var sequenceSub = sequence.results.subscribe(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"));

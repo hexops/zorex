@@ -65,7 +65,7 @@ test "mapto" {
                 return .{ .value = value };
             }
 
-            pub fn deinit(self: @This()) void {}
+            pub fn deinit(self: *const @This(), _allocator: *mem.Allocator) void {}
         };
 
         const ctx = try Context(void, String).init(allocator, "hello world", {});
@@ -85,7 +85,7 @@ test "mapto" {
 
         try mapTo.parser.parse(&ctx);
 
-        defer ctx.results.deinitAll();
+        defer ctx.results.deinitAll(ctx.allocator);
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(String).initError(ctx.offset, "matches only the empty language"));
         testing.expectEqual(@as(?Result(String), Result(String).init(5, String.init("hello"))), sub.next());
         testing.expectEqual(@as(?Result(String), null), sub.next());

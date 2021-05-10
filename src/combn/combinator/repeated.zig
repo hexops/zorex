@@ -33,11 +33,10 @@ pub fn RepeatedValue(comptime Value: type) type {
     return struct {
         results: *ResultStream(Result(Value)),
 
-        pub fn deinit(self: *const @This()) void {
-            self.results.deinitAll();
+        pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
+            self.results.deinitAll(allocator);
             self.results.deinit();
-            // TODO(slimsag):
-            //allocator.destroy(self.next);
+            allocator.destroy(self.results);
         }
     };
 }
@@ -106,7 +105,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                                 try ctx.results.add(Result(RepeatedValue(Value)).initError(next.offset, next.result.err));
                                 return;
                             }
-                            try ctx.results.add(Result(RepeatedValue(Value)).init(offset, .{.results = buffer}));
+                            try ctx.results.add(Result(RepeatedValue(Value)).init(offset, .{ .results = buffer }));
                             return;
                         },
                         else => {
@@ -124,7 +123,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                 num_values += 1;
                 if (num_values >= ctx.input.max and ctx.input.max != -1) break;
             }
-            try ctx.results.add(Result(RepeatedValue(Value)).init(offset, .{.results = buffer}));
+            try ctx.results.add(Result(RepeatedValue(Value)).init(offset, .{ .results = buffer }));
         }
     };
 }
@@ -145,7 +144,7 @@ test "repeated" {
 
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(RepeatedValue(LiteralValue)).initError(ctx.offset, "matches only the empty language"));
         var repeated = sub.next().?.result.value;
-        defer repeated.deinit();
+        defer repeated.deinit(ctx.allocator);
         testing.expect(sub.next() == null); // stream closed
 
         var repeatedSub = repeated.results.subscribe(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"));

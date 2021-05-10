@@ -69,7 +69,8 @@ pub fn Reentrant(comptime Input: type, comptime Value: type) type {
                 buf.close();
 
                 if ((sub.cyclic_closed or retrying) and !child_ctx.isRetrying(child_node_name, ctx.offset)) {
-                    child_ctx.results.deinitAll();
+                    child_ctx.results.deinitAll(ctx.allocator);
+
                     child_ctx.results.deinit();
                     if (retrying and sub.cyclic_closed) {
                         if (retrying_max_depth.? > 0) retrying_max_depth.? -= 1;

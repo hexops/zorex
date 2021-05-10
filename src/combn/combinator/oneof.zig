@@ -111,7 +111,8 @@ test "oneof" {
         };
         var helloOrWorld = OneOf(void, LiteralValue).init(parsers);
         try helloOrWorld.parser.parse(&ctx);
-        defer ctx.results.deinitAll();
+        defer ctx.results.deinitAll(ctx.allocator);
+
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(OneOfValue(LiteralValue)).initError(ctx.offset, "matches only the empty language"));
         var r1 = sub.next().?;
         testing.expectEqual(@as(usize, 4), r1.offset);
@@ -140,7 +141,8 @@ test "oneof_ambiguous_first" {
         };
         var helloOrWorld = OneOf(void, LiteralValue).init(parsers);
         try helloOrWorld.parser.parse(&ctx);
-        defer ctx.results.deinitAll();
+        defer ctx.results.deinitAll(ctx.allocator);
+
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(OneOfValue(LiteralValue)).initError(ctx.offset, "matches only the empty language"));
         var r1 = sub.next().?;
         testing.expectEqual(@as(usize, 4), r1.offset);

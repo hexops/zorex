@@ -57,12 +57,11 @@ pub fn RepeatedAmbiguousValue(comptime Value: type) type {
         node: Result(Value),
         next: *ResultStream(Result(@This())),
 
-        pub fn deinit(self: *const @This()) void {
-            self.node.deinit();
-            self.next.deinitAll();
+        pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
+            self.node.deinit(allocator);
+            self.next.deinitAll(allocator);
             self.next.deinit();
-            // TODO(slimsag):
-            //allocator.destroy(self.next);
+            allocator.destroy(self.next);
         }
 
         pub fn flatten(self: *const @This(), allocator: *mem.Allocator, subscriber: ParserPosKey, path: ParserPath) Error!ResultStream(Result(Value)) {

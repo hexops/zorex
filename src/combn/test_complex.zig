@@ -20,7 +20,7 @@ test "direct_left_recursion_empty_language" {
         const node = struct {
             name: []const u8,
 
-            pub fn deinit(self: @This()) void {}
+            pub fn deinit(self: *const @This(), _allocator: *mem.Allocator) void {}
         };
 
         const ctx = try Context(void, node).init(allocator, "abcabcabc123abc", {});
@@ -47,7 +47,7 @@ test "direct_left_recursion_empty_language" {
         parsers[0] = &expr.parser;
         try expr.parser.parse(&ctx);
 
-        defer ctx.results.deinitAll();
+        defer ctx.results.deinitAll(ctx.allocator);
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(node).initError(ctx.offset, "matches only the empty language"));
         var first = sub.next().?;
         testing.expect(sub.next() == null); // stream closed
@@ -71,7 +71,7 @@ test "direct_left_recursion" {
     const node = struct {
         name: std.ArrayList(u8),
 
-        pub fn deinit(self: @This()) void {
+        pub fn deinit(self: *const @This(), _allocator: *mem.Allocator) void {
             self.name.deinit();
         }
     };
@@ -155,7 +155,7 @@ test "direct_left_recursion" {
     parsers[0] = &optionalExpr.parser;
     try expr.parser.parse(&ctx);
 
-    defer ctx.results.deinitAll();
+    defer ctx.results.deinitAll(ctx.allocator);
     var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(node).initError(ctx.offset, "matches only the empty language"));
     var first = sub.next().?;
     testing.expect(sub.next() == null); // stream closed
