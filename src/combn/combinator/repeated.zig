@@ -30,7 +30,16 @@ pub fn RepeatedContext(comptime Value: type) type {
 /// In the case of an ambiguous grammar, it would yield a stream with only the first parse path.
 /// Use RepeatedAmbiguous if ambiguou parse paths are desirable.
 pub fn RepeatedValue(comptime Value: type) type {
-    return ResultStream(Result(Value));
+    return struct {
+        results: *ResultStream(Result(Value)),
+
+        pub fn deinit(self: *const @This()) void {
+            self.results.deinitAll();
+            self.results.deinit();
+            // TODO(slimsag):
+            //allocator.destroy(self.next);
+        }
+    };
 }
 
 /// Matches the `input` repeatedly, between `[min, max]` times (inclusive.) If ambiguous parse paths
@@ -73,14 +82,15 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                 return;
             }
 
-            var buffer = try ResultStream(Result(Value)).init(ctx.allocator, ctx.key);
-            // TODO(slimsag): deferring here does not work. Bug in compiler?
-            //defer buffer.close();
+            var buffer = try ctx.allocator.create(ResultStream(Result(Value)));
+            errdefer ctx.allocator.destroy(buffer);
+            errdefer buffer.deinit();
+            defer buffer.close();
+            buffer.* = try ResultStream(Result(Value)).init(ctx.allocator, ctx.key);
 
             var num_values: usize = 0;
             var offset: usize = ctx.offset;
             while (true) {
-                std.debug.print("MAIN HNEXT {}\n", .{offset});
                 const child_node_name = try self.input.parser.nodeName(&in_ctx.memoizer.node_name_cache);
                 var child_ctx = try ctx.with({}).initChild(Value, child_node_name, offset);
                 defer child_ctx.deinitChild();
@@ -96,8 +106,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                                 try ctx.results.add(Result(RepeatedValue(Value)).initError(next.offset, next.result.err));
                                 return;
                             }
-                            buffer.close();
-                            try ctx.results.add(Result(RepeatedValue(Value)).init(offset, buffer));
+                            try ctx.results.add(Result(RepeatedValue(Value)).init(offset, .{.results = buffer}));
                             return;
                         },
                         else => {
@@ -115,8 +124,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                 num_values += 1;
                 if (num_values >= ctx.input.max and ctx.input.max != -1) break;
             }
-            buffer.close();
-            try ctx.results.add(Result(RepeatedValue(Value)).init(offset, buffer));
+            try ctx.results.add(Result(RepeatedValue(Value)).init(offset, .{.results = buffer}));
         }
     };
 }
@@ -138,10 +146,9 @@ test "repeated" {
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(RepeatedValue(LiteralValue)).initError(ctx.offset, "matches only the empty language"));
         var repeated = sub.next().?.result.value;
         defer repeated.deinit();
-        defer repeated.deinitAll();
         testing.expect(sub.next() == null); // stream closed
 
-        var repeatedSub = repeated.subscribe(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"));
+        var repeatedSub = repeated.results.subscribe(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"));
         testing.expectEqual(@as(usize, 3), repeatedSub.next().?.offset);
         testing.expectEqual(@as(usize, 6), repeatedSub.next().?.offset);
         testing.expectEqual(@as(usize, 9), repeatedSub.next().?.offset);
