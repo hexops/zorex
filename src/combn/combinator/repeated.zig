@@ -30,7 +30,7 @@ pub fn RepeatedContext(comptime Value: type) type {
 /// In the case of an ambiguous grammar, it would yield a stream with only the first parse path.
 /// Use RepeatedAmbiguous if ambiguou parse paths are desirable.
 pub fn RepeatedValue(comptime Value: type) type {
-    return Value;
+    return ResultStream(Result(Value));
 }
 
 /// Matches the `input` repeatedly, between `[min, max]` times (inclusive.) If ambiguous parse paths
@@ -73,6 +73,10 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                 return;
             }
 
+            var buffer = try ResultStream(Result(Value)).init(ctx.allocator, ctx.key);
+            // TODO(slimsag): deferring here does not work. Bug in compiler?
+            //defer buffer.close();
+
             var num_values: usize = 0;
             var offset: usize = 0;
             while (true) {
@@ -88,7 +92,10 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                         .err => {
                             if (num_values < ctx.input.min) {
                                 try ctx.results.add(Result(RepeatedValue(Value)).initError(next.offset, next.result.err));
+                                return;
                             }
+                            buffer.close();
+                            try ctx.results.add(Result(RepeatedValue(Value)).init(offset, buffer));
                             return;
                         },
                         else => {
@@ -96,7 +103,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                             if (num_local_values == 0) {
                                 // TODO(slimsag): if no consumption, could get stuck forever!
                                 offset = next.offset;
-                                try ctx.results.add(next);
+                                try buffer.add(next);
                             }
                             num_local_values += 1;
                         },
@@ -106,6 +113,8 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                 num_values += 1;
                 if (num_values >= ctx.input.max and ctx.input.max != -1) break;
             }
+            buffer.close();
+            try ctx.results.add(Result(RepeatedValue(Value)).init(offset, buffer));
         }
     };
 }
@@ -125,9 +134,15 @@ test "repeated" {
         try abcInfinity.parser.parse(&ctx);
 
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(RepeatedValue(LiteralValue)).initError(ctx.offset, "matches only the empty language"));
-        testing.expectEqual(@as(usize, 3), sub.next().?.offset);
-        testing.expectEqual(@as(usize, 6), sub.next().?.offset);
-        testing.expectEqual(@as(usize, 9), sub.next().?.offset);
+        var repeated = sub.next().?.result.value;
+        defer repeated.deinit();
+        defer repeated.deinitAll();
         testing.expect(sub.next() == null); // stream closed
+
+        var repeatedSub = repeated.subscribe(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"));
+        testing.expectEqual(@as(usize, 3), repeatedSub.next().?.offset);
+        testing.expectEqual(@as(usize, 6), repeatedSub.next().?.offset);
+        testing.expectEqual(@as(usize, 9), repeatedSub.next().?.offset);
+        testing.expect(repeatedSub.next() == null); // stream closed
     }
 }

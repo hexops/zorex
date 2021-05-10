@@ -23,7 +23,7 @@ pub fn SequenceContext(comptime Value: type) type {
 /// In the case of an ambiguous grammar, it would yield a stream with only the first parse path.
 /// Use SequenceAmbiguous if ambiguou parse paths are desirable.
 pub fn SequenceValue(comptime Value: type) type {
-    return Value;
+    return ResultStream(Result(Value));
 }
 
 /// Matches the `input` parsers sequentially. The parsers must produce the same data type (use
@@ -66,6 +66,10 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
                 return;
             }
 
+            var buffer = try ResultStream(Result(Value)).init(ctx.allocator, ctx.key);
+            // TODO(slimsag): deferring here does not work. Bug in compiler?
+            //defer buffer.close();
+
             var offset: usize = 0;
             for (self.input) |child_parser| {
                 const child_node_name = try child_parser.nodeName(&in_ctx.memoizer.node_name_cache);
@@ -86,13 +90,15 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
                             if (num_local_values == 0) {
                                 // TODO(slimsag): if no consumption, could get stuck forever!
                                 offset = next.offset;
-                                try ctx.results.add(next);
+                                try buffer.add(next);
                             }
                             num_local_values += 1;
                         },
                     }
                 }
             }
+            buffer.close();
+            try ctx.results.add(Result(SequenceValue(Value)).init(offset, buffer));
         }
     };
 }
@@ -113,10 +119,16 @@ test "sequence" {
         try seq.parser.parse(&ctx);
 
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(SequenceValue(LiteralValue)).initError(ctx.offset, "matches only the empty language"));
-        testing.expectEqual(@as(usize, 3), sub.next().?.offset);
-        testing.expectEqual(@as(usize, 8), sub.next().?.offset);
-        testing.expectEqual(@as(usize, 11), sub.next().?.offset);
-        testing.expectEqual(@as(usize, 12), sub.next().?.offset);
+        var sequence = sub.next().?.result.value;
+        defer sequence.deinit();
+        defer sequence.deinitAll();
         testing.expect(sub.next() == null); // stream closed
+
+        var sequenceSub = sequence.subscribe(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"));
+        testing.expectEqual(@as(usize, 3), sequenceSub.next().?.offset);
+        testing.expectEqual(@as(usize, 8), sequenceSub.next().?.offset);
+        testing.expectEqual(@as(usize, 11), sequenceSub.next().?.offset);
+        testing.expectEqual(@as(usize, 12), sequenceSub.next().?.offset);
+        testing.expect(sequenceSub.next() == null); // stream closed
     }
 }
