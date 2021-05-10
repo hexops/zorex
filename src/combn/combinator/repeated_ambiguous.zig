@@ -203,7 +203,7 @@ pub fn RepeatedAmbiguous(comptime Input: type, comptime Value: type) type {
             // For every top-level value (A, B, C in our example above.)
             var num_values: usize = 0;
             var sub = child_ctx.results.subscribe(ctx.key, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"));
-            var offset: usize = 0;
+            var offset: usize = ctx.offset;
             while (sub.next()) |top_level| {
                 if (num_values >= ctx.input.max and ctx.input.max != -1) break;
                 num_values += 1;

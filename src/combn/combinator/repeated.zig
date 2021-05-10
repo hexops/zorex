@@ -78,8 +78,9 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
             //defer buffer.close();
 
             var num_values: usize = 0;
-            var offset: usize = 0;
+            var offset: usize = ctx.offset;
             while (true) {
+                std.debug.print("MAIN HNEXT {}\n", .{offset});
                 const child_node_name = try self.input.parser.nodeName(&in_ctx.memoizer.node_name_cache);
                 var child_ctx = try ctx.with({}).initChild(Value, child_node_name, offset);
                 defer child_ctx.deinitChild();
@@ -90,6 +91,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                 while (sub.next()) |next| {
                     switch (next.result) {
                         .err => {
+                            offset = next.offset;
                             if (num_values < ctx.input.min) {
                                 try ctx.results.add(Result(RepeatedValue(Value)).initError(next.offset, next.result.err));
                                 return;
@@ -101,8 +103,8 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                         else => {
                             // TODO(slimsag): need path committal functionality
                             if (num_local_values == 0) {
-                                // TODO(slimsag): if no consumption, could get stuck forever!
                                 offset = next.offset;
+                                // TODO(slimsag): if no consumption, could get stuck forever!
                                 try buffer.add(next);
                             }
                             num_local_values += 1;

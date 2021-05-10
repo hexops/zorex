@@ -70,7 +70,7 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
             // TODO(slimsag): deferring here does not work. Bug in compiler?
             //defer buffer.close();
 
-            var offset: usize = 0;
+            var offset: usize = ctx.offset;
             for (self.input) |child_parser| {
                 const child_node_name = try child_parser.nodeName(&in_ctx.memoizer.node_name_cache);
                 var child_ctx = try ctx.with({}).initChild(Value, child_node_name, offset);
