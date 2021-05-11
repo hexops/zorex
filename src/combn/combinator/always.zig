@@ -8,6 +8,8 @@ pub const AlwaysVoid = struct {
     pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {}
 };
 
+/// If the result is not `null`, its `.offset` value will be updated to reflect the current parse
+/// position before Always returns it.
 pub fn AlwaysContext(comptime Value: type) type {
     return ?Result(Value);
 }
@@ -40,7 +42,9 @@ pub fn Always(comptime Input: type, comptime Value: type) type {
             defer ctx.results.close();
 
             if (self.input) |input| {
-                try ctx.results.add(input);
+                var tmp = input;
+                tmp.offset = ctx.offset;
+                try ctx.results.add(tmp);
             }
         }
     };
