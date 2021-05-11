@@ -47,13 +47,18 @@ pub fn RepeatedValue(comptime Value: type) type {
 /// The `input` parsers must remain alive for as long as the `Repeated` parser will be used.
 pub fn Repeated(comptime Input: type, comptime Value: type) type {
     return struct {
-        parser: Parser(RepeatedValue(Value)) = Parser(RepeatedValue(Value)).init(parse, nodeName),
+        parser: Parser(RepeatedValue(Value)) = Parser(RepeatedValue(Value)).init(parse, nodeName, deinit),
         input: RepeatedContext(Value),
 
         const Self = @This();
 
         pub fn init(input: RepeatedContext(Value)) Self {
             return Self{ .input = input };
+        }
+
+        pub fn deinit(parser: *const Parser(RepeatedValue(Value)), allocator: *mem.Allocator) void {
+            const self = @fieldParentPtr(Self, "parser", parser);
+            self.input.parser.deinit(allocator);
         }
 
         pub fn nodeName(parser: *const Parser(RepeatedValue(Value)), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {

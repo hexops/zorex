@@ -37,13 +37,20 @@ pub fn OneOfValue(comptime Value: type) type {
 /// The `input` parsers must remain alive for as long as the `OneOf` parser will be used.
 pub fn OneOf(comptime Input: type, comptime Value: type) type {
     return struct {
-        parser: Parser(OneOfValue(Value)) = Parser(OneOfValue(Value)).init(parse, nodeName),
+        parser: Parser(OneOfValue(Value)) = Parser(OneOfValue(Value)).init(parse, nodeName, deinit),
         input: OneOfContext(Value),
 
         const Self = @This();
 
         pub fn init(input: OneOfContext(Value)) Self {
             return Self{ .input = input };
+        }
+
+        pub fn deinit(parser: *const Parser(Value), allocator: *mem.Allocator) void {
+            const self = @fieldParentPtr(Self, "parser", parser);
+            for (self.input) |in_parser| {
+                in_parser.deinit(allocator);
+            }
         }
 
         pub fn nodeName(parser: *const Parser(Value), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {

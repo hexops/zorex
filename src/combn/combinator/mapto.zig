@@ -18,13 +18,18 @@ pub fn MapToContext(comptime Value: type, comptime Target: type) type {
 /// The `input.parser` must remain alive for as long as the `MapTo` parser will be used.
 pub fn MapTo(comptime Input: type, comptime Value: type, comptime Target: type) type {
     return struct {
-        parser: Parser(Target) = Parser(Target).init(parse, nodeName),
+        parser: Parser(Target) = Parser(Target).init(parse, nodeName, deinit),
         input: MapToContext(Value, Target),
 
         const Self = @This();
 
         pub fn init(input: MapToContext(Value, Target)) Self {
             return Self{ .input = input };
+        }
+
+        pub fn deinit(parser: *const Parser(Target), allocator: *mem.Allocator) void {
+            const self = @fieldParentPtr(Self, "parser", parser);
+            self.input.parser.deinit(allocator);
         }
 
         pub fn nodeName(parser: *const Parser(Target), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {

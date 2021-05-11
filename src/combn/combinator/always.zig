@@ -19,7 +19,7 @@ pub fn AlwaysContext(comptime Value: type) type {
 /// The `input` must remain alive for as long as the `Always` parser will be used.
 pub fn Always(comptime Input: type, comptime Value: type) type {
     return struct {
-        parser: Parser(Value) = Parser(Value).init(parse, nodeName),
+        parser: Parser(Value) = Parser(Value).init(parse, nodeName, null),
         input: AlwaysContext(Value),
 
         const Self = @This();

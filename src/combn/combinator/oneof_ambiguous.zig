@@ -48,13 +48,20 @@ pub fn OneOfAmbiguousValue(comptime Value: type) type {
 /// The `input` parsers must remain alive for as long as the `OneOfAmbiguous` parser will be used.
 pub fn OneOfAmbiguous(comptime Input: type, comptime Value: type) type {
     return struct {
-        parser: Parser(OneOfAmbiguousValue(Value)) = Parser(OneOfAmbiguousValue(Value)).init(parse, nodeName),
+        parser: Parser(OneOfAmbiguousValue(Value)) = Parser(OneOfAmbiguousValue(Value)).init(parse, nodeName, deinit),
         input: OneOfAmbiguousContext(Value),
 
         const Self = @This();
 
         pub fn init(input: OneOfAmbiguousContext(Value)) Self {
             return Self{ .input = input };
+        }
+
+        pub fn deinit(parser: *const Parser(Value), allocator: *mem.Allocator) void {
+            const self = @fieldParentPtr(Self, "parser", parser);
+            for (self.input) |in_parser| {
+                in_parser.deinit(allocator);
+            }
         }
 
         pub fn nodeName(parser: *const Parser(Value), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {

@@ -17,7 +17,7 @@ pub const LiteralValue = struct {
 ///
 /// The `input` string must remain alive for as long as the `Literal` parser will be used.
 pub const Literal = struct {
-    parser: Parser(LiteralValue) = Parser(LiteralValue).init(parse, nodeName),
+    parser: Parser(LiteralValue) = Parser(LiteralValue).init(parse, nodeName, null),
     input: LiteralContext,
 
     const Self = @This();

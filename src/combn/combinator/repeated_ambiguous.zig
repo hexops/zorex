@@ -95,13 +95,18 @@ pub fn RepeatedAmbiguousValue(comptime Value: type) type {
 /// The `input` parsers must remain alive for as long as the `RepeatedAmbiguous` parser will be used.
 pub fn RepeatedAmbiguous(comptime Input: type, comptime Value: type) type {
     return struct {
-        parser: Parser(RepeatedAmbiguousValue(Value)) = Parser(RepeatedAmbiguousValue(Value)).init(parse, nodeName),
+        parser: Parser(RepeatedAmbiguousValue(Value)) = Parser(RepeatedAmbiguousValue(Value)).init(parse, nodeName, deinit),
         input: RepeatedAmbiguousContext(Value),
 
         const Self = @This();
 
         pub fn init(input: RepeatedAmbiguousContext(Value)) Self {
             return Self{ .input = input };
+        }
+
+        pub fn deinit(parser: *const Parser(RepeatedAmbiguousValue(Value)), allocator: *mem.Allocator) void {
+            const self = @fieldParentPtr(Self, "parser", parser);
+            self.input.parser.deinit(allocator);
         }
 
         pub fn nodeName(parser: *const Parser(RepeatedAmbiguousValue(Value)), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {

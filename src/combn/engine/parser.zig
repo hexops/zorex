@@ -397,12 +397,41 @@ pub fn Parser(comptime Value: type) type {
         const Self = @This();
         _parse: fn (self: *const Self, ctx: *const Context(void, Value)) callconv(.Async) Error!void,
         _nodeName: fn (self: *const Self, node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64,
+        _deinit: ?fn (self: *const Self, allocator: *mem.Allocator) void,
+        _heap_storage: ?[]u8,
 
         pub fn init(
             parseImpl: fn (self: *const Self, ctx: *const Context(void, Value)) callconv(.Async) Error!void,
             nodeNameImpl: fn (self: *const Self, node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64,
+            deinitImpl: ?fn (self: *const Self, allocator: *mem.Allocator) void,
         ) @This() {
-            return .{ ._parse = parseImpl, ._nodeName = nodeNameImpl };
+            return .{
+                ._parse = parseImpl,
+                ._nodeName = nodeNameImpl,
+                ._deinit = deinitImpl,
+                ._heap_storage = null,
+            };
+        }
+
+        /// Allocates and stores the `parent` value (e.g. `Literal(...).init(...)` on the heap,
+        /// turning this `Parser` into a heap-allocated one. Returned is a poiner to the
+        /// heap-allocated `&parent.parser`.
+        pub fn heapAlloc(self: *const @This(), allocator: *mem.Allocator, parent: anytype) !*@This() {
+            const Parent = @TypeOf(parent);
+            var memory = try allocator.allocAdvanced(u8, @alignOf(Parent), @sizeOf(Parent), mem.Allocator.Exact.at_least);
+            var parent_ptr = @ptrCast(*Parent, &memory[0]);
+            parent_ptr.* = parent;
+            parent_ptr.parser._heap_storage = memory;
+            return &parent_ptr.parser;
+        }
+
+        pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
+            if (self._deinit) |dfn| {
+                dfn(self, allocator);
+            }
+            if (self._heap_storage) |s| {
+                allocator.free(s);
+            }
         }
 
         pub fn parse(self: *const Self, ctx: *const Context(void, Value)) callconv(.Async) Error!void {
@@ -432,4 +461,33 @@ pub fn Parser(comptime Value: type) type {
 
 test "syntax" {
     const p = Parser([]u8);
+}
+
+test "heap_parser" {
+    nosuspend {
+        const Literal = @import("../parser/literal.zig").Literal;
+        const LiteralValue = @import("../parser/literal.zig").LiteralValue;
+        const LiteralContext = @import("../parser/literal.zig").LiteralContext;
+
+        const allocator = testing.allocator;
+
+        var ctx = try Context(void, LiteralValue).init(allocator, "hello world", {});
+        defer ctx.deinit();
+
+        // The parser we'll store on the heap.
+        var want = "hello";
+        var literal_parser = Literal.init(want);
+
+        // Move to heap.
+        var heap_parser = try literal_parser.parser.heapAlloc(allocator, literal_parser);
+        defer heap_parser.deinit(allocator);
+
+        // Use it.
+        try heap_parser.parse(&ctx);
+        defer ctx.results.deinitAll(ctx.allocator);
+
+        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"));
+        testing.expectEqual(@as(?Result(LiteralValue), Result(LiteralValue).init(want.len, .{ .value = "hello" })), sub.next());
+        testing.expectEqual(@as(?Result(LiteralValue), null), sub.next());
+    }
 }

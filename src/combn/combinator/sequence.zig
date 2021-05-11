@@ -40,13 +40,20 @@ pub fn SequenceValue(comptime Value: type) type {
 /// The `input` parsers must remain alive for as long as the `Sequence` parser will be used.
 pub fn Sequence(comptime Input: type, comptime Value: type) type {
     return struct {
-        parser: Parser(SequenceValue(Value)) = Parser(SequenceValue(Value)).init(parse, nodeName),
+        parser: Parser(SequenceValue(Value)) = Parser(SequenceValue(Value)).init(parse, nodeName, deinit),
         input: SequenceContext(Value),
 
         const Self = @This();
 
         pub fn init(input: SequenceContext(Value)) Self {
             return Self{ .input = input };
+        }
+
+        pub fn deinit(parser: *const Parser(SequenceValue(Value)), allocator: *mem.Allocator) void {
+            const self = @fieldParentPtr(Self, "parser", parser);
+            for (self.input) |child_parser| {
+                child_parser.deinit(allocator);
+            }
         }
 
         pub fn nodeName(parser: *const Parser(SequenceValue(Value)), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {

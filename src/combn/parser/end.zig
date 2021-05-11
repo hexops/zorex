@@ -10,7 +10,7 @@ pub const EndValue = struct {
 
 /// Matches the end of the `input` string.
 pub const End = struct {
-    parser: Parser(EndValue) = Parser(EndValue).init(parse, nodeName),
+    parser: Parser(EndValue) = Parser(EndValue).init(parse, nodeName, null),
 
     const Self = @This();
 

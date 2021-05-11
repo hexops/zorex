@@ -27,13 +27,18 @@ pub fn ReentrantContext(comptime Value: type) type {
 /// The `input.parser` must remain alive for as long as the `Reentrant` parser will be used.
 pub fn Reentrant(comptime Input: type, comptime Value: type) type {
     return struct {
-        parser: Parser(Value) = Parser(Value).init(parse, nodeName),
+        parser: Parser(Value) = Parser(Value).init(parse, nodeName, deinit),
         input: ReentrantContext(Value),
 
         const Self = @This();
 
         pub fn init(input: ReentrantContext(Value)) Self {
             return Self{ .input = input };
+        }
+
+        pub fn deinit(parser: *const Parser(Value), allocator: *mem.Allocator) void {
+            const self = @fieldParentPtr(Self, "parser", parser);
+            self.input.deinit(allocator);
         }
 
         pub fn nodeName(parser: *const Parser(Value), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
