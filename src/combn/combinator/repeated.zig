@@ -84,7 +84,6 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
             var buffer = try ctx.allocator.create(ResultStream(Result(Value)));
             errdefer ctx.allocator.destroy(buffer);
             errdefer buffer.deinit();
-            defer buffer.close();
             buffer.* = try ResultStream(Result(Value)).init(ctx.allocator, ctx.key);
 
             var num_values: usize = 0;
@@ -102,9 +101,13 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                         .err => {
                             offset = next.offset;
                             if (num_values < ctx.input.min) {
+                                buffer.close();
+                                buffer.deinit();
+                                ctx.allocator.destroy(buffer);
                                 try ctx.results.add(Result(RepeatedValue(Value)).initError(next.offset, next.result.err));
                                 return;
                             }
+                            buffer.close();
                             try ctx.results.add(Result(RepeatedValue(Value)).init(offset, .{ .results = buffer }));
                             return;
                         },
@@ -123,6 +126,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
                 num_values += 1;
                 if (num_values >= ctx.input.max and ctx.input.max != -1) break;
             }
+            buffer.close();
             try ctx.results.add(Result(RepeatedValue(Value)).init(offset, .{ .results = buffer }));
         }
     };

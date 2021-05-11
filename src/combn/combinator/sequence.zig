@@ -77,7 +77,6 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
             var buffer = try ctx.allocator.create(ResultStream(Result(Value)));
             errdefer ctx.allocator.destroy(buffer);
             errdefer buffer.deinit();
-            defer buffer.close();
             buffer.* = try ResultStream(Result(Value)).init(ctx.allocator, ctx.key);
 
             var offset: usize = ctx.offset;
@@ -92,6 +91,9 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
                 while (sub.next()) |next| {
                     switch (next.result) {
                         .err => {
+                            buffer.close();
+                            buffer.deinit();
+                            ctx.allocator.destroy(buffer);
                             try ctx.results.add(Result(SequenceValue(Value)).initError(next.offset, next.result.err));
                             return;
                         },
@@ -107,6 +109,7 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
                     }
                 }
             }
+            buffer.close();
             try ctx.results.add(Result(SequenceValue(Value)).init(offset, .{ .results = buffer }));
         }
     };
