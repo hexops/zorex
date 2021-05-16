@@ -324,9 +324,13 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
         /// new maximum depth of reentrant parser invocations for the child and all of its
         /// children.
         pub fn initChildRetry(self: @This(), comptime NewValue: type, node_name: ParserNodeName, offset: usize, max_depth: ?usize) !Context(Input, NewValue) {
+            var src_ptr: usize = 0;
+            if (src.len > 0) {
+                src_ptr = @ptrToInt(&self.src[0]);
+            }
             const key = ParserPosKey{
                 .node_name = node_name,
-                .src_ptr = @ptrToInt(&self.src[0]),
+                .src_ptr = src_ptr,
                 .offset = offset,
             };
             var child_ctx = Context(Input, NewValue){
@@ -354,9 +358,13 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
         /// initChildRetry, potentially by a distant parent recursive call, indicating that a new
         /// reentrant retry should not be attempted.
         pub fn isRetrying(self: @This(), node_name: ParserNodeName, offset: usize) bool {
+            var src_ptr: usize = 0;
+            if (src.len > 0) {
+                src_ptr = @ptrToInt(&self.src[0]);
+            }
             return self.memoizer.isRetrying(ParserPosKey{
                 .node_name = node_name,
-                .src_ptr = @ptrToInt(&self.src[0]),
+                .src_ptr = src_ptr,
                 .offset = offset,
             });
         }
