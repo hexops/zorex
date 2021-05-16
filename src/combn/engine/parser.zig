@@ -325,7 +325,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
         /// children.
         pub fn initChildRetry(self: @This(), comptime NewValue: type, node_name: ParserNodeName, offset: usize, max_depth: ?usize) !Context(Input, NewValue) {
             var src_ptr: usize = 0;
-            if (src.len > 0) {
+            if (self.src.len > 0) {
                 src_ptr = @ptrToInt(&self.src[0]);
             }
             const key = ParserPosKey{
@@ -359,7 +359,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
         /// reentrant retry should not be attempted.
         pub fn isRetrying(self: @This(), node_name: ParserNodeName, offset: usize) bool {
             var src_ptr: usize = 0;
-            if (src.len > 0) {
+            if (self.src.len > 0) {
                 src_ptr = @ptrToInt(&self.src[0]);
             }
             return self.memoizer.isRetrying(ParserPosKey{
