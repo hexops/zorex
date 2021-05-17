@@ -2,7 +2,8 @@
 //! produce a Compilation (not e.g. an AST) which is itself a parser which, when invoked, parses
 //! the syntax described by the DSL.
 
-usingnamespace @import("../combn/combn.zig");
+const combn = @import("../combn/combn.zig");
+const Parser = combn.Parser;
 
 const String = @import("String.zig");
 const Node = @import("Node.zig");

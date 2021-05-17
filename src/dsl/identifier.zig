@@ -1,4 +1,11 @@
-usingnamespace @import("../combn/combn.zig");
+const combn = @import("../combn/combn.zig");
+const Result = combn.Result;
+const Parser = combn.Parser;
+const Error = combn.Error;
+const Context = combn.Context;
+const ParserPosKey = combn.ParserPosKey;
+const ParserPath = combn.ParserPath;
+const ParserNodeName = combn.ParserNodeName;
 
 const String = @import("String.zig");
 const Compilation = @import("Compilation.zig");

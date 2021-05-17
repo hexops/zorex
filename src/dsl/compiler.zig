@@ -1,4 +1,20 @@
-usingnamespace @import("../combn/combn.zig");
+const combn = @import("../combn/combn.zig");
+const Result = combn.Result;
+const Parser = combn.Parser;
+const Error = combn.Error;
+const Context = combn.Context;
+const ParserPosKey = combn.ParserPosKey;
+const ParserPath = combn.ParserPath;
+const Sequence = combn.Sequence;
+const SequenceValue = combn.SequenceValue;
+const Repeated = combn.Repeated;
+const RepeatedValue = combn.RepeatedValue;
+const Literal = combn.Literal;
+const LiteralValue = combn.LiteralValue;
+const OneOf = combn.OneOf;
+const MapTo = combn.MapTo;
+const Optional = combn.Optional;
+const Always = combn.Always;
 
 const String = @import("String.zig");
 const Node = @import("Node.zig");
