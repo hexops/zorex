@@ -52,7 +52,7 @@ fn mapNodeSequence(in: Result(SequenceValue(Node)), _allocator: *mem.Allocator, 
     }
 }
 
-/// Maps a SequenceValue(Compilation) -> singular Compilation which parses all programs in sequence,
+/// Maps a SequenceValue(Compilation) -> singular Compilation which parses all compilations in sequence,
 /// emitting a single unnamed Node with children.
 fn mapCompilationSequence(in: Result(SequenceValue(Compilation)), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
     switch (in.result) {
@@ -64,28 +64,28 @@ fn mapCompilationSequence(in: Result(SequenceValue(Compilation)), _allocator: *m
 
             // TODO(slimsag): mapTo should be async
             nosuspend {
-                // Collect all the parser programs.
+                // Collect all the parser compilations.
                 var parsers = std.ArrayList(*const Parser(Node)).init(_allocator);
                 var sub = sequence.results.subscribe(key, path, Result(Compilation).initError(in.offset, "matches only the empty language"));
                 var offset = in.offset;
                 while (sub.next()) |next| {
                     offset = next.offset;
-                    const program = next.result.value;
-                    try parsers.append(program.value.parser);
+                    const compilation = next.result.value;
+                    try parsers.append(compilation.value.parser);
                 }
                 var slice = parsers.toOwnedSlice();
 
-                // Build a parser which maps the many Parser(Node) programs into a single Parser(Node)
+                // Build a parser which maps the many Parser(Node) compilations into a single Parser(Node)
                 // which has each node as a child.
-                var sequence_program = Sequence(void, Node).init(slice);
+                var sequence_compilation = Sequence(void, Node).init(slice);
                 var mapped = MapTo(void, SequenceValue(Node), Node).init(.{
-                    .parser = try sequence_program.parser.heapAlloc(_allocator, sequence_program),
+                    .parser = try sequence_compilation.parser.heapAlloc(_allocator, sequence_compilation),
                     .mapTo = mapNodeSequence,
                 });
 
-                var result_program = Compilation.initParser(try mapped.parser.heapAlloc(_allocator, mapped));
-                result_program.deinit_slice = slice;
-                return Result(Compilation).init(offset, result_program);
+                var result_compilation = Compilation.initParser(try mapped.parser.heapAlloc(_allocator, mapped));
+                result_compilation.deinit_slice = slice;
+                return Result(Compilation).init(offset, result_compilation);
             }
         },
     }
@@ -140,7 +140,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                     .err => return Result(Compilation).initError(in.offset, in.result.err),
                     else => {
                         defer in.deinit(_allocator);
-                        // optimization: newline and space parsers produce always_none programs, so
+                        // optimization: newline and space parsers produce always_none compilations, so
                         // no need for us to pay any attention to repeated results.
                         var always_none = Always(void, Node).init(null);
                         return Result(Compilation).init(in.offset, Compilation.initParser(try always_none.parser.heapAlloc(_allocator, always_none)));
@@ -179,7 +179,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                         //defer _allocator.destroy(sequence.results);
                         //defer sequence.results.deinit();
 
-                        // TODO(slimsag): actually compose the program to parse this regexp!
+                        // TODO(slimsag): actually compose the compilation to parse this regexp!
                         defer in.deinit(_allocator);
                         const success = Result(Node).init(in.offset, Node{
                             .name = try String.init(_allocator, "TODO(slimsag): value from parsing regexp!"),
@@ -203,7 +203,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                     else => {
                         defer in.deinit(_allocator);
 
-                        // TODO(slimsag): lookup program to actually parse the thing described by
+                        // TODO(slimsag): lookup compilation to actually parse the thing described by
                         // this identifier!
                         const success = Result(Node).init(in.offset, Node{
                             .name = try String.init(_allocator, "success definition!"),
@@ -254,7 +254,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                         // TODO(slimsag): mapTo should be async
                         nosuspend {
                             var _expr_list = sub.next().?;
-                            _ = sub.next().?; // non-capturing program for comma
+                            _ = sub.next().?; // non-capturing compilation for comma
                             assert(sub.next() == null);
                             return _expr_list;
                         }
@@ -304,11 +304,11 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                         // TODO(slimsag): mapTo should be async
                         nosuspend {
                             var identifier = sub.next().?;
-                            _ = sub.next().?; // non-capturing program for whitespace
-                            _ = sub.next().?; // non-capturing program for assignment `=` operator
-                            _ = sub.next().?; // non-capturing program for whitespace
+                            _ = sub.next().?; // non-capturing compilation for whitespace
+                            _ = sub.next().?; // non-capturing compilation for assignment `=` operator
+                            _ = sub.next().?; // non-capturing compilation for whitespace
                             var _expr_list = sub.next().?;
-                            var last = sub.next().?; // non-capturing program for semicolon
+                            var last = sub.next().?; // non-capturing compilation for semicolon
                             assert(sub.next() == null);
 
                             // TODO(slimsag): set identifier=_expr_list so that future expression
@@ -352,16 +352,16 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                         // TODO(slimsag): mapTo should be async
                         nosuspend {
                             var offset = in.offset;
-                            var program = sub.next();
-                            if (program == null) {
+                            var compilation = sub.next();
+                            if (compilation == null) {
                                 // Grammar does not have a root expression
                                 return Result(Compilation).initError(offset, "root expression missing");
                             }
 
-                            // All other parse paths should yield no programs.
+                            // All other parse paths should yield no compilations.
                             assert(sub.next() == null);
 
-                            return program.?;
+                            return compilation.?;
                         }
                     },
                 }
@@ -374,12 +374,12 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
     try grammar.parser.parse(&ctx);
 
     var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(Compilation).initError(ctx.offset, "matches only the empty language"));
-    var program = sub.next();
+    var compilation = sub.next();
     assert(sub.next() == null); // our grammar is never ambiguous
-    if (program == null) {
+    if (compilation == null) {
         return Result(Compilation).initError(ctx.offset, "failed to compile");
     }
-    return program.?;
+    return compilation.?;
 }
 
 test "DSL" {

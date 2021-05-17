@@ -1,5 +1,5 @@
-//! A Compilation is the result of parsing a program in Zorex's DSL syntax. That is, a parser
-//! parses the Zorex DSL and produces a Compilation (which is itself a parser) in order to parse
+//! A Compilation is the result of parsing Zorex's DSL syntax. That is, the Zorex DSL is parsed to
+//! produce a Compilation (not e.g. an AST) which is itself a parser which, when invoked, parses
 //! the syntax described by the DSL.
 
 usingnamespace @import("../combn/combn.zig");
