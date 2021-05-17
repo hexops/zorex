@@ -1,6 +1,6 @@
-//! A Program is the result of parsing a program in Zorex's DSL syntax. That is, a parser parses
-//! the Zorex DSL and produces a Program (which is itself a parser) in order to parse the syntax
-//! described by the DSL.
+//! A Compilation is the result of parsing a program in Zorex's DSL syntax. That is, a parser
+//! parses the Zorex DSL and produces a Compilation (which is itself a parser) in order to parse
+//! the syntax described by the DSL.
 
 usingnamespace @import("../combn/combn.zig");
 

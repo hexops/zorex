@@ -2,7 +2,7 @@ usingnamespace @import("../combn/combn.zig");
 
 const String = @import("String.zig");
 const Node = @import("Node.zig");
-const Program = @import("Program.zig");
+const Compilation = @import("Compilation.zig");
 const Identifier = @import("identifier.zig").Identifier;
 
 const std = @import("std");
@@ -10,12 +10,12 @@ const testing = std.testing;
 const mem = std.mem;
 const assert = std.debug.assert;
 
-fn mapLiteralToNone(in: Result(LiteralValue), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Program) {
+fn mapLiteralToNone(in: Result(LiteralValue), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
     switch (in.result) {
-        .err => return Result(Program).initError(in.offset, in.result.err),
+        .err => return Result(Compilation).initError(in.offset, in.result.err),
         else => {
             var always_none = Always(void, Node).init(null);
-            return Result(Program).init(in.offset, Program.initParser(try always_none.parser.heapAlloc(_allocator, always_none)));
+            return Result(Compilation).init(in.offset, Compilation.initParser(try always_none.parser.heapAlloc(_allocator, always_none)));
         },
     }
 }
@@ -52,11 +52,11 @@ fn mapNodeSequence(in: Result(SequenceValue(Node)), _allocator: *mem.Allocator, 
     }
 }
 
-/// Maps a SequenceValue(Program) -> singular Program which parses all programs in sequence,
+/// Maps a SequenceValue(Compilation) -> singular Compilation which parses all programs in sequence,
 /// emitting a single unnamed Node with children.
-fn mapProgramSequence(in: Result(SequenceValue(Program)), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Program) {
+fn mapCompilationSequence(in: Result(SequenceValue(Compilation)), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
     switch (in.result) {
-        .err => return Result(Program).initError(in.offset, in.result.err),
+        .err => return Result(Compilation).initError(in.offset, in.result.err),
         else => {
             var sequence = in.result.value;
             defer _allocator.destroy(sequence.results);
@@ -66,7 +66,7 @@ fn mapProgramSequence(in: Result(SequenceValue(Program)), _allocator: *mem.Alloc
             nosuspend {
                 // Collect all the parser programs.
                 var parsers = std.ArrayList(*const Parser(Node)).init(_allocator);
-                var sub = sequence.results.subscribe(key, path, Result(Program).initError(in.offset, "matches only the empty language"));
+                var sub = sequence.results.subscribe(key, path, Result(Compilation).initError(in.offset, "matches only the empty language"));
                 var offset = in.offset;
                 while (sub.next()) |next| {
                     offset = next.offset;
@@ -83,15 +83,15 @@ fn mapProgramSequence(in: Result(SequenceValue(Program)), _allocator: *mem.Alloc
                     .mapTo = mapNodeSequence,
                 });
 
-                var result_program = Program.initParser(try mapped.parser.heapAlloc(_allocator, mapped));
+                var result_program = Compilation.initParser(try mapped.parser.heapAlloc(_allocator, mapped));
                 result_program.deinit_slice = slice;
-                return Result(Program).init(offset, result_program);
+                return Result(Compilation).init(offset, result_program);
             }
         },
     }
 }
 
-pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Program) {
+pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilation) {
     // DSL grammar
     //
     // ```ebnf
@@ -108,7 +108,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Program) {
     // Grammar = (Definition | Expr | Whitespace+)+, EOF ;
     // ```
     //
-    var newline = MapTo(void, LiteralValue, Program).init(.{
+    var newline = MapTo(void, LiteralValue, Compilation).init(.{
         .parser = &OneOf(void, LiteralValue).init(&.{
             &Literal.init("\r\n").parser,
             &Literal.init("\r").parser,
@@ -116,7 +116,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Program) {
         }).parser,
         .mapTo = mapLiteralToNone,
     });
-    var space = MapTo(void, LiteralValue, Program).init(.{
+    var space = MapTo(void, LiteralValue, Compilation).init(.{
         .parser = &OneOf(void, LiteralValue).init(&.{
             &Literal.init(" ").parser,
             &Literal.init("\t").parser,
@@ -124,56 +124,56 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Program) {
         .mapTo = mapLiteralToNone,
     });
 
-    var whitespace = OneOf(void, Program).init(&.{
+    var whitespace = OneOf(void, Compilation).init(&.{
         &newline.parser,
         &space.parser,
     });
-    var whitespace_one_or_more = MapTo(void, RepeatedValue(Program), Program).init(.{
-        .parser = &Repeated(void, Program).init(.{
+    var whitespace_one_or_more = MapTo(void, RepeatedValue(Compilation), Compilation).init(.{
+        .parser = &Repeated(void, Compilation).init(.{
             .parser = &whitespace.parser,
             .min = 1,
             .max = -1,
         }).parser,
         .mapTo = struct {
-            fn mapTo(in: Result(RepeatedValue(Program)), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Program) {
+            fn mapTo(in: Result(RepeatedValue(Compilation)), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
                 switch (in.result) {
-                    .err => return Result(Program).initError(in.offset, in.result.err),
+                    .err => return Result(Compilation).initError(in.offset, in.result.err),
                     else => {
                         defer in.deinit(_allocator);
                         // optimization: newline and space parsers produce always_none programs, so
                         // no need for us to pay any attention to repeated results.
                         var always_none = Always(void, Node).init(null);
-                        return Result(Program).init(in.offset, Program.initParser(try always_none.parser.heapAlloc(_allocator, always_none)));
+                        return Result(Compilation).init(in.offset, Compilation.initParser(try always_none.parser.heapAlloc(_allocator, always_none)));
                     },
                 }
             }
         }.mapTo,
     });
 
-    var assignment = MapTo(void, LiteralValue, Program).init(.{
+    var assignment = MapTo(void, LiteralValue, Compilation).init(.{
         .parser = &Literal.init("=").parser,
         .mapTo = mapLiteralToNone,
     });
-    var semicolon = MapTo(void, LiteralValue, Program).init(.{
+    var semicolon = MapTo(void, LiteralValue, Compilation).init(.{
         .parser = &Literal.init(";").parser,
         .mapTo = mapLiteralToNone,
     });
-    var forward_slash = MapTo(void, LiteralValue, Program).init(.{
+    var forward_slash = MapTo(void, LiteralValue, Compilation).init(.{
         .parser = &Literal.init("/").parser,
         .mapTo = mapLiteralToNone,
     });
 
-    var reg_expr = MapTo(void, SequenceValue(Program), Program).init(.{
-        .parser = &Sequence(void, Program).init(&.{
+    var reg_expr = MapTo(void, SequenceValue(Compilation), Compilation).init(.{
+        .parser = &Sequence(void, Compilation).init(&.{
             &forward_slash.parser,
             // TODO(slimsag): define the regular expression grammar!
             //&reg_expr_grammar.parser,
             &forward_slash.parser,
         }).parser,
         .mapTo = struct {
-            fn mapTo(in: Result(SequenceValue(Program)), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Program) {
+            fn mapTo(in: Result(SequenceValue(Compilation)), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
                 switch (in.result) {
-                    .err => return Result(Program).initError(in.offset, in.result.err),
+                    .err => return Result(Compilation).initError(in.offset, in.result.err),
                     else => {
                         var sequence = in.result.value;
                         //defer _allocator.destroy(sequence.results);
@@ -187,19 +187,19 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Program) {
                             .children = null,
                         });
                         var always_success = Always(void, Node).init(success);
-                        return Result(Program).init(in.offset, Program.initParser(try always_success.parser.heapAlloc(_allocator, always_success)));
+                        return Result(Compilation).init(in.offset, Compilation.initParser(try always_success.parser.heapAlloc(_allocator, always_success)));
                     },
                 }
             }
         }.mapTo,
     });
 
-    var identifier_expr = MapTo(void, Program, Program).init(.{
+    var identifier_expr = MapTo(void, Compilation, Compilation).init(.{
         .parser = &Identifier.init().parser,
         .mapTo = struct {
-            fn mapTo(in: Result(Program), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Program) {
+            fn mapTo(in: Result(Compilation), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
                 switch (in.result) {
-                    .err => return Result(Program).initError(in.offset, in.result.err),
+                    .err => return Result(Compilation).initError(in.offset, in.result.err),
                     else => {
                         defer in.deinit(_allocator);
 
@@ -211,45 +211,45 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Program) {
                             .children = null,
                         });
                         var always_success = Always(void, Node).init(success);
-                        return Result(Program).init(in.offset, Program.initParser(try always_success.parser.heapAlloc(_allocator, always_success)));
+                        return Result(Compilation).init(in.offset, Compilation.initParser(try always_success.parser.heapAlloc(_allocator, always_success)));
                     },
                 }
             }
         }.mapTo,
     });
-    var expr = OneOf(void, Program).init(&.{
+    var expr = OneOf(void, Compilation).init(&.{
         &reg_expr.parser,
         &identifier_expr.parser,
     });
 
     // ExprList = (ExprList, ",")? , Expr ;
-    var expr_list_parsers = [_]*Parser(Program){
+    var expr_list_parsers = [_]*Parser(Compilation){
         undefined, // placeholder for left-recursive `(ExprList, ",")?`
         &expr.parser,
     };
-    var expr_list = MapTo(void, SequenceValue(Program), Program).init(.{
-        .parser = &Sequence(void, Program).init(&expr_list_parsers).parser,
-        .mapTo = mapProgramSequence,
+    var expr_list = MapTo(void, SequenceValue(Compilation), Compilation).init(.{
+        .parser = &Sequence(void, Compilation).init(&expr_list_parsers).parser,
+        .mapTo = mapCompilationSequence,
     });
     // (ExprList, ",")
-    var comma = MapTo(void, LiteralValue, Program).init(.{
+    var comma = MapTo(void, LiteralValue, Compilation).init(.{
         .parser = &Literal.init(",").parser,
         .mapTo = mapLiteralToNone,
     });
-    var expr_list_inner_left = MapTo(void, SequenceValue(Program), Program).init(.{
-        .parser = &Sequence(void, Program).init(&.{
+    var expr_list_inner_left = MapTo(void, SequenceValue(Compilation), Compilation).init(.{
+        .parser = &Sequence(void, Compilation).init(&.{
             &expr_list.parser,
             &comma.parser,
         }).parser,
         .mapTo = struct {
-            fn mapTo(in: Result(SequenceValue(Program)), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Program) {
+            fn mapTo(in: Result(SequenceValue(Compilation)), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
                 switch (in.result) {
-                    .err => return Result(Program).initError(in.offset, in.result.err),
+                    .err => return Result(Compilation).initError(in.offset, in.result.err),
                     else => {
                         var sequence = in.result.value;
                         defer _allocator.destroy(sequence.results);
                         defer sequence.results.deinit();
-                        var sub = sequence.results.subscribe(key, path, Result(Program).initError(in.offset, "matches only the empty language"));
+                        var sub = sequence.results.subscribe(key, path, Result(Compilation).initError(in.offset, "matches only the empty language"));
 
                         // TODO(slimsag): mapTo should be async
                         nosuspend {
@@ -263,18 +263,18 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Program) {
             }
         }.mapTo,
     });
-    var optional_expr_list_inner_left = MapTo(void, ?Program, Program).init(.{
-        .parser = &Optional(void, Program).init(&expr_list_inner_left.parser).parser,
+    var optional_expr_list_inner_left = MapTo(void, ?Compilation, Compilation).init(.{
+        .parser = &Optional(void, Compilation).init(&expr_list_inner_left.parser).parser,
         .mapTo = struct {
-            fn mapTo(in: Result(?Program), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Program) {
+            fn mapTo(in: Result(?Compilation), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
                 switch (in.result) {
-                    .err => return Result(Program).initError(in.offset, in.result.err),
+                    .err => return Result(Compilation).initError(in.offset, in.result.err),
                     else => {
                         if (in.result.value == null) {
                             var always_none = Always(void, Node).init(null);
-                            return Result(Program).init(in.offset, Program.initParser(try always_none.parser.heapAlloc(_allocator, always_none)));
+                            return Result(Compilation).init(in.offset, Compilation.initParser(try always_none.parser.heapAlloc(_allocator, always_none)));
                         }
-                        return Result(Program).init(in.offset, in.result.value.?);
+                        return Result(Compilation).init(in.offset, in.result.value.?);
                     },
                 }
             }
@@ -282,8 +282,8 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Program) {
     });
     expr_list_parsers[0] = &optional_expr_list_inner_left.parser;
 
-    var definition = MapTo(void, SequenceValue(Program), Program).init(.{
-        .parser = &Sequence(void, Program).init(&.{
+    var definition = MapTo(void, SequenceValue(Compilation), Compilation).init(.{
+        .parser = &Sequence(void, Compilation).init(&.{
             &Identifier.init().parser,
             &whitespace_one_or_more.parser,
             &assignment.parser,
@@ -292,14 +292,14 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Program) {
             &semicolon.parser,
         }).parser,
         .mapTo = struct {
-            fn mapTo(in: Result(SequenceValue(Program)), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Program) {
+            fn mapTo(in: Result(SequenceValue(Compilation)), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
                 switch (in.result) {
-                    .err => return Result(Program).initError(in.offset, in.result.err),
+                    .err => return Result(Compilation).initError(in.offset, in.result.err),
                     else => {
                         var sequence = in.result.value;
                         defer _allocator.destroy(sequence.results);
                         defer sequence.results.deinit();
-                        var sub = sequence.results.subscribe(key, path, Result(Program).initError(in.offset, "matches only the empty language"));
+                        var sub = sequence.results.subscribe(key, path, Result(Compilation).initError(in.offset, "matches only the empty language"));
 
                         // TODO(slimsag): mapTo should be async
                         nosuspend {
@@ -318,7 +318,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Program) {
 
                             // A definition assignment yields no nodes.
                             var always_none = Always(void, Node).init(null);
-                            return Result(Program).init(in.offset, Program.initParser(try always_none.parser.heapAlloc(_allocator, always_none)));
+                            return Result(Compilation).init(in.offset, Compilation.initParser(try always_none.parser.heapAlloc(_allocator, always_none)));
                         }
                     },
                 }
@@ -326,28 +326,28 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Program) {
         }.mapTo,
     });
 
-    var definition_or_expr_or_whitespace = OneOf(void, Program).init(&.{
+    var definition_or_expr_or_whitespace = OneOf(void, Compilation).init(&.{
         &definition.parser,
         &expr.parser,
         &whitespace_one_or_more.parser,
     });
 
     // TODO(slimsag): match EOF
-    var grammar = MapTo(void, RepeatedValue(Program), Program).init(.{
-        .parser = &Repeated(void, Program).init(.{
+    var grammar = MapTo(void, RepeatedValue(Compilation), Compilation).init(.{
+        .parser = &Repeated(void, Compilation).init(.{
             .parser = &definition_or_expr_or_whitespace.parser,
             .min = 1,
             .max = -1,
         }).parser,
         .mapTo = struct {
-            fn mapTo(in: Result(RepeatedValue(Program)), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Program) {
+            fn mapTo(in: Result(RepeatedValue(Compilation)), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
                 switch (in.result) {
-                    .err => return Result(Program).initError(in.offset, in.result.err),
+                    .err => return Result(Compilation).initError(in.offset, in.result.err),
                     else => {
                         var repeated = in.result.value;
                         defer _allocator.destroy(repeated.results);
                         defer repeated.results.deinit();
-                        var sub = repeated.results.subscribe(key, path, Result(Program).initError(in.offset, "matches only the empty language"));
+                        var sub = repeated.results.subscribe(key, path, Result(Compilation).initError(in.offset, "matches only the empty language"));
 
                         // TODO(slimsag): mapTo should be async
                         nosuspend {
@@ -355,7 +355,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Program) {
                             var program = sub.next();
                             if (program == null) {
                                 // Grammar does not have a root expression
-                                return Result(Program).initError(offset, "root expression missing");
+                                return Result(Compilation).initError(offset, "root expression missing");
                             }
 
                             // All other parse paths should yield no programs.
@@ -369,15 +369,15 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Program) {
         }.mapTo,
     });
 
-    var ctx = try Context(void, Program).init(allocator, syntax, {});
+    var ctx = try Context(void, Compilation).init(allocator, syntax, {});
     defer ctx.deinit();
     try grammar.parser.parse(&ctx);
 
-    var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(Program).initError(ctx.offset, "matches only the empty language"));
+    var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(Compilation).initError(ctx.offset, "matches only the empty language"));
     var program = sub.next();
     assert(sub.next() == null); // our grammar is never ambiguous
     if (program == null) {
-        return Result(Program).initError(ctx.offset, "failed to compile");
+        return Result(Compilation).initError(ctx.offset, "failed to compile");
     }
     return program.?;
 }

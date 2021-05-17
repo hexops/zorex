@@ -1,4 +1,4 @@
-//! The result of executing a Program is a tree of nodes describing the parsed language.
+//! The result of executing a Compilation is a tree of nodes describing the parsed language.
 
 const String = @import("String.zig");
 
