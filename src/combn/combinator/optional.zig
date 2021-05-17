@@ -50,7 +50,7 @@ pub fn Optional(comptime Input: type, comptime Value: type) type {
             var sub = child_ctx.results.subscribe(ctx.key, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"));
             while (sub.next()) |next| {
                 switch (next.result) {
-                    .err => try ctx.results.add(Result(?Value).init(0, null)),
+                    .err => try ctx.results.add(Result(?Value).init(ctx.offset, null)),
                     else => try ctx.results.add(Result(?Value).init(next.offset, next.result.value)),
                 }
             }
