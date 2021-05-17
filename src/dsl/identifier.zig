@@ -55,7 +55,7 @@ pub const Identifier = struct {
             }
             offset += 1;
         }
-        try ctx.results.add(Result(Program).init(ctx.offset + offset, Program{ .value = .{ .identifier = try String.init(ctx.allocator, src[0..offset]) } }));
+        try ctx.results.add(Result(Program).init(ctx.offset + offset, Program.initIdentifier(try String.init(ctx.allocator, src[0..offset]))));
     }
 };
 
