@@ -10,6 +10,12 @@ pub fn build(b: *Builder) void {
     main_tests.test_evented_io = true;
     main_tests.setBuildMode(mode);
 
+    var program_tests = b.addTest("src/dsl/Program.zig");
+    program_tests.test_evented_io = true;
+    program_tests.setBuildMode(mode);
+    program_tests.setMainPkgPath("src/");
+
     const test_step = b.step("test", "Run library tests");
     test_step.dependOn(&main_tests.step);
+    test_step.dependOn(&program_tests.step);
 }
