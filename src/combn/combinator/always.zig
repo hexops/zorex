@@ -63,6 +63,6 @@ test "always" {
 
         defer ctx.results.deinitAll(ctx.allocator);
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(AlwaysVoid).initError(ctx.offset, "matches only the empty language"));
-        testing.expectEqual(@as(?Result(AlwaysVoid), null), sub.next());
+        try testing.expectEqual(@as(?Result(AlwaysVoid), null), sub.next());
     }
 }

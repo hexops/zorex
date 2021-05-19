@@ -50,11 +50,11 @@ test "direct_left_recursion_empty_language" {
         defer ctx.results.deinitAll(ctx.allocator);
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(node).initError(ctx.offset, "matches only the empty language"));
         var first = sub.next().?;
-        testing.expect(sub.next() == null); // stream closed
+        try testing.expect(sub.next() == null); // stream closed
 
         // TODO(slimsag): perhaps better if it's not an error?
-        testing.expectEqual(@as(usize, 0), first.offset);
-        testing.expectEqualStrings("matches only the empty language", first.result.err);
+        try testing.expectEqual(@as(usize, 0), first.offset);
+        try testing.expectEqualStrings("matches only the empty language", first.result.err);
     }
 }
 
@@ -158,8 +158,8 @@ test "direct_left_recursion" {
     defer ctx.results.deinitAll(ctx.allocator);
     var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(node).initError(ctx.offset, "matches only the empty language"));
     var first = sub.next().?;
-    testing.expect(sub.next() == null); // stream closed
+    try testing.expect(sub.next() == null); // stream closed
 
-    testing.expectEqual(@as(usize, 0), first.offset);
-    testing.expectEqualStrings("(((null,abc),abc),abc)", first.result.value.name.items);
+    try testing.expectEqual(@as(usize, 0), first.offset);
+    try testing.expectEqualStrings("(((null,abc),abc),abc)", first.result.value.name.items);
 }

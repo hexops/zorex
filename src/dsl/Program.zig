@@ -99,9 +99,9 @@ test "example_regexp" {
     const result = try program.execute(input);
     defer result.deinit(allocator);
 
-    testing.expectEqualStrings(result.name.value.items, "TODO(slimsag): value from parsing regexp!");
-    testing.expect(result.value == null);
-    testing.expect(result.children == null);
+    try testing.expectEqualStrings(result.name.value.items, "TODO(slimsag): value from parsing regexp!");
+    try testing.expect(result.value == null);
+    try testing.expect(result.children == null);
 
     // TODO(slimsag): Node type is not JSON-serializable for some reason.
     //const stdout = std.io.getStdOut().writer();

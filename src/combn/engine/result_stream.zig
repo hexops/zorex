@@ -156,7 +156,7 @@ test "result_stream" {
 
         // Add a value to the stream, our first subscription will get it.
         try stream.add(1);
-        testing.expectEqual(@as(?i32, 1), await sub1first);
+        try testing.expectEqual(@as(?i32, 1), await sub1first);
 
         // Query the next value (next() will suspend again), then add a value and close the stream for
         // good.
@@ -165,14 +165,14 @@ test "result_stream" {
         stream.close();
 
         // Confirm we get the remaining values, and the null terminator forever after that.
-        testing.expectEqual(@as(?i32, 2), await sub1second);
-        testing.expectEqual(@as(?i32, null), sub1.next());
-        testing.expectEqual(@as(?i32, null), sub1.next());
+        try testing.expectEqual(@as(?i32, 2), await sub1second);
+        try testing.expectEqual(@as(?i32, null), sub1.next());
+        try testing.expectEqual(@as(?i32, null), sub1.next());
 
         // Now that the stream is closed, add a new subscription and confirm we get all prior values.
         var sub2 = stream.subscribe(subscriber, path, -1);
-        testing.expectEqual(@as(?i32, 1), sub2.next());
-        testing.expectEqual(@as(?i32, 2), sub2.next());
-        testing.expectEqual(@as(?i32, null), sub2.next());
+        try testing.expectEqual(@as(?i32, 1), sub2.next());
+        try testing.expectEqual(@as(?i32, 2), sub2.next());
+        try testing.expectEqual(@as(?i32, null), sub2.next());
     }
 }

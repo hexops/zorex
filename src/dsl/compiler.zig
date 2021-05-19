@@ -421,8 +421,8 @@ test "DSL" {
 
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(Node).initError(ctx.offset, "matches only the empty language"));
         var first = sub.next().?;
-        testing.expectEqualStrings("TODO(slimsag): value from parsing regexp!", first.result.value.name.value.items);
-        testing.expectEqual(@as(usize, 0), first.offset);
-        testing.expect(sub.next() == null);
+        try testing.expectEqualStrings("TODO(slimsag): value from parsing regexp!", first.result.value.name.value.items);
+        try testing.expectEqual(@as(usize, 0), first.offset);
+        try testing.expect(sub.next() == null);
     }
 }

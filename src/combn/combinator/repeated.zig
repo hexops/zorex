@@ -154,12 +154,12 @@ test "repeated" {
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(RepeatedValue(LiteralValue)).initError(ctx.offset, "matches only the empty language"));
         var repeated = sub.next().?.result.value;
         defer repeated.deinit(ctx.allocator);
-        testing.expect(sub.next() == null); // stream closed
+        try testing.expect(sub.next() == null); // stream closed
 
         var repeatedSub = repeated.results.subscribe(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"));
-        testing.expectEqual(@as(usize, 3), repeatedSub.next().?.offset);
-        testing.expectEqual(@as(usize, 6), repeatedSub.next().?.offset);
-        testing.expectEqual(@as(usize, 9), repeatedSub.next().?.offset);
-        testing.expect(repeatedSub.next() == null); // stream closed
+        try testing.expectEqual(@as(usize, 3), repeatedSub.next().?.offset);
+        try testing.expectEqual(@as(usize, 6), repeatedSub.next().?.offset);
+        try testing.expectEqual(@as(usize, 9), repeatedSub.next().?.offset);
+        try testing.expect(repeatedSub.next() == null); // stream closed
     }
 }

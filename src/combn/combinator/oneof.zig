@@ -122,9 +122,9 @@ test "oneof" {
 
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(OneOfValue(LiteralValue)).initError(ctx.offset, "matches only the empty language"));
         var r1 = sub.next().?;
-        testing.expectEqual(@as(usize, 4), r1.offset);
-        testing.expectEqualStrings("ello", r1.result.value.value);
-        testing.expect(sub.next() == null); // stream closed
+        try testing.expectEqual(@as(usize, 4), r1.offset);
+        try testing.expectEqualStrings("ello", r1.result.value.value);
+        try testing.expect(sub.next() == null); // stream closed
     }
 }
 
@@ -152,8 +152,8 @@ test "oneof_ambiguous_first" {
 
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(OneOfValue(LiteralValue)).initError(ctx.offset, "matches only the empty language"));
         var r1 = sub.next().?;
-        testing.expectEqual(@as(usize, 4), r1.offset);
-        testing.expectEqualStrings("ello", r1.result.value.value);
-        testing.expect(sub.next() == null); // stream closed
+        try testing.expectEqual(@as(usize, 4), r1.offset);
+        try testing.expectEqualStrings("ello", r1.result.value.value);
+        try testing.expect(sub.next() == null); // stream closed
     }
 }

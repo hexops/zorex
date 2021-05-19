@@ -495,7 +495,7 @@ test "heap_parser" {
         defer ctx.results.deinitAll(ctx.allocator);
 
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"));
-        testing.expectEqual(@as(?Result(LiteralValue), Result(LiteralValue).init(want.len, .{ .value = "hello" })), sub.next());
-        testing.expectEqual(@as(?Result(LiteralValue), null), sub.next());
+        try testing.expectEqual(@as(?Result(LiteralValue), Result(LiteralValue).init(want.len, .{ .value = "hello" })), sub.next());
+        try testing.expectEqual(@as(?Result(LiteralValue), null), sub.next());
     }
 }

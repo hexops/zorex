@@ -49,7 +49,7 @@ test "end" {
         defer ctx.results.deinitAll(ctx.allocator);
 
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(EndValue).initError(ctx.offset, "matches only the empty language"));
-        testing.expectEqual(@as(?Result(EndValue), Result(EndValue).init(0, .{})), sub.next());
-        testing.expectEqual(@as(?Result(EndValue), null), sub.next());
+        try testing.expectEqual(@as(?Result(EndValue), Result(EndValue).init(0, .{})), sub.next());
+        try testing.expectEqual(@as(?Result(EndValue), null), sub.next());
     }
 }

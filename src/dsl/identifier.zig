@@ -79,8 +79,8 @@ test "identifier" {
 
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(Compilation).initError(ctx.offset, "matches only the empty language"));
         var r1 = sub.next().?;
-        testing.expectEqual(@as(usize, 8), r1.offset);
-        testing.expectEqualStrings("Grammar2", r1.result.value.value.identifier.value.items);
-        testing.expect(sub.next() == null);
+        try testing.expectEqual(@as(usize, 8), r1.offset);
+        try testing.expectEqualStrings("Grammar2", r1.result.value.value.identifier.value.items);
+        try testing.expect(sub.next() == null);
     }
 }

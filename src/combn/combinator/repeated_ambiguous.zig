@@ -277,20 +277,20 @@ test "repeated" {
 
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(RepeatedAmbiguousValue(LiteralValue)).initError(ctx.offset, "matches only the empty language"));
         var list = sub.next();
-        testing.expect(sub.next() == null); // stream closed
+        try testing.expect(sub.next() == null); // stream closed
 
         // first element
-        testing.expectEqual(@as(usize, 3), list.?.offset);
-        testing.expectEqual(@as(usize, 3), list.?.result.value.node.offset);
+        try testing.expectEqual(@as(usize, 3), list.?.offset);
+        try testing.expectEqual(@as(usize, 3), list.?.result.value.node.offset);
 
         // flatten the nested multi-dimensional array, since our grammar above is not ambiguous
         // this is fine to do and makes testing far easier.
         var flattened = try list.?.result.value.flatten(allocator, ctx.key, ctx.path);
         defer flattened.deinit();
         var flat = flattened.subscribe(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"));
-        testing.expectEqual(@as(usize, 3), flat.next().?.offset);
-        testing.expectEqual(@as(usize, 6), flat.next().?.offset);
-        testing.expectEqual(@as(usize, 9), flat.next().?.offset);
-        testing.expect(flat.next() == null); // stream closed
+        try testing.expectEqual(@as(usize, 3), flat.next().?.offset);
+        try testing.expectEqual(@as(usize, 6), flat.next().?.offset);
+        try testing.expectEqual(@as(usize, 9), flat.next().?.offset);
+        try testing.expect(flat.next() == null); // stream closed
     }
 }

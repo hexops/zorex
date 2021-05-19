@@ -92,7 +92,7 @@ test "mapto" {
 
         defer ctx.results.deinitAll(ctx.allocator);
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(String).initError(ctx.offset, "matches only the empty language"));
-        testing.expectEqual(@as(?Result(String), Result(String).init(5, String.init("hello"))), sub.next());
-        testing.expectEqual(@as(?Result(String), null), sub.next());
+        try testing.expectEqual(@as(?Result(String), Result(String).init(5, String.init("hello"))), sub.next());
+        try testing.expectEqual(@as(?Result(String), null), sub.next());
     }
 }
