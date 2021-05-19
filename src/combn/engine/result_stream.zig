@@ -41,7 +41,7 @@ pub fn Iterator(comptime T: type) type {
                 }
                 // set ourselves up to be resumed later:
                 self.stream.listeners.append(@frame()) catch unreachable;
-                suspend; // wait for more results, or stream close
+                suspend {} // wait for more results, or stream close
                 if (self.stream.closed) {
                     return null; // no more results
                 }
