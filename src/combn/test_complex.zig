@@ -23,14 +23,15 @@ test "direct_left_recursion_empty_language" {
             pub fn deinit(self: *const @This(), _allocator: *mem.Allocator) void {}
         };
 
-        const ctx = try Context(void, node).init(allocator, "abcabcabc123abc", {});
+        const Payload = void;
+        const ctx = try Context(Payload, node).init(allocator, "abcabcabc123abc", {});
         defer ctx.deinit();
 
-        var parsers = [_]*Parser(node){
+        var parsers = [_]*Parser(Payload, node){
             undefined, // placeholder for left-recursive Expr itself
         };
-        var expr = MapTo(void, SequenceAmbiguousValue(node), node).init(.{
-            .parser = &SequenceAmbiguous(void, node).init(&parsers).parser,
+        var expr = MapTo(Payload, SequenceAmbiguousValue(node), node).init(.{
+            .parser = &SequenceAmbiguous(Payload, node).init(&parsers).parser,
             .mapTo = struct {
                 fn mapTo(in: Result(SequenceAmbiguousValue(node)), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(node) {
                     switch (in.result) {
@@ -76,11 +77,12 @@ test "direct_left_recursion" {
         }
     };
 
-    const ctx = try Context(void, node).init(allocator, "abcabcabc123abc", {});
+    const Payload = void;
+    const ctx = try Context(Payload, node).init(allocator, "abcabcabc123abc", {});
     defer ctx.deinit();
 
-    var abcAsNode = MapTo(void, LiteralValue, node).init(.{
-        .parser = &Literal.init("abc").parser,
+    var abcAsNode = MapTo(Payload, LiteralValue, node).init(.{
+        .parser = &Literal(Payload).init("abc").parser,
         .mapTo = struct {
             fn mapTo(in: Result(LiteralValue), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(node) {
                 switch (in.result) {
@@ -95,12 +97,12 @@ test "direct_left_recursion" {
         }.mapTo,
     });
 
-    var parsers = [_]*Parser(node){
+    var parsers = [_]*Parser(Payload, node){
         undefined, // placeholder for left-recursive Expr itself
         &abcAsNode.parser,
     };
-    var expr = Reentrant(void, node).init(&MapTo(void, SequenceAmbiguousValue(node), node).init(.{
-        .parser = &SequenceAmbiguous(void, node).init(&parsers).parser,
+    var expr = Reentrant(Payload, node).init(&MapTo(Payload, SequenceAmbiguousValue(node), node).init(.{
+        .parser = &SequenceAmbiguous(Payload, node).init(&parsers).parser,
         .mapTo = struct {
             fn mapTo(in: Result(SequenceAmbiguousValue(node)), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(node) {
                 switch (in.result) {
@@ -130,8 +132,8 @@ test "direct_left_recursion" {
             }
         }.mapTo,
     }).parser);
-    var optionalExpr = MapTo(void, ?node, node).init(.{
-        .parser = &Optional(void, node).init(&expr.parser).parser,
+    var optionalExpr = MapTo(Payload, ?node, node).init(.{
+        .parser = &Optional(Payload, node).init(&expr.parser).parser,
         .mapTo = struct {
             fn mapTo(in: Result(?node), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(node) {
                 switch (in.result) {
