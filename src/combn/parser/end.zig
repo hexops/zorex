@@ -9,42 +9,45 @@ pub const EndValue = struct {
 };
 
 /// Matches the end of the `input` string.
-pub const End = struct {
-    parser: Parser(EndValue) = Parser(EndValue).init(parse, nodeName, null),
+pub fn End(comptime Payload: type) type {
+    return struct {
+        parser: Parser(Payload, EndValue) = Parser(Payload, EndValue).init(parse, nodeName, null),
 
-    const Self = @This();
+        const Self = @This();
 
-    pub fn init() Self {
-        return Self{};
-    }
+        pub fn init() Self {
+            return Self{};
+        }
 
-    pub fn nodeName(parser: *const Parser(EndValue), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
-        const self = @fieldParentPtr(Self, "parser", parser);
-        return std.hash_map.hashString("End");
-    }
+        pub fn nodeName(parser: *const Parser(Payload, EndValue), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+            const self = @fieldParentPtr(Self, "parser", parser);
+            return std.hash_map.hashString("End");
+        }
 
-    pub fn parse(parser: *const Parser(EndValue), in_ctx: *const Context(void, EndValue)) callconv(.Async) !void {
-        const self = @fieldParentPtr(Self, "parser", parser);
-        var ctx = in_ctx.with({});
-        defer ctx.results.close();
+        pub fn parse(parser: *const Parser(Payload, EndValue), in_ctx: *const Context(Payload, EndValue)) callconv(.Async) !void {
+            const self = @fieldParentPtr(Self, "parser", parser);
+            var ctx = in_ctx.with({});
+            defer ctx.results.close();
 
-        if (ctx.offset != ctx.src.len) {
-            try ctx.results.add(Result(EndValue).initError(ctx.offset + 1, "expected end of input"));
+            if (ctx.offset != ctx.src.len) {
+                try ctx.results.add(Result(EndValue).initError(ctx.offset + 1, "expected end of input"));
+                return;
+            }
+            try ctx.results.add(Result(EndValue).init(ctx.offset, .{}));
             return;
         }
-        try ctx.results.add(Result(EndValue).init(ctx.offset, .{}));
-        return;
-    }
-};
+    };
+}
 
 test "end" {
     nosuspend {
         const allocator = testing.allocator;
 
-        var ctx = try Context(void, EndValue).init(allocator, "", {});
+        const Payload = void;
+        var ctx = try Context(Payload, EndValue).init(allocator, "", {});
         defer ctx.deinit();
 
-        var e = End.init();
+        var e = End(Payload).init();
         try e.parser.parse(&ctx);
         defer ctx.results.deinitAll(ctx.allocator);
 

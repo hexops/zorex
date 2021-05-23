@@ -16,49 +16,52 @@ pub const LiteralValue = struct {
 /// Matches the literal `input` string.
 ///
 /// The `input` string must remain alive for as long as the `Literal` parser will be used.
-pub const Literal = struct {
-    parser: Parser(LiteralValue) = Parser(LiteralValue).init(parse, nodeName, null),
-    input: LiteralContext,
+pub fn Literal(comptime Payload: type) type {
+    return struct {
+        parser: Parser(Payload, LiteralValue) = Parser(Payload, LiteralValue).init(parse, nodeName, null),
+        input: LiteralContext,
 
-    const Self = @This();
+        const Self = @This();
 
-    pub fn init(input: LiteralContext) Self {
-        return Self{ .input = input };
-    }
+        pub fn init(input: LiteralContext) Self {
+            return Self{ .input = input };
+        }
 
-    pub fn nodeName(parser: *const Parser(LiteralValue), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
-        const self = @fieldParentPtr(Self, "parser", parser);
+        pub fn nodeName(parser: *const Parser(Payload, LiteralValue), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+            const self = @fieldParentPtr(Self, "parser", parser);
 
-        var v = std.hash_map.hashString("Literal");
-        v +%= std.hash_map.hashString(self.input);
-        return v;
-    }
+            var v = std.hash_map.hashString("Literal");
+            v +%= std.hash_map.hashString(self.input);
+            return v;
+        }
 
-    pub fn parse(parser: *const Parser(LiteralValue), in_ctx: *const Context(void, LiteralValue)) callconv(.Async) !void {
-        const self = @fieldParentPtr(Self, "parser", parser);
-        var ctx = in_ctx.with(self.input);
-        defer ctx.results.close();
+        pub fn parse(parser: *const Parser(Payload, LiteralValue), in_ctx: *const Context(Payload, LiteralValue)) callconv(.Async) !void {
+            const self = @fieldParentPtr(Self, "parser", parser);
+            var ctx = in_ctx.with(self.input);
+            defer ctx.results.close();
 
-        const src = ctx.src[ctx.offset..];
-        if (!mem.startsWith(u8, src, ctx.input)) {
-            // TODO(slimsag): include what literal was expected
-            try ctx.results.add(Result(LiteralValue).initError(ctx.offset + 1, "expected literal"));
+            const src = ctx.src[ctx.offset..];
+            if (!mem.startsWith(u8, src, ctx.input)) {
+                // TODO(slimsag): include what literal was expected
+                try ctx.results.add(Result(LiteralValue).initError(ctx.offset + 1, "expected literal"));
+                return;
+            }
+            try ctx.results.add(Result(LiteralValue).init(ctx.offset + ctx.input.len, .{ .value = self.input }));
             return;
         }
-        try ctx.results.add(Result(LiteralValue).init(ctx.offset + ctx.input.len, .{ .value = self.input }));
-        return;
-    }
-};
+    };
+}
 
 test "literal" {
     nosuspend {
         const allocator = testing.allocator;
 
-        var ctx = try Context(void, LiteralValue).init(allocator, "hello world", {});
+        const Payload = void;
+        var ctx = try Context(Payload, LiteralValue).init(allocator, "hello world", {});
         defer ctx.deinit();
 
         var want = "hello";
-        var l = Literal.init(want);
+        var l = Literal(Payload).init(want);
         try l.parser.parse(&ctx);
         defer ctx.results.deinitAll(ctx.allocator);
 
