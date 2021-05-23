@@ -6,10 +6,10 @@ const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
 
-pub fn RepeatedContext(comptime Value: type) type {
+pub fn RepeatedContext(comptime Payload: type, comptime Value: type) type {
     return struct {
         /// The parser which should be repeatedly parsed.
-        parser: *const Parser(Value),
+        parser: *const Parser(Payload, Value),
 
         /// The minimum number of times the parser must successfully match.
         min: usize,
@@ -45,23 +45,23 @@ pub fn RepeatedValue(comptime Value: type) type {
 /// are desirable, use RepeatedAmbiguous.
 ///
 /// The `input` parsers must remain alive for as long as the `Repeated` parser will be used.
-pub fn Repeated(comptime Input: type, comptime Value: type) type {
+pub fn Repeated(comptime Payload: type, comptime Value: type) type {
     return struct {
-        parser: Parser(RepeatedValue(Value)) = Parser(RepeatedValue(Value)).init(parse, nodeName, deinit),
-        input: RepeatedContext(Value),
+        parser: Parser(Payload, RepeatedValue(Value)) = Parser(Payload, RepeatedValue(Value)).init(parse, nodeName, deinit),
+        input: RepeatedContext(Payload, Value),
 
         const Self = @This();
 
-        pub fn init(input: RepeatedContext(Value)) Self {
+        pub fn init(input: RepeatedContext(Payload, Value)) Self {
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *const Parser(RepeatedValue(Value)), allocator: *mem.Allocator) void {
+        pub fn deinit(parser: *const Parser(Payload, RepeatedValue(Value)), allocator: *mem.Allocator) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             self.input.parser.deinit(allocator);
         }
 
-        pub fn nodeName(parser: *const Parser(RepeatedValue(Value)), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+        pub fn nodeName(parser: *const Parser(Payload, RepeatedValue(Value)), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
             const self = @fieldParentPtr(Self, "parser", parser);
 
             var v = std.hash_map.hashString("Repeated");
@@ -71,7 +71,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
             return v;
         }
 
-        pub fn parse(parser: *const Parser(RepeatedValue(Value)), in_ctx: *const Context(void, RepeatedValue(Value))) callconv(.Async) Error!void {
+        pub fn parse(parser: *const Parser(Payload, RepeatedValue(Value)), in_ctx: *const Context(Payload, RepeatedValue(Value))) callconv(.Async) Error!void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
@@ -95,7 +95,7 @@ pub fn Repeated(comptime Input: type, comptime Value: type) type {
             var offset: usize = ctx.offset;
             while (true) {
                 const child_node_name = try self.input.parser.nodeName(&in_ctx.memoizer.node_name_cache);
-                var child_ctx = try ctx.with({}).initChild(Value, child_node_name, offset);
+                var child_ctx = try in_ctx.initChild(Value, child_node_name, offset);
                 defer child_ctx.deinitChild();
                 if (!child_ctx.existing_results) try self.input.parser.parse(&child_ctx);
 
@@ -141,11 +141,12 @@ test "repeated" {
     nosuspend {
         const allocator = testing.allocator;
 
-        const ctx = try Context(void, RepeatedValue(LiteralValue)).init(allocator, "abcabcabc123abc", {});
+        const Payload = void;
+        const ctx = try Context(Payload, RepeatedValue(LiteralValue)).init(allocator, "abcabcabc123abc", {});
         defer ctx.deinit();
 
-        var abcInfinity = Repeated(void, LiteralValue).init(.{
-            .parser = &Literal.init("abc").parser,
+        var abcInfinity = Repeated(Payload, LiteralValue).init(.{
+            .parser = &Literal(Payload).init("abc").parser,
             .min = 0,
             .max = -1,
         });

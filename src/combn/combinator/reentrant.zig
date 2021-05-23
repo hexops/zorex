@@ -4,8 +4,8 @@ const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
 
-pub fn ReentrantContext(comptime Value: type) type {
-    return *const Parser(Value);
+pub fn ReentrantContext(comptime Payload: type, comptime Value: type) type {
+    return *const Parser(Payload, Value);
 }
 
 /// Wraps the `input.parser`, allowing it to be reentrant (such as in the case of a left recursive
@@ -25,23 +25,23 @@ pub fn ReentrantContext(comptime Value: type) type {
 /// wrapper it would match `(((null,abc),abc),abc)` instead.
 ///
 /// The `input.parser` must remain alive for as long as the `Reentrant` parser will be used.
-pub fn Reentrant(comptime Input: type, comptime Value: type) type {
+pub fn Reentrant(comptime Payload: type, comptime Value: type) type {
     return struct {
-        parser: Parser(Value) = Parser(Value).init(parse, nodeName, deinit),
-        input: ReentrantContext(Value),
+        parser: Parser(Payload, Value) = Parser(Payload, Value).init(parse, nodeName, deinit),
+        input: ReentrantContext(Payload, Value),
 
         const Self = @This();
 
-        pub fn init(input: ReentrantContext(Value)) Self {
+        pub fn init(input: ReentrantContext(Payload, Value)) Self {
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *const Parser(Value), allocator: *mem.Allocator) void {
+        pub fn deinit(parser: *const Parser(Payload, Value), allocator: *mem.Allocator) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             self.input.deinit(allocator);
         }
 
-        pub fn nodeName(parser: *const Parser(Value), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+        pub fn nodeName(parser: *const Parser(Payload, Value), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
             const self = @fieldParentPtr(Self, "parser", parser);
 
             var v = std.hash_map.hashString("Reentrant");
@@ -49,7 +49,7 @@ pub fn Reentrant(comptime Input: type, comptime Value: type) type {
             return v;
         }
 
-        pub fn parse(parser: *const Parser(Value), in_ctx: *const Context(void, Value)) callconv(.Async) !void {
+        pub fn parse(parser: *const Parser(Payload, Value), in_ctx: *const Context(Payload, Value)) callconv(.Async) !void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
@@ -59,7 +59,7 @@ pub fn Reentrant(comptime Input: type, comptime Value: type) type {
             var retrying_max_depth: ?usize = null;
             while (true) {
                 const child_node_name = try ctx.input.nodeName(&in_ctx.memoizer.node_name_cache);
-                const child_ctx = try ctx.with({}).initChildRetry(Value, child_node_name, ctx.offset, retrying_max_depth);
+                const child_ctx = try in_ctx.initChildRetry(Value, child_node_name, ctx.offset, retrying_max_depth);
                 defer child_ctx.deinitChild();
                 if (!child_ctx.existing_results) try ctx.input.parse(&child_ctx);
 

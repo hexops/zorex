@@ -17,9 +17,9 @@ pub fn AlwaysContext(comptime Value: type) type {
 /// Always yields the input value (once/unambiguously), or no value (if the input value is null).
 ///
 /// The `input` must remain alive for as long as the `Always` parser will be used.
-pub fn Always(comptime Input: type, comptime Value: type) type {
+pub fn Always(comptime Payload: type, comptime Value: type) type {
     return struct {
-        parser: Parser(Value) = Parser(Value).init(parse, nodeName, null),
+        parser: Parser(Payload, Value) = Parser(Payload, Value).init(parse, nodeName, null),
         input: AlwaysContext(Value),
 
         const Self = @This();
@@ -28,7 +28,7 @@ pub fn Always(comptime Input: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn nodeName(parser: *const Parser(Value), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+        pub fn nodeName(parser: *const Parser(Payload, Value), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
             const self = @fieldParentPtr(Self, "parser", parser);
 
             var v = std.hash_map.hashString("Always");
@@ -36,7 +36,7 @@ pub fn Always(comptime Input: type, comptime Value: type) type {
             return v;
         }
 
-        pub fn parse(parser: *const Parser(Value), in_ctx: *const Context(void, Value)) callconv(.Async) Error!void {
+        pub fn parse(parser: *const Parser(Payload, Value), in_ctx: *const Context(Payload, Value)) callconv(.Async) Error!void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
@@ -54,10 +54,11 @@ test "always" {
     nosuspend {
         const allocator = testing.allocator;
 
-        const ctx = try Context(void, AlwaysVoid).init(allocator, "hello world", {});
+        const Payload = void;
+        const ctx = try Context(Payload, AlwaysVoid).init(allocator, "hello world", {});
         defer ctx.deinit();
 
-        const noop = Always(void, AlwaysVoid).init(null);
+        const noop = Always(Payload, AlwaysVoid).init(null);
 
         try noop.parser.parse(&ctx);
 

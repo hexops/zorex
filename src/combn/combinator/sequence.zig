@@ -8,8 +8,8 @@ const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
 
-pub fn SequenceContext(comptime Value: type) type {
-    return []const *const Parser(Value);
+pub fn SequenceContext(comptime Payload: type, comptime Value: type) type {
+    return []const *const Parser(Payload, Value);
 }
 
 /// Represents a sequence of parsed values. 
@@ -38,25 +38,25 @@ pub fn SequenceValue(comptime Value: type) type {
 /// MapTo, if needed.) If ambiguous parse paths are desirable, use SequenceAmbiguous.
 ///
 /// The `input` parsers must remain alive for as long as the `Sequence` parser will be used.
-pub fn Sequence(comptime Input: type, comptime Value: type) type {
+pub fn Sequence(comptime Payload: type, comptime Value: type) type {
     return struct {
-        parser: Parser(SequenceValue(Value)) = Parser(SequenceValue(Value)).init(parse, nodeName, deinit),
-        input: SequenceContext(Value),
+        parser: Parser(Payload, SequenceValue(Value)) = Parser(Payload, SequenceValue(Value)).init(parse, nodeName, deinit),
+        input: SequenceContext(Payload, Value),
 
         const Self = @This();
 
-        pub fn init(input: SequenceContext(Value)) Self {
+        pub fn init(input: SequenceContext(Payload, Value)) Self {
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *const Parser(SequenceValue(Value)), allocator: *mem.Allocator) void {
+        pub fn deinit(parser: *const Parser(Payload, SequenceValue(Value)), allocator: *mem.Allocator) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             for (self.input) |child_parser| {
                 child_parser.deinit(allocator);
             }
         }
 
-        pub fn nodeName(parser: *const Parser(SequenceValue(Value)), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+        pub fn nodeName(parser: *const Parser(Payload, SequenceValue(Value)), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
             const self = @fieldParentPtr(Self, "parser", parser);
 
             var v = std.hash_map.hashString("Sequence");
@@ -66,7 +66,7 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
             return v;
         }
 
-        pub fn parse(parser: *const Parser(SequenceValue(Value)), in_ctx: *const Context(void, SequenceValue(Value))) callconv(.Async) Error!void {
+        pub fn parse(parser: *const Parser(Payload, SequenceValue(Value)), in_ctx: *const Context(Payload, SequenceValue(Value))) callconv(.Async) Error!void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
@@ -89,7 +89,7 @@ pub fn Sequence(comptime Input: type, comptime Value: type) type {
             var offset: usize = ctx.offset;
             for (self.input) |child_parser| {
                 const child_node_name = try child_parser.nodeName(&in_ctx.memoizer.node_name_cache);
-                var child_ctx = try ctx.with({}).initChild(Value, child_node_name, offset);
+                var child_ctx = try in_ctx.initChild(Value, child_node_name, offset);
                 defer child_ctx.deinitChild();
                 if (!child_ctx.existing_results) try child_parser.parse(&child_ctx);
 
@@ -126,14 +126,15 @@ test "sequence" {
     nosuspend {
         const allocator = testing.allocator;
 
-        const ctx = try Context(void, SequenceValue(LiteralValue)).init(allocator, "abc123abc456_123abc", {});
+        const Payload = void;
+        const ctx = try Context(Payload, SequenceValue(LiteralValue)).init(allocator, "abc123abc456_123abc", {});
         defer ctx.deinit();
 
-        var seq = Sequence(void, LiteralValue).init(&.{
-            &Literal.init("abc").parser,
-            &Literal.init("123ab").parser,
-            &Literal.init("c45").parser,
-            &Literal.init("6").parser,
+        var seq = Sequence(Payload, LiteralValue).init(&.{
+            &Literal(Payload).init("abc").parser,
+            &Literal(Payload).init("123ab").parser,
+            &Literal(Payload).init("c45").parser,
+            &Literal(Payload).init("6").parser,
         });
         try seq.parser.parse(&ctx);
 

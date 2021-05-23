@@ -6,8 +6,8 @@ const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
 
-pub fn OneOfAmbiguousContext(comptime Value: type) type {
-    return []const *const Parser(Value);
+pub fn OneOfAmbiguousContext(comptime Payload: type, comptime Value: type) type {
+    return []const *const Parser(Payload, Value);
 }
 
 /// Represents values from one parse path.
@@ -46,25 +46,25 @@ pub fn OneOfAmbiguousValue(comptime Value: type) type {
 /// Matches one of the given `input` parsers, supporting ambiguous and unambiguous grammars.
 ///
 /// The `input` parsers must remain alive for as long as the `OneOfAmbiguous` parser will be used.
-pub fn OneOfAmbiguous(comptime Input: type, comptime Value: type) type {
+pub fn OneOfAmbiguous(comptime Payload: type, comptime Value: type) type {
     return struct {
-        parser: Parser(OneOfAmbiguousValue(Value)) = Parser(OneOfAmbiguousValue(Value)).init(parse, nodeName, deinit),
-        input: OneOfAmbiguousContext(Value),
+        parser: Parser(Payload, OneOfAmbiguousValue(Value)) = Parser(Payload, OneOfAmbiguousValue(Value)).init(parse, nodeName, deinit),
+        input: OneOfAmbiguousContext(Payload, Value),
 
         const Self = @This();
 
-        pub fn init(input: OneOfAmbiguousContext(Value)) Self {
+        pub fn init(input: OneOfAmbiguousContext(Payload, Value)) Self {
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *const Parser(Value), allocator: *mem.Allocator) void {
+        pub fn deinit(parser: *const Parser(Payload, Value), allocator: *mem.Allocator) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             for (self.input) |in_parser| {
                 in_parser.deinit(allocator);
             }
         }
 
-        pub fn nodeName(parser: *const Parser(Value), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+        pub fn nodeName(parser: *const Parser(Payload, Value), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
             const self = @fieldParentPtr(Self, "parser", parser);
 
             var v = std.hash_map.hashString("OneOfAmbiguous");
@@ -74,7 +74,7 @@ pub fn OneOfAmbiguous(comptime Input: type, comptime Value: type) type {
             return v;
         }
 
-        pub fn parse(parser: *const Parser(Value), in_ctx: *const Context(void, Value)) callconv(.Async) !void {
+        pub fn parse(parser: *const Parser(Payload, Value), in_ctx: *const Context(Payload, Value)) callconv(.Async) !void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
@@ -83,7 +83,7 @@ pub fn OneOfAmbiguous(comptime Input: type, comptime Value: type) type {
             defer buffer.deinit();
             for (self.input) |in_parser| {
                 const child_node_name = try in_parser.nodeName(&in_ctx.memoizer.node_name_cache);
-                var child_ctx = try ctx.with({}).initChild(Value, child_node_name, ctx.offset);
+                var child_ctx = try in_ctx.initChild(Value, child_node_name, ctx.offset);
                 defer child_ctx.deinitChild();
                 if (!child_ctx.existing_results) try in_parser.parse(&child_ctx);
                 var sub = child_ctx.results.subscribe(ctx.key, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"));
@@ -137,14 +137,15 @@ test "oneof" {
     nosuspend {
         const allocator = testing.allocator;
 
-        const ctx = try Context(void, OneOfAmbiguousValue(LiteralValue)).init(allocator, "elloworld", {});
+        const Payload = void;
+        const ctx = try Context(Payload, OneOfAmbiguousValue(LiteralValue)).init(allocator, "elloworld", {});
         defer ctx.deinit();
 
-        const parsers: []*const Parser(LiteralValue) = &.{
-            &Literal.init("ello").parser,
-            &Literal.init("world").parser,
+        const parsers: []*const Parser(Payload, LiteralValue) = &.{
+            &Literal(Payload).init("ello").parser,
+            &Literal(Payload).init("world").parser,
         };
-        var helloOrWorld = OneOfAmbiguous(void, LiteralValue).init(parsers);
+        var helloOrWorld = OneOfAmbiguous(Payload, LiteralValue).init(parsers);
         try helloOrWorld.parser.parse(&ctx);
         defer ctx.results.deinitAll(ctx.allocator);
 
@@ -164,14 +165,15 @@ test "oneof_ambiguous" {
     nosuspend {
         const allocator = testing.allocator;
 
-        const ctx = try Context(void, OneOfAmbiguousValue(LiteralValue)).init(allocator, "elloworld", {});
+        const Payload = void;
+        const ctx = try Context(Payload, OneOfAmbiguousValue(LiteralValue)).init(allocator, "elloworld", {});
         defer ctx.deinit();
 
-        const parsers: []*const Parser(LiteralValue) = &.{
-            &Literal.init("ello").parser,
-            &Literal.init("elloworld").parser,
+        const parsers: []*const Parser(Payload, LiteralValue) = &.{
+            &Literal(Payload).init("ello").parser,
+            &Literal(Payload).init("elloworld").parser,
         };
-        var helloOrWorld = OneOfAmbiguous(void, LiteralValue).init(parsers);
+        var helloOrWorld = OneOfAmbiguous(Payload, LiteralValue).init(parsers);
         try helloOrWorld.parser.parse(&ctx);
         defer ctx.results.deinitAll(ctx.allocator);
 

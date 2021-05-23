@@ -6,9 +6,9 @@ const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
 
-pub fn MapToContext(comptime Value: type, comptime Target: type) type {
+pub fn MapToContext(comptime Payload: type, comptime Value: type, comptime Target: type) type {
     return struct {
-        parser: *const Parser(Value),
+        parser: *const Parser(Payload, Value),
         mapTo: fn (in: Result(Value), allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Target),
     };
 }
@@ -16,23 +16,23 @@ pub fn MapToContext(comptime Value: type, comptime Target: type) type {
 /// Wraps the `input.parser`, mapping its value to the `dst` type.
 ///
 /// The `input.parser` must remain alive for as long as the `MapTo` parser will be used.
-pub fn MapTo(comptime Input: type, comptime Value: type, comptime Target: type) type {
+pub fn MapTo(comptime Payload: type, comptime Value: type, comptime Target: type) type {
     return struct {
-        parser: Parser(Target) = Parser(Target).init(parse, nodeName, deinit),
-        input: MapToContext(Value, Target),
+        parser: Parser(Payload, Target) = Parser(Payload, Target).init(parse, nodeName, deinit),
+        input: MapToContext(Payload, Value, Target),
 
         const Self = @This();
 
-        pub fn init(input: MapToContext(Value, Target)) Self {
+        pub fn init(input: MapToContext(Payload, Value, Target)) Self {
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *const Parser(Target), allocator: *mem.Allocator) void {
+        pub fn deinit(parser: *const Parser(Payload, Target), allocator: *mem.Allocator) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             self.input.parser.deinit(allocator);
         }
 
-        pub fn nodeName(parser: *const Parser(Target), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+        pub fn nodeName(parser: *const Parser(Payload, Target), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
             const self = @fieldParentPtr(Self, "parser", parser);
 
             var v = std.hash_map.hashString("MapTo");
@@ -41,13 +41,13 @@ pub fn MapTo(comptime Input: type, comptime Value: type, comptime Target: type) 
             return v;
         }
 
-        pub fn parse(parser: *const Parser(Target), in_ctx: *const Context(void, Target)) callconv(.Async) !void {
+        pub fn parse(parser: *const Parser(Payload, Target), in_ctx: *const Context(Payload, Target)) callconv(.Async) !void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
 
             const child_node_name = try ctx.input.parser.nodeName(&in_ctx.memoizer.node_name_cache);
-            const child_ctx = try ctx.with({}).initChild(Value, child_node_name, ctx.offset);
+            const child_ctx = try in_ctx.initChild(Value, child_node_name, ctx.offset);
             defer child_ctx.deinitChild();
             if (!child_ctx.existing_results) try ctx.input.parser.parse(&child_ctx);
 
@@ -73,11 +73,12 @@ test "mapto" {
             pub fn deinit(self: *const @This(), _allocator: *mem.Allocator) void {}
         };
 
-        const ctx = try Context(void, String).init(allocator, "hello world", {});
+        const Payload = void;
+        const ctx = try Context(Payload, String).init(allocator, "hello world", {});
         defer ctx.deinit();
 
-        const mapTo = MapTo(void, LiteralValue, String).init(.{
-            .parser = &Literal.init("hello").parser,
+        const mapTo = MapTo(Payload, LiteralValue, String).init(.{
+            .parser = &Literal(Payload).init("hello").parser,
             .mapTo = struct {
                 fn mapTo(in: Result(LiteralValue), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(String) {
                     switch (in.result) {

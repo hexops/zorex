@@ -6,10 +6,10 @@ const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
 
-pub fn RepeatedAmbiguousContext(comptime Value: type) type {
+pub fn RepeatedAmbiguousContext(comptime Payload: type, comptime Value: type) type {
     return struct {
         /// The parser which should be repeatedly parsed.
-        parser: *const Parser(Value),
+        parser: *const Parser(Payload, Value),
 
         /// The minimum number of times the parser must successfully match.
         min: usize,
@@ -93,23 +93,23 @@ pub fn RepeatedAmbiguousValue(comptime Value: type) type {
 /// Matches the `input` repeatedly, between `[min, max]` times (inclusive.)
 ///
 /// The `input` parsers must remain alive for as long as the `RepeatedAmbiguous` parser will be used.
-pub fn RepeatedAmbiguous(comptime Input: type, comptime Value: type) type {
+pub fn RepeatedAmbiguous(comptime Payload: type, comptime Value: type) type {
     return struct {
-        parser: Parser(RepeatedAmbiguousValue(Value)) = Parser(RepeatedAmbiguousValue(Value)).init(parse, nodeName, deinit),
-        input: RepeatedAmbiguousContext(Value),
+        parser: Parser(Payload, RepeatedAmbiguousValue(Value)) = Parser(Payload, RepeatedAmbiguousValue(Value)).init(parse, nodeName, deinit),
+        input: RepeatedAmbiguousContext(Payload, Value),
 
         const Self = @This();
 
-        pub fn init(input: RepeatedAmbiguousContext(Value)) Self {
+        pub fn init(input: RepeatedAmbiguousContext(Payload, Value)) Self {
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *const Parser(RepeatedAmbiguousValue(Value)), allocator: *mem.Allocator) void {
+        pub fn deinit(parser: *const Parser(Payload, RepeatedAmbiguousValue(Value)), allocator: *mem.Allocator) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             self.input.parser.deinit(allocator);
         }
 
-        pub fn nodeName(parser: *const Parser(RepeatedAmbiguousValue(Value)), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+        pub fn nodeName(parser: *const Parser(Payload, RepeatedAmbiguousValue(Value)), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
             const self = @fieldParentPtr(Self, "parser", parser);
 
             var v = std.hash_map.hashString("RepeatedAmbiguous");
@@ -119,7 +119,7 @@ pub fn RepeatedAmbiguous(comptime Input: type, comptime Value: type) type {
             return v;
         }
 
-        pub fn parse(parser: *const Parser(RepeatedAmbiguousValue(Value)), in_ctx: *const Context(void, RepeatedAmbiguousValue(Value))) callconv(.Async) Error!void {
+        pub fn parse(parser: *const Parser(Payload, RepeatedAmbiguousValue(Value)), in_ctx: *const Context(Payload, RepeatedAmbiguousValue(Value))) callconv(.Async) Error!void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
@@ -200,7 +200,7 @@ pub fn RepeatedAmbiguous(comptime Input: type, comptime Value: type) type {
             //  )
             //
             const child_node_name = try self.input.parser.nodeName(&in_ctx.memoizer.node_name_cache);
-            var child_ctx = try ctx.with({}).initChild(Value, child_node_name, ctx.offset);
+            var child_ctx = try in_ctx.initChild(Value, child_node_name, ctx.offset);
             defer child_ctx.deinitChild();
             if (!child_ctx.existing_results) try self.input.parser.parse(&child_ctx);
 
@@ -228,7 +228,7 @@ pub fn RepeatedAmbiguous(comptime Input: type, comptime Value: type) type {
                         // associated with A, B, C.)
                         var path_results = try ctx.allocator.create(ResultStream(Result(RepeatedAmbiguousValue(Value))));
                         path_results.* = try ResultStream(Result(RepeatedAmbiguousValue(Value))).init(ctx.allocator, ctx.key);
-                        var path = RepeatedAmbiguous(Input, Value).init(.{
+                        var path = RepeatedAmbiguous(Payload, Value).init(.{
                             .parser = self.input.parser,
                             .min = self.input.min,
                             .max = if (self.input.max == -1) -1 else self.input.max - 1,
@@ -265,11 +265,12 @@ test "repeated" {
     nosuspend {
         const allocator = testing.allocator;
 
-        const ctx = try Context(void, RepeatedAmbiguousValue(LiteralValue)).init(allocator, "abcabcabc123abc", {});
+        const Payload = void;
+        const ctx = try Context(Payload, RepeatedAmbiguousValue(LiteralValue)).init(allocator, "abcabcabc123abc", {});
         defer ctx.deinit();
 
-        var abcInfinity = RepeatedAmbiguous(void, LiteralValue).init(.{
-            .parser = &Literal.init("abc").parser,
+        var abcInfinity = RepeatedAmbiguous(Payload, LiteralValue).init(.{
+            .parser = &Literal(Payload).init("abc").parser,
             .min = 0,
             .max = -1,
         });

@@ -8,8 +8,8 @@ const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
 
-pub fn SequenceAmbiguousContext(comptime Value: type) type {
-    return []const *const Parser(Value);
+pub fn SequenceAmbiguousContext(comptime Payload: type, comptime Value: type) type {
+    return []const *const Parser(Payload, Value);
 }
 
 /// Represents a sequence of parsed values. 
@@ -87,25 +87,25 @@ pub fn SequenceAmbiguousValue(comptime Value: type) type {
 /// MapTo, if needed.)
 ///
 /// The `input` parsers must remain alive for as long as the `SequenceAmbiguous` parser will be used.
-pub fn SequenceAmbiguous(comptime Input: type, comptime Value: type) type {
+pub fn SequenceAmbiguous(comptime Payload: type, comptime Value: type) type {
     return struct {
-        parser: Parser(SequenceAmbiguousValue(Value)) = Parser(SequenceAmbiguousValue(Value)).init(parse, nodeName, deinit),
-        input: SequenceAmbiguousContext(Value),
+        parser: Parser(Payload, SequenceAmbiguousValue(Value)) = Parser(Payload, SequenceAmbiguousValue(Value)).init(parse, nodeName, deinit),
+        input: SequenceAmbiguousContext(Payload, Value),
 
         const Self = @This();
 
-        pub fn init(input: SequenceAmbiguousContext(Value)) Self {
+        pub fn init(input: SequenceAmbiguousContext(Payload, Value)) Self {
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *const Parser(SequenceAmbiguousValue(Value)), allocator: *mem.Allocator) void {
+        pub fn deinit(parser: *const Parser(Payload, SequenceAmbiguousValue(Value)), allocator: *mem.Allocator) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             for (self.input) |child_parser| {
                 child_parser.deinit(allocator);
             }
         }
 
-        pub fn nodeName(parser: *const Parser(SequenceAmbiguousValue(Value)), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+        pub fn nodeName(parser: *const Parser(Payload, SequenceAmbiguousValue(Value)), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
             const self = @fieldParentPtr(Self, "parser", parser);
 
             var v = std.hash_map.hashString("SequenceAmbiguous");
@@ -115,7 +115,7 @@ pub fn SequenceAmbiguous(comptime Input: type, comptime Value: type) type {
             return v;
         }
 
-        pub fn parse(parser: *const Parser(SequenceAmbiguousValue(Value)), in_ctx: *const Context(void, SequenceAmbiguousValue(Value))) callconv(.Async) Error!void {
+        pub fn parse(parser: *const Parser(Payload, SequenceAmbiguousValue(Value)), in_ctx: *const Context(Payload, SequenceAmbiguousValue(Value))) callconv(.Async) Error!void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
@@ -156,7 +156,7 @@ pub fn SequenceAmbiguous(comptime Input: type, comptime Value: type) type {
             // (A1, A2) and invoking SequenceAmbiguous(next) to produce the associated `stream()` for those
             // parse states.
             const child_node_name = try self.input[0].nodeName(&in_ctx.memoizer.node_name_cache);
-            var child_ctx = try ctx.with({}).initChild(Value, child_node_name, ctx.offset);
+            var child_ctx = try in_ctx.initChild(Value, child_node_name, ctx.offset);
             defer child_ctx.deinitChild();
             if (!child_ctx.existing_results) try self.input[0].parse(&child_ctx);
 
@@ -175,7 +175,7 @@ pub fn SequenceAmbiguous(comptime Input: type, comptime Value: type) type {
                         // associated with A1, A2.)
                         var path_results = try ctx.allocator.create(ResultStream(Result(SequenceAmbiguousValue(Value))));
                         path_results.* = try ResultStream(Result(SequenceAmbiguousValue(Value))).init(ctx.allocator, ctx.key);
-                        var path = SequenceAmbiguous(Input, Value).init(self.input[1..]);
+                        var path = SequenceAmbiguous(Payload, Value).init(self.input[1..]);
                         const path_node_name = try path.parser.nodeName(&in_ctx.memoizer.node_name_cache);
                         var path_ctx = try in_ctx.initChild(SequenceAmbiguousValue(Value), path_node_name, top_level.offset);
                         defer path_ctx.deinitChild();
@@ -202,14 +202,15 @@ test "sequence" {
     nosuspend {
         const allocator = testing.allocator;
 
-        const ctx = try Context(void, SequenceAmbiguousValue(LiteralValue)).init(allocator, "abc123abc456_123abc", {});
+        const Payload = void;
+        const ctx = try Context(Payload, SequenceAmbiguousValue(LiteralValue)).init(allocator, "abc123abc456_123abc", {});
         defer ctx.deinit();
 
-        var seq = SequenceAmbiguous(void, LiteralValue).init(&.{
-            &Literal.init("abc").parser,
-            &Literal.init("123ab").parser,
-            &Literal.init("c45").parser,
-            &Literal.init("6").parser,
+        var seq = SequenceAmbiguous(Payload, LiteralValue).init(&.{
+            &Literal(Payload).init("abc").parser,
+            &Literal(Payload).init("123ab").parser,
+            &Literal(Payload).init("c45").parser,
+            &Literal(Payload).init("6").parser,
         });
         try seq.parser.parse(&ctx);
 
