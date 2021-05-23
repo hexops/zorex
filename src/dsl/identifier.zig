@@ -9,6 +9,7 @@ const ParserNodeName = combn.ParserNodeName;
 
 const String = @import("String.zig");
 const Compilation = @import("Compilation.zig");
+const CompilerContext = @import("CompilerContext.zig");
 
 const std = @import("std");
 const testing = std.testing;
@@ -18,7 +19,7 @@ const mem = std.mem;
 ///
 /// The `input` string must remain alive for as long as the `Identifier` parser will be used.
 pub const Identifier = struct {
-    parser: Parser(Compilation) = Parser(Compilation).init(parse, nodeName, null),
+    parser: Parser(*CompilerContext, Compilation) = Parser(*CompilerContext, Compilation).init(parse, nodeName, null),
 
     const Self = @This();
 
@@ -26,14 +27,14 @@ pub const Identifier = struct {
         return Self{};
     }
 
-    pub fn nodeName(parser: *const Parser(Compilation), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+    pub fn nodeName(parser: *const Parser(*CompilerContext, Compilation), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
         const self = @fieldParentPtr(Self, "parser", parser);
 
         var v = std.hash_map.hashString("Identifier");
         return v;
     }
 
-    pub fn parse(parser: *const Parser(Compilation), in_ctx: *const Context(void, Compilation)) callconv(.Async) !void {
+    pub fn parse(parser: *const Parser(*CompilerContext, Compilation), in_ctx: *const Context(*CompilerContext, Compilation)) callconv(.Async) !void {
         const self = @fieldParentPtr(Self, "parser", parser);
         var ctx = in_ctx.with({});
         defer ctx.results.close();
@@ -70,7 +71,7 @@ test "identifier" {
     nosuspend {
         const allocator = testing.allocator;
 
-        var ctx = try Context(void, Compilation).init(allocator, "Grammar2", {});
+        var ctx = try Context(*CompilerContext, Compilation).init(allocator, "Grammar2", try CompilerContext.init(allocator));
         defer ctx.deinit();
 
         var l = Identifier.init();

@@ -7,22 +7,23 @@ const Parser = combn.Parser;
 
 const String = @import("String.zig");
 const Node = @import("Node.zig");
+const CompilerContext = @import("CompilerContext.zig");
 
 const std = @import("std");
 const mem = std.mem;
 
 value: union(ValueTag) {
-    parser: *const Parser(Node),
+    parser: *const Parser(*CompilerContext, Node),
     identifier: String,
 },
-deinit_slice: ?[]*const Parser(Node),
+deinit_slice: ?[]*const Parser(*CompilerContext, Node),
 
 pub const ValueTag = enum {
     parser,
     identifier,
 };
 
-pub fn initParser(parser: *const Parser(Node)) @This() {
+pub fn initParser(parser: *const Parser(*CompilerContext, Node)) @This() {
     return .{
         .value = .{ .parser = parser },
         .deinit_slice = null,

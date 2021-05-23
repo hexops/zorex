@@ -3,6 +3,7 @@
 const compiler = @import("compiler.zig");
 const Compilation = @import("Compilation.zig");
 const Node = @import("Node.zig");
+const CompilerContext = @import("CompilerContext.zig");
 
 const combn = @import("../combn/combn.zig");
 const Context = combn.Context;
@@ -63,7 +64,7 @@ pub fn compile(self: *Program) !void {
 /// Executes the program with the given input.
 pub fn execute(self: *const Program, input: []const u8) !Node {
     nosuspend {
-        var ctx = try Context(void, Node).init(self.allocator, input, {});
+        var ctx = try Context(*CompilerContext, Node).init(self.allocator, input, try CompilerContext.init(self.allocator));
         defer ctx.deinit();
 
         try self.program.?.value.parser.parse(&ctx);
