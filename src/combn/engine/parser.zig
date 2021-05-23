@@ -109,7 +109,7 @@ const Memoizer = struct {
     /// Parser position & reentrant depth key -> memoized results
     memoized: std.AutoHashMap(ParserPosDepthKey, MemoizeValue),
 
-    /// *Parser(T) -> computed parser node name.
+    /// *Parser(T, P) -> computed parser node name.
     node_name_cache: std.AutoHashMap(usize, ParserNodeName),
 
     /// Maps position key -> the currently active recursion retry attempt, if any.
@@ -399,17 +399,24 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
 }
 
 /// An interface whose implementation can be swapped out at runtime. It carries an arbitrary
-/// `Context` to make the type signature generic.
-pub fn Parser(comptime Value: type) type {
+/// `Context` to make the type signature generic, and produces a `Value` of the given type which
+/// may vary from parser to parser.
+///
+/// The `Payload` type is used to denote a payload of a single type which is typically passed
+/// through all parsers in a grammar. Parser and parser combinator implementations should always
+/// allow the user to specify this type, and should generally avoid changing the type or using it
+/// for their own purposes unless they are e.g. deferring parsing to another language grammar
+/// entirely.
+pub fn Parser(comptime Payload: type, comptime Value: type) type {
     return struct {
         const Self = @This();
-        _parse: fn (self: *const Self, ctx: *const Context(void, Value)) callconv(.Async) Error!void,
+        _parse: fn (self: *const Self, ctx: *const Context(Payload, Value)) callconv(.Async) Error!void,
         _nodeName: fn (self: *const Self, node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64,
         _deinit: ?fn (self: *const Self, allocator: *mem.Allocator) void,
         _heap_storage: ?[]u8,
 
         pub fn init(
-            parseImpl: fn (self: *const Self, ctx: *const Context(void, Value)) callconv(.Async) Error!void,
+            parseImpl: fn (self: *const Self, ctx: *const Context(Payload, Value)) callconv(.Async) Error!void,
             nodeNameImpl: fn (self: *const Self, node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64,
             deinitImpl: ?fn (self: *const Self, allocator: *mem.Allocator) void,
         ) @This() {
@@ -442,7 +449,7 @@ pub fn Parser(comptime Value: type) type {
             }
         }
 
-        pub fn parse(self: *const Self, ctx: *const Context(void, Value)) callconv(.Async) Error!void {
+        pub fn parse(self: *const Self, ctx: *const Context(Payload, Value)) callconv(.Async) Error!void {
             var frame = try std.heap.page_allocator.allocAdvanced(u8, 16, @frameSize(self._parse), std.mem.Allocator.Exact.at_least);
             defer std.heap.page_allocator.free(frame);
             return try await @asyncCall(frame, {}, self._parse, .{ self, ctx });
@@ -468,7 +475,7 @@ pub fn Parser(comptime Value: type) type {
 }
 
 test "syntax" {
-    const p = Parser([]u8);
+    const p = Parser(void, []u8);
 }
 
 test "heap_parser" {
@@ -479,12 +486,13 @@ test "heap_parser" {
 
         const allocator = testing.allocator;
 
-        var ctx = try Context(void, LiteralValue).init(allocator, "hello world", {});
+        const Payload = void;
+        var ctx = try Context(Payload, LiteralValue).init(allocator, "hello world", {});
         defer ctx.deinit();
 
         // The parser we'll store on the heap.
         var want = "hello";
-        var literal_parser = Literal.init(want);
+        var literal_parser = Literal(Payload).init(want);
 
         // Move to heap.
         var heap_parser = try literal_parser.parser.heapAlloc(allocator, literal_parser);
