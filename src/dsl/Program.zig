@@ -64,7 +64,9 @@ pub fn compile(self: *Program) !void {
 /// Executes the program with the given input.
 pub fn execute(self: *const Program, input: []const u8) !Node {
     nosuspend {
-        var ctx = try Context(*CompilerContext, Node).init(self.allocator, input, try CompilerContext.init(self.allocator));
+        var compilerContext = try CompilerContext.init(self.allocator);
+        defer compilerContext.deinit(self.allocator);
+        var ctx = try Context(*CompilerContext, Node).init(self.allocator, input, compilerContext);
         defer ctx.deinit();
 
         try self.program.?.value.parser.parse(&ctx);

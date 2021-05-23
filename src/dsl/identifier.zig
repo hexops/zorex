@@ -71,7 +71,9 @@ test "identifier" {
     nosuspend {
         const allocator = testing.allocator;
 
-        var ctx = try Context(*CompilerContext, Compilation).init(allocator, "Grammar2", try CompilerContext.init(allocator));
+        var compilerContext = try CompilerContext.init(allocator);
+        defer compilerContext.deinit(allocator);
+        var ctx = try Context(*CompilerContext, Compilation).init(allocator, "Grammar2", compilerContext);
         defer ctx.deinit();
 
         var l = Identifier.init();

@@ -386,7 +386,9 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
         }.mapTo,
     });
 
-    var ctx = try Context(*CompilerContext, Compilation).init(allocator, syntax, try CompilerContext.init(allocator));
+    var compilerContext = try CompilerContext.init(allocator);
+    defer compilerContext.deinit(allocator);
+    var ctx = try Context(*CompilerContext, Compilation).init(allocator, syntax, compilerContext);
     defer ctx.deinit();
     try grammar.parser.parse(&ctx);
 
@@ -414,7 +416,9 @@ test "DSL" {
 
         // Run the regexp.
         var input = "//";
-        var ctx = try Context(*CompilerContext, Node).init(allocator, input, try CompilerContext.init(allocator));
+        var compilerContext = try CompilerContext.init(allocator);
+        defer compilerContext.deinit(allocator);
+        var ctx = try Context(*CompilerContext, Node).init(allocator, input, compilerContext);
         defer ctx.deinit();
 
         defer ctx.results.deinitAll(allocator);
