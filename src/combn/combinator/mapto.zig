@@ -9,7 +9,7 @@ const mem = std.mem;
 pub fn MapToContext(comptime Payload: type, comptime Value: type, comptime Target: type) type {
     return struct {
         parser: *const Parser(Payload, Value),
-        mapTo: fn (in: Result(Value), allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Target),
+        mapTo: fn (in: Result(Value), payload: Payload, allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Target),
     };
 }
 
@@ -53,7 +53,7 @@ pub fn MapTo(comptime Payload: type, comptime Value: type, comptime Target: type
 
             var sub = child_ctx.results.subscribe(ctx.key, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"));
             while (sub.next()) |next| {
-                try ctx.results.add(try ctx.input.mapTo(next, ctx.allocator, ctx.key, ctx.path));
+                try ctx.results.add(try ctx.input.mapTo(next, in_ctx.input, ctx.allocator, ctx.key, ctx.path));
             }
         }
     };
@@ -80,7 +80,7 @@ test "mapto" {
         const mapTo = MapTo(Payload, LiteralValue, String).init(.{
             .parser = &Literal(Payload).init("hello").parser,
             .mapTo = struct {
-                fn mapTo(in: Result(LiteralValue), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(String) {
+                fn mapTo(in: Result(LiteralValue), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(String) {
                     switch (in.result) {
                         .err => return Result(String).initError(in.offset, in.result.err),
                         else => return Result(String).init(in.offset, String.init("hello")),
