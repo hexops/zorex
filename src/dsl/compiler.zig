@@ -27,7 +27,7 @@ const testing = std.testing;
 const mem = std.mem;
 const assert = std.debug.assert;
 
-fn mapLiteralToNone(in: Result(LiteralValue), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
+fn mapLiteralToNone(in: Result(LiteralValue), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
     switch (in.result) {
         .err => return Result(Compilation).initError(in.offset, in.result.err),
         else => {
@@ -39,7 +39,7 @@ fn mapLiteralToNone(in: Result(LiteralValue), _allocator: *mem.Allocator, key: P
 
 /// Maps a SequenceValue(Node) -> singular Node with no name and children (each of the nodes in the
 /// sequence.)
-fn mapNodeSequence(in: Result(SequenceValue(Node)), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Node) {
+fn mapNodeSequence(in: Result(SequenceValue(Node)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Node) {
     switch (in.result) {
         .err => return Result(Node).initError(in.offset, in.result.err),
         else => {
@@ -71,7 +71,7 @@ fn mapNodeSequence(in: Result(SequenceValue(Node)), _allocator: *mem.Allocator, 
 
 /// Maps a SequenceValue(Compilation) -> singular Compilation which parses all compilations in sequence,
 /// emitting a single unnamed Node with children.
-fn mapCompilationSequence(in: Result(SequenceValue(Compilation)), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
+fn mapCompilationSequence(in: Result(SequenceValue(Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
     switch (in.result) {
         .err => return Result(Compilation).initError(in.offset, in.result.err),
         else => {
@@ -152,7 +152,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
             .max = -1,
         }).parser,
         .mapTo = struct {
-            fn mapTo(in: Result(RepeatedValue(Compilation)), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
+            fn mapTo(in: Result(RepeatedValue(Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
                 switch (in.result) {
                     .err => return Result(Compilation).initError(in.offset, in.result.err),
                     else => {
@@ -188,7 +188,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
             &forward_slash.parser,
         }).parser,
         .mapTo = struct {
-            fn mapTo(in: Result(SequenceValue(Compilation)), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
+            fn mapTo(in: Result(SequenceValue(Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
                 switch (in.result) {
                     .err => return Result(Compilation).initError(in.offset, in.result.err),
                     else => {
@@ -214,7 +214,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
     var identifier_expr = MapTo(*CompilerContext, Compilation, Compilation).init(.{
         .parser = &Identifier.init().parser,
         .mapTo = struct {
-            fn mapTo(in: Result(Compilation), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
+            fn mapTo(in: Result(Compilation), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
                 switch (in.result) {
                     .err => return Result(Compilation).initError(in.offset, in.result.err),
                     else => {
@@ -259,7 +259,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
             &comma.parser,
         }).parser,
         .mapTo = struct {
-            fn mapTo(in: Result(SequenceValue(Compilation)), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
+            fn mapTo(in: Result(SequenceValue(Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
                 switch (in.result) {
                     .err => return Result(Compilation).initError(in.offset, in.result.err),
                     else => {
@@ -283,7 +283,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
     var optional_expr_list_inner_left = MapTo(*CompilerContext, ?Compilation, Compilation).init(.{
         .parser = &Optional(*CompilerContext, Compilation).init(&expr_list_inner_left.parser).parser,
         .mapTo = struct {
-            fn mapTo(in: Result(?Compilation), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
+            fn mapTo(in: Result(?Compilation), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
                 switch (in.result) {
                     .err => return Result(Compilation).initError(in.offset, in.result.err),
                     else => {
@@ -309,7 +309,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
             &semicolon.parser,
         }).parser,
         .mapTo = struct {
-            fn mapTo(in: Result(SequenceValue(Compilation)), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
+            fn mapTo(in: Result(SequenceValue(Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
                 switch (in.result) {
                     .err => return Result(Compilation).initError(in.offset, in.result.err),
                     else => {
@@ -357,7 +357,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
             .max = -1,
         }).parser,
         .mapTo = struct {
-            fn mapTo(in: Result(RepeatedValue(Compilation)), _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
+            fn mapTo(in: Result(RepeatedValue(Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
                 switch (in.result) {
                     .err => return Result(Compilation).initError(in.offset, in.result.err),
                     else => {
