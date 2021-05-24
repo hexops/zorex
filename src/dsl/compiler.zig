@@ -152,7 +152,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
             .max = -1,
         }).parser,
         .mapTo = struct {
-            fn mapTo(in: Result(RepeatedValue(Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
+            fn mapTo(in: Result(RepeatedValue(Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!Result(Compilation) {
                 switch (in.result) {
                     .err => return Result(Compilation).initError(in.offset, in.result.err),
                     else => {
@@ -188,7 +188,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
             &forward_slash.parser,
         }).parser,
         .mapTo = struct {
-            fn mapTo(in: Result(SequenceValue(Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
+            fn mapTo(in: Result(SequenceValue(Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!Result(Compilation) {
                 switch (in.result) {
                     .err => return Result(Compilation).initError(in.offset, in.result.err),
                     else => {
@@ -214,7 +214,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
     var identifier_expr = MapTo(*CompilerContext, Compilation, Compilation).init(.{
         .parser = &Identifier.init().parser,
         .mapTo = struct {
-            fn mapTo(in: Result(Compilation), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
+            fn mapTo(in: Result(Compilation), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!Result(Compilation) {
                 switch (in.result) {
                     .err => return Result(Compilation).initError(in.offset, in.result.err),
                     else => {
@@ -259,7 +259,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
             &comma.parser,
         }).parser,
         .mapTo = struct {
-            fn mapTo(in: Result(SequenceValue(Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
+            fn mapTo(in: Result(SequenceValue(Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!Result(Compilation) {
                 switch (in.result) {
                     .err => return Result(Compilation).initError(in.offset, in.result.err),
                     else => {
@@ -268,13 +268,10 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                         defer sequence.results.deinit();
                         var sub = sequence.results.subscribe(key, path, Result(Compilation).initError(in.offset, "matches only the empty language"));
 
-                        // TODO(slimsag): mapTo should be async
-                        nosuspend {
-                            var _expr_list = sub.next().?;
-                            _ = sub.next().?; // non-capturing compilation for comma
-                            assert(sub.next() == null);
-                            return _expr_list;
-                        }
+                        var _expr_list = sub.next().?;
+                        _ = sub.next().?; // non-capturing compilation for comma
+                        assert(sub.next() == null);
+                        return _expr_list;
                     },
                 }
             }
@@ -283,7 +280,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
     var optional_expr_list_inner_left = MapTo(*CompilerContext, ?Compilation, Compilation).init(.{
         .parser = &Optional(*CompilerContext, Compilation).init(&expr_list_inner_left.parser).parser,
         .mapTo = struct {
-            fn mapTo(in: Result(?Compilation), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
+            fn mapTo(in: Result(?Compilation), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!Result(Compilation) {
                 switch (in.result) {
                     .err => return Result(Compilation).initError(in.offset, in.result.err),
                     else => {
@@ -309,7 +306,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
             &semicolon.parser,
         }).parser,
         .mapTo = struct {
-            fn mapTo(in: Result(SequenceValue(Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
+            fn mapTo(in: Result(SequenceValue(Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!Result(Compilation) {
                 switch (in.result) {
                     .err => return Result(Compilation).initError(in.offset, in.result.err),
                     else => {
@@ -318,25 +315,22 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                         defer sequence.results.deinit();
                         var sub = sequence.results.subscribe(key, path, Result(Compilation).initError(in.offset, "matches only the empty language"));
 
-                        // TODO(slimsag): mapTo should be async
-                        nosuspend {
-                            var identifier = sub.next().?;
-                            _ = sub.next().?; // non-capturing compilation for whitespace
-                            _ = sub.next().?; // non-capturing compilation for assignment `=` operator
-                            _ = sub.next().?; // non-capturing compilation for whitespace
-                            var _expr_list = sub.next().?;
-                            var last = sub.next().?; // non-capturing compilation for semicolon
-                            assert(sub.next() == null);
+                        var identifier = sub.next().?;
+                        _ = sub.next().?; // non-capturing compilation for whitespace
+                        _ = sub.next().?; // non-capturing compilation for assignment `=` operator
+                        _ = sub.next().?; // non-capturing compilation for whitespace
+                        var _expr_list = sub.next().?;
+                        var last = sub.next().?; // non-capturing compilation for semicolon
+                        assert(sub.next() == null);
 
-                            // TODO(slimsag): set identifier=_expr_list so that future expression
-                            // usages of the identifier can be looked up.
-                            identifier.deinit(_allocator);
-                            _expr_list.deinit(_allocator);
+                        // TODO(slimsag): set identifier=_expr_list so that future expression
+                        // usages of the identifier can be looked up.
+                        identifier.deinit(_allocator);
+                        _expr_list.deinit(_allocator);
 
-                            // A definition assignment yields no nodes.
-                            var always_none = Always(*CompilerContext, Node).init(null);
-                            return Result(Compilation).init(in.offset, Compilation.initParser(try always_none.parser.heapAlloc(_allocator, always_none)));
-                        }
+                        // A definition assignment yields no nodes.
+                        var always_none = Always(*CompilerContext, Node).init(null);
+                        return Result(Compilation).init(in.offset, Compilation.initParser(try always_none.parser.heapAlloc(_allocator, always_none)));
                     },
                 }
             }
@@ -357,7 +351,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
             .max = -1,
         }).parser,
         .mapTo = struct {
-            fn mapTo(in: Result(RepeatedValue(Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!Result(Compilation) {
+            fn mapTo(in: Result(RepeatedValue(Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!Result(Compilation) {
                 switch (in.result) {
                     .err => return Result(Compilation).initError(in.offset, in.result.err),
                     else => {
@@ -366,20 +360,17 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                         defer repeated.results.deinit();
                         var sub = repeated.results.subscribe(key, path, Result(Compilation).initError(in.offset, "matches only the empty language"));
 
-                        // TODO(slimsag): mapTo should be async
-                        nosuspend {
-                            var offset = in.offset;
-                            var compilation = sub.next();
-                            if (compilation == null) {
-                                // Grammar does not have a root expression
-                                return Result(Compilation).initError(offset, "root expression missing");
-                            }
-
-                            // All other parse paths should yield no compilations.
-                            assert(sub.next() == null);
-
-                            return compilation.?;
+                        var offset = in.offset;
+                        var compilation = sub.next();
+                        if (compilation == null) {
+                            // Grammar does not have a root expression
+                            return Result(Compilation).initError(offset, "root expression missing");
                         }
+
+                        // All other parse paths should yield no compilations.
+                        assert(sub.next() == null);
+
+                        return compilation.?;
                     },
                 }
             }
