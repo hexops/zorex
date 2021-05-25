@@ -9,7 +9,7 @@ const mem = std.mem;
 pub fn MapToContext(comptime Payload: type, comptime Value: type, comptime Target: type) type {
     return struct {
         parser: *const Parser(Payload, Value),
-        mapTo: fn (in: Result(Value), payload: Payload, allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!Result(Target),
+        mapTo: fn (in: Result(Value), payload: Payload, allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(Target),
     };
 }
 
@@ -52,11 +52,16 @@ pub fn MapTo(comptime Payload: type, comptime Value: type, comptime Target: type
             if (!child_ctx.existing_results) try ctx.input.parser.parse(&child_ctx);
 
             var sub = child_ctx.results.subscribe(ctx.key, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"));
+            var closed = false;
             while (sub.next()) |next| {
                 var frame = try std.heap.page_allocator.allocAdvanced(u8, 16, @frameSize(self.input.mapTo), std.mem.Allocator.Exact.at_least);
                 defer std.heap.page_allocator.free(frame);
                 const mapped = try await @asyncCall(frame, {}, self.input.mapTo, .{ next, in_ctx.input, ctx.allocator, ctx.key, ctx.path });
-                try ctx.results.add(mapped);
+                if (mapped == null or closed) {
+                    closed = true;
+                    continue;
+                }
+                try ctx.results.add(mapped.?);
             }
         }
     };
@@ -83,7 +88,7 @@ test "mapto" {
         const mapTo = MapTo(Payload, LiteralValue, String).init(.{
             .parser = &Literal(Payload).init("hello").parser,
             .mapTo = struct {
-                fn mapTo(in: Result(LiteralValue), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!Result(String) {
+                fn mapTo(in: Result(LiteralValue), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(String) {
                     switch (in.result) {
                         .err => return Result(String).initError(in.offset, in.result.err),
                         else => return Result(String).init(in.offset, String.init("hello")),

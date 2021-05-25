@@ -33,7 +33,7 @@ test "direct_left_recursion_empty_language" {
         var expr = MapTo(Payload, SequenceAmbiguousValue(node), node).init(.{
             .parser = &SequenceAmbiguous(Payload, node).init(&parsers).parser,
             .mapTo = struct {
-                fn mapTo(in: Result(SequenceAmbiguousValue(node)), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!Result(node) {
+                fn mapTo(in: Result(SequenceAmbiguousValue(node)), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(node) {
                     switch (in.result) {
                         .err => return Result(node).initError(in.offset, in.result.err),
                         else => {
@@ -84,7 +84,7 @@ test "direct_left_recursion" {
     var abcAsNode = MapTo(Payload, LiteralValue, node).init(.{
         .parser = &Literal(Payload).init("abc").parser,
         .mapTo = struct {
-            fn mapTo(in: Result(LiteralValue), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!Result(node) {
+            fn mapTo(in: Result(LiteralValue), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(node) {
                 switch (in.result) {
                     .err => return Result(node).initError(in.offset, in.result.err),
                     else => {
@@ -104,7 +104,7 @@ test "direct_left_recursion" {
     var expr = Reentrant(Payload, node).init(&MapTo(Payload, SequenceAmbiguousValue(node), node).init(.{
         .parser = &SequenceAmbiguous(Payload, node).init(&parsers).parser,
         .mapTo = struct {
-            fn mapTo(in: Result(SequenceAmbiguousValue(node)), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!Result(node) {
+            fn mapTo(in: Result(SequenceAmbiguousValue(node)), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(node) {
                 switch (in.result) {
                     .err => return Result(node).initError(in.offset, in.result.err),
                     else => {
@@ -133,7 +133,7 @@ test "direct_left_recursion" {
     var optionalExpr = MapTo(Payload, ?node, node).init(.{
         .parser = &Optional(Payload, node).init(&expr.parser).parser,
         .mapTo = struct {
-            fn mapTo(in: Result(?node), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!Result(node) {
+            fn mapTo(in: Result(?node), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(node) {
                 switch (in.result) {
                     .err => return Result(node).initError(in.offset, in.result.err),
                     else => {
