@@ -13,6 +13,10 @@ pub fn init(allocator: *mem.Allocator, value: []const u8) !@This() {
     return self;
 }
 
+pub fn clone(self: *const @This(), allocator: *mem.Allocator) !@This() {
+    return init(allocator, self.value.items);
+}
+
 pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
     self.value.deinit();
 }
