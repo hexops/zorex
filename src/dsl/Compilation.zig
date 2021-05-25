@@ -18,6 +18,7 @@ value: union(ValueTag) {
     parser: *const Parser(*CompilerContext, Node),
     identifier: String,
 },
+debug: ?[]const u8,
 deinit_slice: ?[]*const Parser(*CompilerContext, Node),
 
 pub const ValueTag = enum {
@@ -29,6 +30,7 @@ pub fn initParser(parser: *const Parser(*CompilerContext, Node)) Compilation {
     return .{
         .value = .{ .parser = parser },
         .deinit_slice = null,
+        .debug = null,
     };
 }
 
@@ -36,6 +38,15 @@ pub fn initIdentifier(identifier: String) Compilation {
     return .{
         .value = .{ .identifier = identifier },
         .deinit_slice = null,
+        .debug = null,
+    };
+}
+
+pub fn clone(self: *const Compilation, allocator: *mem.Allocator) !Compilation {
+    return Compilation{
+        .value = .{ .identifier = try self.value.identifier.clone(allocator) },
+        .deinit_slice = null,
+        .debug = self.debug,
     };
 }
 
