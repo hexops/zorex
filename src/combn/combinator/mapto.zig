@@ -54,10 +54,13 @@ pub fn MapTo(comptime Payload: type, comptime Value: type, comptime Target: type
             var sub = child_ctx.results.subscribe(ctx.key, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"));
             var closed = false;
             while (sub.next()) |next| {
+                if (closed) {
+                    continue;
+                }
                 var frame = try std.heap.page_allocator.allocAdvanced(u8, 16, @frameSize(self.input.mapTo), std.mem.Allocator.Exact.at_least);
                 defer std.heap.page_allocator.free(frame);
                 const mapped = try await @asyncCall(frame, {}, self.input.mapTo, .{ next, in_ctx.input, ctx.allocator, ctx.key, ctx.path });
-                if (mapped == null or closed) {
+                if (mapped == null) {
                     closed = true;
                     continue;
                 }
