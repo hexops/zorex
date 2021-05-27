@@ -80,12 +80,17 @@ fn mapCompilationSequence(in: Result(SequenceValue(?Compilation)), compiler_cont
             nosuspend {
                 // Collect all the parser compilations.
                 var parsers = std.ArrayList(*const Parser(*CompilerContext, Node)).init(_allocator);
+                var parser_refs = std.ArrayList(*Compilation.RefCountedParser).init(_allocator);
                 var sub = sequence.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"));
                 var offset = in.offset;
                 while (sub.next()) |next| {
                     offset = next.offset;
                     const compilation = next.result.value;
-                    if (compilation) |c| try parsers.append(c.value.parser);
+                    if (compilation) |c| {
+                        var ref = c.value.parser.ref();
+                        try parser_refs.append(ref);
+                        try parsers.append(ref.value.ptr);
+                    }
                 }
                 var slice = parsers.toOwnedSlice();
 
@@ -97,8 +102,11 @@ fn mapCompilationSequence(in: Result(SequenceValue(?Compilation)), compiler_cont
                     .mapTo = mapNodeSequence,
                 });
 
-                var result_compilation = Compilation.initParser(try mapped.parser.heapAlloc(_allocator, mapped));
-                result_compilation.deinit_slice = slice;
+                var result_compilation = Compilation.initParser(try Compilation.RefCountedParser.init(_allocator, .{
+                    .ptr = try mapped.parser.heapAlloc(_allocator, mapped),
+                    .slice = slice,
+                    .refs = parser_refs.toOwnedSlice(),
+                }));
                 return Result(?Compilation).init(offset, result_compilation);
             }
         },
@@ -200,7 +208,13 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                             .children = null,
                         });
                         var always_success = Always(*CompilerContext, Node).init(success);
-                        return Result(?Compilation).init(in.offset, Compilation.initParser(try always_success.parser.heapAlloc(_allocator, always_success)));
+
+                        var result_compilation = Compilation.initParser(try Compilation.RefCountedParser.init(_allocator, .{
+                            .ptr = try always_success.parser.heapAlloc(_allocator, always_success),
+                            .slice = null,
+                            .refs = null,
+                        }));
+                        return Result(?Compilation).init(in.offset, result_compilation);
                     },
                 }
             }
@@ -216,15 +230,14 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                     else => {
                         defer in.deinit(_allocator);
 
-                        // TODO(slimsag): lookup compilation to actually parse the thing described by
-                        // this identifier!
-                        const success = Result(Node).init(in.offset, Node{
-                            .name = try String.init(_allocator, "success definition!"),
-                            .value = null,
-                            .children = null,
-                        });
-                        var always_success = Always(*CompilerContext, Node).init(success);
-                        return Result(?Compilation).init(in.offset, Compilation.initParser(try always_success.parser.heapAlloc(_allocator, always_success)));
+                        // Lookup this identifier, which was previously defined.
+                        // TODO(slimsag): make it possible to reference future-definitions?
+                        var compilation = compiler_context.identifiers.get(in.result.value.?);
+                        if (compilation == null) {
+                            // TODO(slimsag): include name of definition that was not found in error.
+                            return Result(?Compilation).initError(in.offset, "definition not found");
+                        }
+                        return Result(?Compilation).init(in.offset, try compilation.?.clone(_allocator));
                     },
                 }
             }
@@ -318,8 +331,14 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                         var last = sub.next().?; // non-capturing compilation for semicolon
                         assert(sub.next() == null);
 
-                        // TODO(slimsag): set identifier=_expr_list so that future expression
-                        // usages of the identifier can be looked up.
+                        // Set identifier = _expr_list, so that future identifier expressions can
+                        // lookup the resulting expression compilation for the identifier.
+                        const v = try compiler_context.identifiers.getOrPut(try identifier.result.value.?.clone(_allocator));
+                        if (v.found_existing) {
+                            // TODO(slimsag): include name of definition in error message
+                            return Result(?Compilation).initError(last.offset, "definition redefined");
+                        }
+                        v.entry.value = try _expr_list.result.value.?.clone(_allocator);
                         identifier.deinit(_allocator);
                         _expr_list.deinit(_allocator);
 
@@ -420,7 +439,7 @@ test "DSL" {
         defer ctx.deinit();
 
         defer ctx.results.deinitAll(allocator);
-        try program.value.parser.parse(&ctx);
+        try program.value.parser.value.ptr.parse(&ctx);
 
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(Node).initError(ctx.offset, "matches only the empty language"));
         var first = sub.next().?;

@@ -16,6 +16,11 @@ pub fn init(allocator: *mem.Allocator) !*CompilerContext {
 }
 
 pub fn deinit(self: *CompilerContext, allocator: *mem.Allocator) void {
+    var iter = self.identifiers.iterator();
+    while (iter.next()) |e| {
+        e.key.deinit(allocator);
+        e.value.deinit(allocator);
+    }
     self.identifiers.deinit();
     allocator.destroy(self);
 }

@@ -69,7 +69,7 @@ pub fn execute(self: *const Program, input: []const u8) !Node {
         var ctx = try Context(*CompilerContext, Node).init(self.allocator, input, compilerContext);
         defer ctx.deinit();
 
-        try self.program.?.value.parser.parse(&ctx);
+        try self.program.?.value.parser.value.ptr.parse(&ctx);
 
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(Node).initError(ctx.offset, "matches only the empty language"));
         var first = sub.next().?;
@@ -84,7 +84,7 @@ pub fn deinit(self: *const Program) void {
     }
 }
 
-test "example_regexp" {
+test "example_regex" {
     const allocator = testing.allocator;
 
     const String = @import("String.zig");
@@ -102,7 +102,7 @@ test "example_regexp" {
     const result = try program.execute(input);
     defer result.deinit(allocator);
 
-    try testing.expectEqualStrings(result.name.value.items, "TODO(slimsag): value from parsing regexp!");
+    try testing.expectEqualStrings("TODO(slimsag): value from parsing regexp!", result.name.value.items);
     try testing.expect(result.value == null);
     try testing.expect(result.children == null);
 

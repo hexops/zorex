@@ -13,40 +13,51 @@ const std = @import("std");
 const mem = std.mem;
 
 const Compilation = @This();
+const RefCounted = @import("ref_counted.zig").RefCounted;
 
 value: union(ValueTag) {
-    parser: *const Parser(*CompilerContext, Node),
+    parser: *RefCountedParser,
     identifier: String,
 },
-debug: ?[]const u8,
-deinit_slice: ?[]*const Parser(*CompilerContext, Node),
+
+pub const RefCountedParser = RefCounted(struct {
+    ptr: *const Parser(*CompilerContext, Node),
+    slice: ?[]*const Parser(*CompilerContext, Node),
+    refs: ?[]*RefCountedParser,
+
+    pub fn deinit(self: @This(), allocator: *mem.Allocator) void {
+        self.ptr.deinit(allocator);
+        if (self.slice) |slice| {
+            allocator.free(slice);
+        }
+        if (self.refs) |refs| {
+            for (refs) |ref| {
+                ref.deinit(allocator);
+            }
+            allocator.free(refs);
+        }
+    }
+});
 
 pub const ValueTag = enum {
     parser,
     identifier,
 };
 
-pub fn initParser(parser: *const Parser(*CompilerContext, Node)) Compilation {
-    return .{
-        .value = .{ .parser = parser },
-        .deinit_slice = null,
-        .debug = null,
-    };
+pub fn initParser(parser: *RefCountedParser) Compilation {
+    return .{ .value = .{ .parser = parser } };
 }
 
 pub fn initIdentifier(identifier: String) Compilation {
-    return .{
-        .value = .{ .identifier = identifier },
-        .deinit_slice = null,
-        .debug = null,
-    };
+    return .{ .value = .{ .identifier = identifier } };
 }
 
 pub fn clone(self: *const Compilation, allocator: *mem.Allocator) !Compilation {
     return Compilation{
-        .value = .{ .identifier = try self.value.identifier.clone(allocator) },
-        .deinit_slice = null,
-        .debug = self.debug,
+        .value = switch (self.value) {
+            .parser => .{ .parser = self.value.parser.ref() },
+            .identifier => .{ .identifier = try self.value.identifier.clone(allocator) },
+        },
     };
 }
 
@@ -55,9 +66,6 @@ pub fn deinit(self: *const Compilation, allocator: *mem.Allocator) void {
         .parser => |v| v.deinit(allocator),
         .identifier => |v| v.deinit(allocator),
     }
-    if (self.deinit_slice) |p| {
-        allocator.free(p);
-    }
 }
 
 pub const HashMap = std.HashMap(Compilation, Compilation, hashFn, eqlFn, std.hash_map.default_max_load_percentage);
@@ -65,7 +73,7 @@ pub const HashMap = std.HashMap(Compilation, Compilation, hashFn, eqlFn, std.has
 fn eqlFn(a: Compilation, b: Compilation) bool {
     return switch (a.value) {
         .parser => |aa| switch (b.value) {
-            .parser => |bb| aa == bb,
+            .parser => |bb| aa.value.ptr == bb.value.ptr,
             .identifier => false,
         },
         .identifier => |aa| switch (b.value) {
@@ -77,7 +85,7 @@ fn eqlFn(a: Compilation, b: Compilation) bool {
 
 fn hashFn(key: Compilation) u64 {
     return switch (key.value) {
-        .parser => |p| @ptrToInt(p),
+        .parser => |p| @ptrToInt(p.value.ptr),
         .identifier => |ident| std.hash_map.hashString(ident.value.items),
     };
 }
