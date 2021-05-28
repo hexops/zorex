@@ -62,7 +62,7 @@ test "always" {
 
         try noop.parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(AlwaysVoid).initError(ctx.offset, "matches only the empty language"));
+        var sub = ctx.subscribe();
         try testing.expect(sub.next() == null);
     }
 }

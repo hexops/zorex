@@ -1,4 +1,5 @@
 const ResultStream = @import("result_stream.zig").ResultStream;
+const Iterator = @import("result_stream.zig").Iterator;
 const ParserPath = @import("parser_path.zig").ParserPath;
 
 const std = @import("std");
@@ -379,6 +380,16 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
             });
         }
 
+        /// Subscribe to the results from this context. The caller owns the values and is
+        /// responsible for calling `deinit` on each.
+        pub fn subscribe(self: @This()) Iterator(Result(Value)) {
+            return self.results.subscribe(
+                self.key,
+                self.path,
+                Result(Value).initError(self.offset, "matches only the empty language"),
+            );
+        }
+
         pub fn with(self: @This(), new_input: anytype) Context(@TypeOf(new_input), Value) {
             return Context(@TypeOf(new_input), Value){
                 .input = new_input,
@@ -511,7 +522,7 @@ test "heap_parser" {
         // Use it.
         try heap_parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"));
+        var sub = ctx.subscribe();
         var first = sub.next().?;
         defer first.deinit(ctx.allocator);
         try testing.expectEqual(Result(LiteralValue).init(want.len, .{ .value = "hello" }), first);

@@ -152,7 +152,7 @@ test "repeated" {
         });
         try abcInfinity.parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(RepeatedValue(LiteralValue)).initError(ctx.offset, "matches only the empty language"));
+        var sub = ctx.subscribe();
         var repeated = sub.next().?.result.value;
         defer repeated.deinit(ctx.allocator);
         try testing.expect(sub.next() == null); // stream closed

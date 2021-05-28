@@ -214,7 +214,7 @@ test "sequence" {
         });
         try seq.parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(SequenceAmbiguousValue(LiteralValue)).initError(ctx.offset, "matches only the empty language"));
+        var sub = ctx.subscribe();
         var list = sub.next();
         try testing.expect(sub.next() == null); // stream closed
 

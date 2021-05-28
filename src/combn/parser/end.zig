@@ -50,7 +50,7 @@ test "end" {
         var e = End(Payload).init();
         try e.parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(EndValue).initError(ctx.offset, "matches only the empty language"));
+        var sub = ctx.subscribe();
         var first = sub.next().?;
         defer first.deinit(ctx.allocator);
         try testing.expectEqual(Result(EndValue).init(0, .{}), first);

@@ -102,7 +102,7 @@ test "mapto" {
 
         try mapTo.parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(String).initError(ctx.offset, "matches only the empty language"));
+        var sub = ctx.subscribe();
         var first = sub.next().?;
         defer first.deinit(ctx.allocator);
         try testing.expectEqual(Result(String).init(5, String.init("hello")), first);

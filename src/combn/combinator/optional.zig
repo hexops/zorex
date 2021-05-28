@@ -71,7 +71,7 @@ test "optional_some" {
 
         try optional.parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(?LiteralValue).initError(ctx.offset, "matches only the empty language"));
+        var sub = ctx.subscribe();
         var r1 = sub.next().?;
         defer r1.deinit(ctx.allocator);
         try testing.expectEqual(@as(usize, 5), r1.offset);
@@ -92,7 +92,7 @@ test "optional_none" {
 
         try optional.parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(?LiteralValue).initError(ctx.offset, "matches only the empty language"));
+        var sub = ctx.subscribe();
         var first = sub.next().?;
         defer first.deinit(ctx.allocator);
         try testing.expectEqual(Result(?LiteralValue).init(0, null), first);

@@ -79,7 +79,7 @@ test "identifier" {
         var l = Identifier.init();
         try l.parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(?Compilation).initError(ctx.offset, "matches only the empty language"));
+        var sub = ctx.subscribe();
         var r1 = sub.next().?;
         defer r1.deinit(ctx.allocator);
         try testing.expectEqual(@as(usize, 8), r1.offset);

@@ -71,7 +71,7 @@ pub fn execute(self: *const Program, input: []const u8) !Node {
 
         try self.program.?.value.parser.value.ptr.parse(&ctx);
 
-        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(Node).initError(ctx.offset, "matches only the empty language"));
+        var sub = ctx.subscribe();
         var first = sub.next().?;
         assert(sub.next() == null); // no ambiguous parse paths here
         return first.result.value;

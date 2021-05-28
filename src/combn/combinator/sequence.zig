@@ -138,7 +138,7 @@ test "sequence" {
         });
         try seq.parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(SequenceValue(LiteralValue)).initError(ctx.offset, "matches only the empty language"));
+        var sub = ctx.subscribe();
         var sequence = sub.next().?.result.value;
         defer sequence.deinit(ctx.allocator);
         try testing.expect(sub.next() == null); // stream closed

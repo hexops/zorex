@@ -64,7 +64,7 @@ test "literal" {
         var l = Literal(Payload).init(want);
         try l.parser.parse(&ctx);
 
-        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"));
+        var sub = ctx.subscribe();
         var first = sub.next().?;
         defer first.deinit(ctx.allocator);
         try testing.expectEqual(Result(LiteralValue).init(want.len, .{ .value = "hello" }), first);

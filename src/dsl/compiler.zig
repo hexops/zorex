@@ -409,7 +409,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
     defer ctx.deinit();
     try grammar.parser.parse(&ctx);
 
-    var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(Compilation).initError(ctx.offset, "matches only the empty language"));
+    var sub = ctx.subscribe();
     var compilation = sub.next();
     assert(sub.next() == null); // our grammar is never ambiguous
     if (compilation == null) {
@@ -440,7 +440,7 @@ test "DSL" {
 
         try program.value.parser.value.ptr.parse(&ctx);
 
-        var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(Node).initError(ctx.offset, "matches only the empty language"));
+        var sub = ctx.subscribe();
         var first = sub.next().?;
         defer first.deinit(ctx.allocator);
         try testing.expectEqualStrings("TODO(slimsag): value from parsing regexp!", first.result.value.name.value.items);
