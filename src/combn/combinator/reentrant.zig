@@ -67,7 +67,7 @@ pub fn Reentrant(comptime Payload: type, comptime Value: type) type {
                 defer ctx.allocator.destroy(buf);
                 defer buf.deinit();
                 buf.* = try ResultStream(Result(Value)).init(ctx.allocator, ctx.key);
-                var sub = child_ctx.results.subscribe(ctx.key, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"));
+                var sub = child_ctx.subscribe();
                 while (sub.next()) |next| {
                     try buf.add(next);
                 }

@@ -94,7 +94,7 @@ pub fn Sequence(comptime Payload: type, comptime Value: type) type {
                 if (!child_ctx.existing_results) try child_parser.parse(&child_ctx);
 
                 var num_local_values: usize = 0;
-                var sub = child_ctx.results.subscribe(ctx.key, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"));
+                var sub = child_ctx.subscribe();
                 while (sub.next()) |next| {
                     switch (next.result) {
                         .err => {

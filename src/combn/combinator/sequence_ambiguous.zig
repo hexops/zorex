@@ -161,7 +161,7 @@ pub fn SequenceAmbiguous(comptime Payload: type, comptime Value: type) type {
             if (!child_ctx.existing_results) try self.input[0].parse(&child_ctx);
 
             // For every top-level value (A1, A2 in our example above.)
-            var sub = child_ctx.results.subscribe(ctx.key, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"));
+            var sub = child_ctx.subscribe();
             while (sub.next()) |top_level| {
                 switch (top_level.result) {
                     .err => {
@@ -180,7 +180,7 @@ pub fn SequenceAmbiguous(comptime Payload: type, comptime Value: type) type {
                         var path_ctx = try in_ctx.initChild(SequenceAmbiguousValue(Value), path_node_name, top_level.offset);
                         defer path_ctx.deinitChild();
                         if (!path_ctx.existing_results) try path.parser.parse(&path_ctx);
-                        var path_results_sub = path_ctx.results.subscribe(ctx.key, ctx.path, Result(SequenceAmbiguousValue(Value)).initError(ctx.offset, "matches only the empty language"));
+                        var path_results_sub = path_ctx.subscribe();
                         while (path_results_sub.next()) |next| {
                             try path_results.add(next);
                         }

@@ -47,7 +47,7 @@ pub fn Optional(comptime Payload: type, comptime Value: type) type {
             defer child_ctx.deinitChild();
             if (!child_ctx.existing_results) try ctx.input.parse(&child_ctx);
 
-            var sub = child_ctx.results.subscribe(ctx.key, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"));
+            var sub = child_ctx.subscribe();
             while (sub.next()) |next| {
                 switch (next.result) {
                     .err => try ctx.results.add(Result(?Value).init(ctx.offset, null)),

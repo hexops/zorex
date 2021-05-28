@@ -51,7 +51,7 @@ pub fn MapTo(comptime Payload: type, comptime Value: type, comptime Target: type
             defer child_ctx.deinitChild();
             if (!child_ctx.existing_results) try ctx.input.parser.parse(&child_ctx);
 
-            var sub = child_ctx.results.subscribe(ctx.key, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"));
+            var sub = child_ctx.subscribe();
             var closed = false;
             while (sub.next()) |next| {
                 if (closed) {

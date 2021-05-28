@@ -206,7 +206,7 @@ pub fn RepeatedAmbiguous(comptime Payload: type, comptime Value: type) type {
 
             // For every top-level value (A, B, C in our example above.)
             var num_values: usize = 0;
-            var sub = child_ctx.results.subscribe(ctx.key, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"));
+            var sub = child_ctx.subscribe();
             var offset: usize = ctx.offset;
             while (sub.next()) |top_level| {
                 if (num_values >= ctx.input.max and ctx.input.max != -1) break;
@@ -237,7 +237,7 @@ pub fn RepeatedAmbiguous(comptime Payload: type, comptime Value: type) type {
                         var path_ctx = try in_ctx.initChild(RepeatedAmbiguousValue(Value), path_node_name, top_level.offset);
                         defer path_ctx.deinitChild();
                         if (!path_ctx.existing_results) try path.parser.parse(&path_ctx);
-                        var path_results_sub = path_ctx.results.subscribe(ctx.key, ctx.path, Result(RepeatedAmbiguousValue(Value)).initError(ctx.offset, "matches only the empty language"));
+                        var path_results_sub = path_ctx.subscribe();
                         while (path_results_sub.next()) |next| {
                             try path_results.add(next);
                         }

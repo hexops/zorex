@@ -86,7 +86,7 @@ pub fn OneOfAmbiguous(comptime Payload: type, comptime Value: type) type {
                 var child_ctx = try in_ctx.initChild(Value, child_node_name, ctx.offset);
                 defer child_ctx.deinitChild();
                 if (!child_ctx.existing_results) try in_parser.parse(&child_ctx);
-                var sub = child_ctx.results.subscribe(ctx.key, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"));
+                var sub = child_ctx.subscribe();
                 while (sub.next()) |next| {
                     try buffer.add(next);
                 }
