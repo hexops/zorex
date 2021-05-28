@@ -13,6 +13,7 @@ pub fn Iterator(comptime T: type) type {
         path: ParserPath,
         cyclic_closed: bool = false,
         cyclic_error: ?T,
+        clone_values: bool,
 
         const Self = @This();
 
@@ -49,6 +50,7 @@ pub fn Iterator(comptime T: type) type {
             // return the next result
             const v = self.stream.past_values.items[self.index];
             self.index += 1;
+            if (self.clone_values) if (comptime std.meta.trait.hasFn("clone")(T)) return v.clone(self.stream.allocator) catch unreachable;
             return v;
         }
     };
@@ -66,6 +68,7 @@ pub fn ResultStream(comptime T: type) type {
         listeners: std.ArrayList(anyframe),
         closed: bool,
         source: ParserPosKey,
+        allocator: *mem.Allocator,
 
         const Self = @This();
 
@@ -75,6 +78,7 @@ pub fn ResultStream(comptime T: type) type {
                 .listeners = std.ArrayList(anyframe).init(allocator),
                 .closed = false,
                 .source = source,
+                .allocator = allocator,
             };
         }
 
@@ -117,6 +121,7 @@ pub fn ResultStream(comptime T: type) type {
                     .subscriber = mem.zeroes(ParserPosKey),
                     .path = ParserPath.init(),
                     .cyclic_error = null,
+                    .clone_values = false,
                 };
                 while (sub.next()) |next| {
                     next.deinit(allocator);
@@ -126,15 +131,22 @@ pub fn ResultStream(comptime T: type) type {
 
         /// subscribes to all past and future values of the stream, producing an async iterator.
         ///
+        /// if `clone_values == true`, then values are cloned upon iteration and said to be owned
+        /// by the subscriber instead of by the result stream (the default).
+        ///
         /// Uses of the returned iterator are valid for as long as the result stream is not
         /// deinitialized.
         pub fn subscribe(self: *Self, subscriber: ParserPosKey, path: ParserPath, cyclic_error: T) Iterator(T) {
-            return Iterator(T){
+            // TODO(slimsag): expose as parameter
+            const clone_values = false;
+            const iter = Iterator(T){
                 .stream = self,
                 .subscriber = subscriber,
                 .path = path,
                 .cyclic_error = cyclic_error,
+                .clone_values = clone_values,
             };
+            return iter;
         }
     };
 }
