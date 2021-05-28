@@ -48,9 +48,9 @@ test "direct_left_recursion_empty_language" {
         parsers[0] = &expr.parser;
         try expr.parser.parse(&ctx);
 
-        defer ctx.results.deinitAll(ctx.allocator);
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(node).initError(ctx.offset, "matches only the empty language"));
         var first = sub.next().?;
+        defer first.deinit(ctx.allocator);
         try testing.expect(sub.next() == null); // stream closed
 
         // TODO(slimsag): perhaps better if it's not an error?
@@ -155,9 +155,9 @@ test "direct_left_recursion" {
     parsers[0] = &optionalExpr.parser;
     try expr.parser.parse(&ctx);
 
-    defer ctx.results.deinitAll(ctx.allocator);
     var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(node).initError(ctx.offset, "matches only the empty language"));
     var first = sub.next().?;
+    defer first.deinit(ctx.allocator);
     try testing.expect(sub.next() == null); // stream closed
 
     try testing.expectEqual(@as(usize, 0), first.offset);

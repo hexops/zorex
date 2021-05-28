@@ -62,8 +62,7 @@ test "always" {
 
         try noop.parser.parse(&ctx);
 
-        defer ctx.results.deinitAll(ctx.allocator);
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(AlwaysVoid).initError(ctx.offset, "matches only the empty language"));
-        try testing.expectEqual(@as(?Result(AlwaysVoid), null), sub.next());
+        try testing.expect(sub.next() == null);
     }
 }

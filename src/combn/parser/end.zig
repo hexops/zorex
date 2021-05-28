@@ -49,10 +49,11 @@ test "end" {
 
         var e = End(Payload).init();
         try e.parser.parse(&ctx);
-        defer ctx.results.deinitAll(ctx.allocator);
 
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(EndValue).initError(ctx.offset, "matches only the empty language"));
-        try testing.expectEqual(@as(?Result(EndValue), Result(EndValue).init(0, .{})), sub.next());
-        try testing.expectEqual(@as(?Result(EndValue), null), sub.next());
+        var first = sub.next().?;
+        defer first.deinit(ctx.allocator);
+        try testing.expectEqual(Result(EndValue).init(0, .{}), first);
+        try testing.expect(sub.next() == null);
     }
 }

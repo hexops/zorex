@@ -63,10 +63,11 @@ test "literal" {
         var want = "hello";
         var l = Literal(Payload).init(want);
         try l.parser.parse(&ctx);
-        defer ctx.results.deinitAll(ctx.allocator);
 
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"));
-        try testing.expectEqual(@as(?Result(LiteralValue), Result(LiteralValue).init(want.len, .{ .value = "hello" })), sub.next());
-        try testing.expectEqual(@as(?Result(LiteralValue), null), sub.next());
+        var first = sub.next().?;
+        defer first.deinit(ctx.allocator);
+        try testing.expectEqual(Result(LiteralValue).init(want.len, .{ .value = "hello" }), first);
+        try testing.expect(sub.next() == null);
     }
 }

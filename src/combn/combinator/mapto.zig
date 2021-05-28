@@ -102,9 +102,10 @@ test "mapto" {
 
         try mapTo.parser.parse(&ctx);
 
-        defer ctx.results.deinitAll(ctx.allocator);
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(String).initError(ctx.offset, "matches only the empty language"));
-        try testing.expectEqual(@as(?Result(String), Result(String).init(5, String.init("hello"))), sub.next());
-        try testing.expectEqual(@as(?Result(String), null), sub.next());
+        var first = sub.next().?;
+        defer first.deinit(ctx.allocator);
+        try testing.expectEqual(Result(String).init(5, String.init("hello")), first);
+        try testing.expect(sub.next() == null);
     }
 }

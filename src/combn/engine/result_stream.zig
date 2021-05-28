@@ -108,6 +108,8 @@ pub fn ResultStream(comptime T: type) type {
             self.listeners.deinit();
         }
 
+        /// subscribes to all past and future values and then invokes deinit on each, effectively
+        /// discarding all values in this stream.
         pub fn deinitAll(self: *Self, allocator: *mem.Allocator) void {
             nosuspend {
                 var sub = Iterator(T){

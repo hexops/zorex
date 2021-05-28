@@ -438,11 +438,11 @@ test "DSL" {
         var ctx = try Context(*CompilerContext, Node).init(allocator, input, compilerContext);
         defer ctx.deinit();
 
-        defer ctx.results.deinitAll(allocator);
         try program.value.parser.value.ptr.parse(&ctx);
 
         var sub = ctx.results.subscribe(ctx.key, ctx.path, Result(Node).initError(ctx.offset, "matches only the empty language"));
         var first = sub.next().?;
+        defer first.deinit(ctx.allocator);
         try testing.expectEqualStrings("TODO(slimsag): value from parsing regexp!", first.result.value.name.value.items);
         try testing.expectEqual(@as(usize, 0), first.offset);
         try testing.expect(sub.next() == null);
