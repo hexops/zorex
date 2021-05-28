@@ -136,9 +136,7 @@ pub fn ResultStream(comptime T: type) type {
         ///
         /// Uses of the returned iterator are valid for as long as the result stream is not
         /// deinitialized.
-        pub fn subscribe(self: *Self, subscriber: ParserPosKey, path: ParserPath, cyclic_error: T) Iterator(T) {
-            // TODO(slimsag): expose as parameter
-            const clone_values = false;
+        pub fn subscribe(self: *Self, subscriber: ParserPosKey, path: ParserPath, cyclic_error: T, clone_values: bool) Iterator(T) {
             const iter = Iterator(T){
                 .stream = self,
                 .subscriber = subscriber,
@@ -165,7 +163,7 @@ test "result_stream" {
 
         // Subscribe and begin to query a value (next() will suspend) before any values have been added
         // to the stream.
-        var sub1 = stream.subscribe(subscriber, path, -1);
+        var sub1 = stream.subscribe(subscriber, path, -1, false);
         var sub1first = async sub1.next();
 
         // Add a value to the stream, our first subscription will get it.
@@ -184,7 +182,7 @@ test "result_stream" {
         try testing.expectEqual(@as(?i32, null), sub1.next());
 
         // Now that the stream is closed, add a new subscription and confirm we get all prior values.
-        var sub2 = stream.subscribe(subscriber, path, -1);
+        var sub2 = stream.subscribe(subscriber, path, -1, false);
         try testing.expectEqual(@as(?i32, 1), sub2.next());
         try testing.expectEqual(@as(?i32, 2), sub2.next());
         try testing.expectEqual(@as(?i32, null), sub2.next());

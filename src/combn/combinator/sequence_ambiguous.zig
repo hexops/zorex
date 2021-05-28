@@ -69,7 +69,7 @@ pub fn SequenceAmbiguousValue(comptime Value: type) type {
 
             defer allocator.destroy(self.next);
             defer self.next.deinit();
-            var sub = self.next.subscribe(subscriber, path, Result(SequenceAmbiguousValue(Value)).initError(0, "matches only the empty language"));
+            var sub = self.next.subscribe(subscriber, path, Result(SequenceAmbiguousValue(Value)).initError(0, "matches only the empty language"), false);
 
             nosuspend {
                 while (sub.next()) |next_path| {
@@ -226,7 +226,7 @@ test "sequence" {
         // this is fine to do and makes testing far easier.
         var flattened = try list.?.result.value.flatten(allocator, ctx.key, ctx.path);
         defer flattened.deinit();
-        var flat = flattened.subscribe(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"));
+        var flat = flattened.subscribe(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"), false);
         try testing.expectEqual(@as(usize, 3), flat.next().?.offset);
         try testing.expectEqual(@as(usize, 8), flat.next().?.offset);
         try testing.expectEqual(@as(usize, 11), flat.next().?.offset);

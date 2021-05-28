@@ -95,7 +95,7 @@ pub fn OneOfAmbiguous(comptime Payload: type, comptime Value: type) type {
 
             var gotValues: usize = 0;
             var gotErrors: usize = 0;
-            var sub = buffer.subscribe(ctx.key, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"));
+            var sub = buffer.subscribe(ctx.key, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"), false);
             while (sub.next()) |next| {
                 switch (next.result) {
                     .err => gotErrors += 1,
@@ -107,7 +107,7 @@ pub fn OneOfAmbiguous(comptime Payload: type, comptime Value: type) type {
                 //
                 // TODO(slimsag): would the client not want to enumerate error'd paths that made some
                 // progress?
-                var sub2 = buffer.subscribe(ctx.key, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"));
+                var sub2 = buffer.subscribe(ctx.key, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"), false);
                 while (sub2.next()) |next| {
                     switch (next.result) {
                         .err => {},

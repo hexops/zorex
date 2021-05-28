@@ -49,7 +49,7 @@ fn mapNodeSequence(in: Result(SequenceValue(Node)), compiler_context: *CompilerC
                 // Collect all the children nodes.
                 var children = std.ArrayList(Node).init(_allocator);
                 errdefer children.deinit();
-                var sub = sequence.results.subscribe(key, path, Result(Node).initError(in.offset, "matches only the empty language"));
+                var sub = sequence.results.subscribe(key, path, Result(Node).initError(in.offset, "matches only the empty language"), false);
                 var offset = in.offset;
                 while (sub.next()) |next| {
                     offset = next.offset;
@@ -81,7 +81,7 @@ fn mapCompilationSequence(in: Result(SequenceValue(?Compilation)), compiler_cont
                 // Collect all the parser compilations.
                 var parsers = std.ArrayList(*const Parser(*CompilerContext, Node)).init(_allocator);
                 var parser_refs = std.ArrayList(*Compilation.RefCountedParser).init(_allocator);
-                var sub = sequence.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"));
+                var sub = sequence.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"), false);
                 var offset = in.offset;
                 while (sub.next()) |next| {
                     offset = next.offset;
@@ -275,7 +275,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                         var sequence = in.result.value;
                         defer _allocator.destroy(sequence.results);
                         defer sequence.results.deinit();
-                        var sub = sequence.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"));
+                        var sub = sequence.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"), false);
 
                         var _expr_list = sub.next().?;
                         _ = sub.next().?; // non-capturing compilation for comma
@@ -321,7 +321,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                         var sequence = in.result.value;
                         defer _allocator.destroy(sequence.results);
                         defer sequence.results.deinit();
-                        var sub = sequence.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"));
+                        var sub = sequence.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"), false);
 
                         var identifier = sub.next().?;
                         _ = sub.next().?; // non-capturing compilation for whitespace
@@ -371,7 +371,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                         var repeated = in.result.value;
                         defer _allocator.destroy(repeated.results);
                         defer repeated.results.deinit();
-                        var sub = repeated.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"));
+                        var sub = repeated.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"), false);
 
                         var offset = in.offset;
                         var compilation: ?Result(Compilation) = null;

@@ -387,6 +387,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
                 self.key,
                 self.path,
                 Result(Value).initError(self.offset, "matches only the empty language"),
+                self.existing_results,
             );
         }
 
