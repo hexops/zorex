@@ -157,7 +157,7 @@ test "repeated" {
         defer repeated.deinit(ctx.allocator);
         try testing.expect(sub.next() == null); // stream closed
 
-        var repeatedSub = repeated.results.subscribe(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"), false);
+        var repeatedSub = repeated.results.subscribe(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"));
         try testing.expectEqual(@as(usize, 3), repeatedSub.next().?.offset);
         try testing.expectEqual(@as(usize, 6), repeatedSub.next().?.offset);
         try testing.expectEqual(@as(usize, 9), repeatedSub.next().?.offset);

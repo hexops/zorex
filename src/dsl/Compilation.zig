@@ -52,15 +52,6 @@ pub fn initIdentifier(identifier: String) Compilation {
     return .{ .value = .{ .identifier = identifier } };
 }
 
-pub fn clone(self: *const Compilation, allocator: *mem.Allocator) !Compilation {
-    return Compilation{
-        .value = switch (self.value) {
-            .parser => .{ .parser = self.value.parser.ref() },
-            .identifier => .{ .identifier = try self.value.identifier.clone(allocator) },
-        },
-    };
-}
-
 pub fn deinit(self: *const Compilation, allocator: *mem.Allocator) void {
     switch (self.value) {
         .parser => |v| v.deinit(allocator),

@@ -112,7 +112,7 @@ test "direct_left_recursion" {
 
                         var flattened = try in.result.value.flatten(_allocator, key, path);
                         defer flattened.deinit();
-                        var sub = flattened.subscribe(key, path, Result(node).initError(0, "matches only the empty language"), false);
+                        var sub = flattened.subscribe(key, path, Result(node).initError(0, "matches only the empty language"));
                         try name.appendSlice("(");
                         var prev = false;
                         while (sub.next()) |next| {

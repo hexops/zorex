@@ -49,7 +49,7 @@ fn mapNodeSequence(in: Result(SequenceValue(Node)), compiler_context: *CompilerC
                 // Collect all the children nodes.
                 var children = std.ArrayList(Node).init(_allocator);
                 errdefer children.deinit();
-                var sub = sequence.results.subscribe(key, path, Result(Node).initError(in.offset, "matches only the empty language"), false);
+                var sub = sequence.results.subscribe(key, path, Result(Node).initError(in.offset, "matches only the empty language"));
                 var offset = in.offset;
                 while (sub.next()) |next| {
                     offset = next.offset;
@@ -81,7 +81,7 @@ fn mapCompilationSequence(in: Result(SequenceValue(?Compilation)), compiler_cont
                 // Collect all the parser compilations.
                 var parsers = std.ArrayList(*const Parser(*CompilerContext, Node)).init(_allocator);
                 var parser_refs = std.ArrayList(*Compilation.RefCountedParser).init(_allocator);
-                var sub = sequence.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"), false);
+                var sub = sequence.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"));
                 var offset = in.offset;
                 while (sub.next()) |next| {
                     offset = next.offset;
@@ -237,7 +237,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                             // TODO(slimsag): include name of definition that was not found in error.
                             return Result(?Compilation).initError(in.offset, "definition not found");
                         }
-                        return Result(?Compilation).init(in.offset, try compilation.?.clone(_allocator));
+                        return Result(?Compilation).init(in.offset, compilation.?);
                     },
                 }
             }
@@ -275,7 +275,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                         var sequence = in.result.value;
                         defer _allocator.destroy(sequence.results);
                         defer sequence.results.deinit();
-                        var sub = sequence.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"), false);
+                        var sub = sequence.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"));
 
                         var _expr_list = sub.next().?;
                         _ = sub.next().?; // non-capturing compilation for comma
@@ -321,7 +321,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                         var sequence = in.result.value;
                         defer _allocator.destroy(sequence.results);
                         defer sequence.results.deinit();
-                        var sub = sequence.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"), false);
+                        var sub = sequence.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"));
 
                         var identifier = sub.next().?;
                         _ = sub.next().?; // non-capturing compilation for whitespace
@@ -333,12 +333,12 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
 
                         // Set identifier = _expr_list, so that future identifier expressions can
                         // lookup the resulting expression compilation for the identifier.
-                        const v = try compiler_context.identifiers.getOrPut(try identifier.result.value.?.clone(_allocator));
+                        const v = try compiler_context.identifiers.getOrPut(identifier.result.value.?);
                         if (v.found_existing) {
                             // TODO(slimsag): include name of definition in error message
                             return Result(?Compilation).initError(last.offset, "definition redefined");
                         }
-                        v.entry.value = try _expr_list.result.value.?.clone(_allocator);
+                        v.entry.value = _expr_list.result.value.?;
                         identifier.deinit(_allocator);
                         _expr_list.deinit(_allocator);
 
@@ -371,7 +371,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                         var repeated = in.result.value;
                         defer _allocator.destroy(repeated.results);
                         defer repeated.results.deinit();
-                        var sub = repeated.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"), false);
+                        var sub = repeated.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"));
 
                         var offset = in.offset;
                         var compilation: ?Result(Compilation) = null;

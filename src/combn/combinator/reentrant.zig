@@ -89,7 +89,7 @@ pub fn Reentrant(comptime Payload: type, comptime Value: type) type {
                     retrying_max_depth.? += 1;
                     continue;
                 } else {
-                    var sub2 = buf.subscribe(ctx.key, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"), false);
+                    var sub2 = buf.subscribe(ctx.key, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"));
                     while (sub2.next()) |next| {
                         try ctx.results.add(next);
                     }

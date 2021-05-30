@@ -34,16 +34,6 @@ pub fn Result(comptime Value: type) type {
             };
         }
 
-        pub fn clone(self: @This(), allocator: *mem.Allocator) !@This() {
-            return @This(){
-                .offset = self.offset,
-                .result = switch (self.result) {
-                    .value => |v| if (comptime std.meta.trait.hasFn("clone")(Value)) .{ .value = try v.clone(allocator) } else .{ .value = v },
-                    .err => |e| .{ .err = e },
-                },
-            };
-        }
-
         pub fn deinit(self: @This(), allocator: *mem.Allocator) void {
             switch (self.result) {
                 .value => |value| {
@@ -387,7 +377,6 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
                 self.key,
                 self.path,
                 Result(Value).initError(self.offset, "matches only the empty language"),
-                self.existing_results,
             );
         }
 

@@ -143,7 +143,7 @@ test "sequence" {
         defer sequence.deinit(ctx.allocator);
         try testing.expect(sub.next() == null); // stream closed
 
-        var sequenceSub = sequence.results.subscribe(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"), false);
+        var sequenceSub = sequence.results.subscribe(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"));
         try testing.expectEqual(@as(usize, 3), sequenceSub.next().?.offset);
         try testing.expectEqual(@as(usize, 8), sequenceSub.next().?.offset);
         try testing.expectEqual(@as(usize, 11), sequenceSub.next().?.offset);
