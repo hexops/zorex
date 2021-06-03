@@ -122,7 +122,6 @@ test "oneof" {
 
         var sub = ctx.subscribe();
         var r1 = sub.next().?;
-        defer r1.deinit(ctx.allocator);
         try testing.expectEqual(@as(usize, 4), r1.offset);
         try testing.expectEqualStrings("ello", r1.result.value.value);
         try testing.expect(sub.next() == null); // stream closed
@@ -153,7 +152,6 @@ test "oneof_ambiguous_first" {
 
         var sub = ctx.subscribe();
         var r1 = sub.next().?;
-        defer r1.deinit(ctx.allocator);
         try testing.expectEqual(@as(usize, 4), r1.offset);
         try testing.expectEqualStrings("ello", r1.result.value.value);
         try testing.expect(sub.next() == null); // stream closed

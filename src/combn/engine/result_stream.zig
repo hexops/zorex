@@ -3,6 +3,7 @@ const testing = std.testing;
 const mem = std.mem;
 const ParserPath = @import("parser_path.zig").ParserPath;
 const ParserPosKey = @import("parser.zig").ParserPosKey;
+const deinitOptional = @import("parser.zig").deinitOptional;
 
 /// A ResultStream iterator.
 pub fn Iterator(comptime T: type) type {
@@ -67,20 +68,25 @@ pub fn ResultStream(comptime T: type) type {
         closed: bool,
         source: ParserPosKey,
         allocator: *mem.Allocator,
+        own_values: bool,
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, source: ParserPosKey) !Self {
+        pub fn init(allocator: *mem.Allocator, source: ParserPosKey, own_values: bool) !Self {
             return Self{
                 .past_values = std.ArrayList(T).init(allocator),
                 .listeners = std.ArrayList(anyframe).init(allocator),
                 .closed = false,
                 .source = source,
                 .allocator = allocator,
+                .own_values = own_values,
             };
         }
 
         /// adds a value to the stream, resuming the frames of any pending listeners.
+        ///
+        /// Added values are owned by the result stream, subscribers borrow them and they are valid
+        /// until the result stream is deinitialized.
         ///
         /// Returns only once all pending listeners' frames have been resumed.
         pub fn add(self: *Self, value: T) !void {
@@ -102,28 +108,13 @@ pub fn ResultStream(comptime T: type) type {
         }
 
         /// deinitializes the stream, all future calls to add, subscribe, and usage of iterators is
-        /// forbidden.
+        /// forbidden. All values in this result stream are deinitialized.
         ///
         /// `close` must be called before deinit.
         pub fn deinit(self: *const Self) void {
+            if (self.own_values) for (self.past_values.items) |v| deinitOptional(v, self.allocator);
             self.past_values.deinit();
             self.listeners.deinit();
-        }
-
-        /// subscribes to all past and future values and then invokes deinit on each, effectively
-        /// discarding all values in this stream.
-        pub fn deinitAll(self: *Self, allocator: *mem.Allocator) void {
-            nosuspend {
-                var sub = Iterator(T){
-                    .stream = self,
-                    .subscriber = mem.zeroes(ParserPosKey),
-                    .path = ParserPath.init(),
-                    .cyclic_error = null,
-                };
-                while (sub.next()) |next| {
-                    next.deinit(allocator);
-                }
-            }
         }
 
         /// subscribes to all past and future values of the stream, producing an async iterator.
@@ -144,6 +135,11 @@ pub fn ResultStream(comptime T: type) type {
 
 test "result_stream" {
     nosuspend {
+        const value = struct {
+            value: i32,
+
+            pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {}
+        };
         const subscriber = ParserPosKey{
             .node_name = 0,
             .src_ptr = 0,
@@ -151,33 +147,33 @@ test "result_stream" {
         };
         const source = subscriber;
         const path = ParserPath.init();
-        var stream = try ResultStream(i32).init(testing.allocator, source);
+        var stream = try ResultStream(value).init(testing.allocator, source, true);
         defer stream.deinit();
 
         // Subscribe and begin to query a value (next() will suspend) before any values have been added
         // to the stream.
-        var sub1 = stream.subscribe(subscriber, path, -1);
+        var sub1 = stream.subscribe(subscriber, path, .{ .value = -1 });
         var sub1first = async sub1.next();
 
         // Add a value to the stream, our first subscription will get it.
-        try stream.add(1);
-        try testing.expectEqual(@as(?i32, 1), await sub1first);
+        try stream.add(.{ .value = 1 });
+        try testing.expectEqual(@as(i32, 1), (await sub1first).?.value);
 
         // Query the next value (next() will suspend again), then add a value and close the stream for
         // good.
         var sub1second = async sub1.next();
-        try stream.add(2);
+        try stream.add(.{ .value = 2 });
         stream.close();
 
         // Confirm we get the remaining values, and the null terminator forever after that.
-        try testing.expectEqual(@as(?i32, 2), await sub1second);
-        try testing.expectEqual(@as(?i32, null), sub1.next());
-        try testing.expectEqual(@as(?i32, null), sub1.next());
+        try testing.expectEqual(@as(i32, 2), (await sub1second).?.value);
+        try testing.expectEqual(@as(?value, null), sub1.next());
+        try testing.expectEqual(@as(?value, null), sub1.next());
 
         // Now that the stream is closed, add a new subscription and confirm we get all prior values.
-        var sub2 = stream.subscribe(subscriber, path, -1);
-        try testing.expectEqual(@as(?i32, 1), sub2.next());
-        try testing.expectEqual(@as(?i32, 2), sub2.next());
-        try testing.expectEqual(@as(?i32, null), sub2.next());
+        var sub2 = stream.subscribe(subscriber, path, .{ .value = -1 });
+        try testing.expectEqual(@as(i32, 1), sub2.next().?.value);
+        try testing.expectEqual(@as(i32, 2), sub2.next().?.value);
+        try testing.expectEqual(@as(?value, null), sub2.next());
     }
 }

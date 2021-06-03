@@ -65,8 +65,8 @@ pub fn Reentrant(comptime Payload: type, comptime Value: type) type {
 
                 var buf = try ctx.allocator.create(ResultStream(Result(Value)));
                 defer ctx.allocator.destroy(buf);
+                buf.* = try ResultStream(Result(Value)).init(ctx.allocator, ctx.key, false);
                 defer buf.deinit();
-                buf.* = try ResultStream(Result(Value)).init(ctx.allocator, ctx.key);
                 var sub = child_ctx.subscribe();
                 while (sub.next()) |next| {
                     try buf.add(next);
@@ -74,9 +74,6 @@ pub fn Reentrant(comptime Payload: type, comptime Value: type) type {
                 buf.close();
 
                 if ((sub.cyclic_closed or retrying) and !child_ctx.isRetrying(child_node_name, ctx.offset)) {
-                    child_ctx.results.deinitAll(ctx.allocator);
-
-                    child_ctx.results.deinit();
                     if (retrying and sub.cyclic_closed) {
                         if (retrying_max_depth.? > 0) retrying_max_depth.? -= 1;
                         retrying = false;

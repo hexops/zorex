@@ -27,7 +27,6 @@ pub fn SequenceValue(comptime Value: type) type {
         results: *ResultStream(Result(Value)),
 
         pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
-            self.results.deinitAll(allocator);
             self.results.deinit();
             allocator.destroy(self.results);
         }
@@ -84,7 +83,7 @@ pub fn Sequence(comptime Payload: type, comptime Value: type) type {
             var buffer = try ctx.allocator.create(ResultStream(Result(Value)));
             errdefer ctx.allocator.destroy(buffer);
             errdefer buffer.deinit();
-            buffer.* = try ResultStream(Result(Value)).init(ctx.allocator, ctx.key);
+            buffer.* = try ResultStream(Result(Value)).init(ctx.allocator, ctx.key, false);
 
             var offset: usize = ctx.offset;
             for (self.input) |child_parser| {
@@ -140,7 +139,6 @@ test "sequence" {
 
         var sub = ctx.subscribe();
         var sequence = sub.next().?.result.value;
-        defer sequence.deinit(ctx.allocator);
         try testing.expect(sub.next() == null); // stream closed
 
         var sequenceSub = sequence.results.subscribe(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"));

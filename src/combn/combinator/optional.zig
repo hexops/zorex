@@ -73,7 +73,6 @@ test "optional_some" {
 
         var sub = ctx.subscribe();
         var r1 = sub.next().?;
-        defer r1.deinit(ctx.allocator);
         try testing.expectEqual(@as(usize, 5), r1.offset);
         try testing.expectEqualStrings("hello", r1.result.value.?.value);
         try testing.expectEqual(@as(?Result(?LiteralValue), null), sub.next());
@@ -94,7 +93,6 @@ test "optional_none" {
 
         var sub = ctx.subscribe();
         var first = sub.next().?;
-        defer first.deinit(ctx.allocator);
         try testing.expectEqual(Result(?LiteralValue).init(0, null), first);
         try testing.expect(sub.next() == null);
     }

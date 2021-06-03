@@ -13,6 +13,15 @@ pub const ResultTag = enum {
     err,
 };
 
+/// deinitOptional invokes value.deinit(allocator), taking into account it being an optional
+/// `?Value`, `??Value`, etc.
+pub fn deinitOptional(value: anytype, allocator: *mem.Allocator) callconv(.Inline) void {
+    switch (@typeInfo(@TypeOf(value))) {
+        .Optional => if (value) |v| return deinitOptional(v, allocator),
+        else => value.deinit(allocator),
+    }
+}
+
 /// A parser result, one of:
 ///
 /// 1. A `value` and new `offset` into the input `src`.
@@ -37,10 +46,7 @@ pub fn Result(comptime Value: type) type {
         pub fn deinit(self: @This(), allocator: *mem.Allocator) void {
             switch (self.result) {
                 .value => |value| {
-                    switch (@typeInfo(@TypeOf(value))) {
-                        .Optional => if (value) |v| v.deinit(allocator),
-                        else => value.deinit(allocator),
-                    }
+                    deinitOptional(value, allocator);
                 },
                 else => {},
             }
@@ -232,7 +238,7 @@ const Memoizer = struct {
         if (!m.found_existing) {
             // Create a new result stream for this key.
             var results = try allocator.create(ResultStream(Result(Value)));
-            results.* = try ResultStream(Result(Value)).init(allocator, parser);
+            results.* = try ResultStream(Result(Value)).init(allocator, parser, true);
             m.entry.value = MemoizeValue{
                 .results = @ptrToInt(results),
                 .deinit = struct {
@@ -303,7 +309,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
             };
 
             var results = try allocator.create(ResultStream(Result(Value)));
-            results.* = try ResultStream(Result(Value)).init(allocator, key);
+            results.* = try ResultStream(Result(Value)).init(allocator, key, true);
             return @This(){
                 .input = input,
                 .allocator = allocator,

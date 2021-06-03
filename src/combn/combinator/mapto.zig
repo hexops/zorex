@@ -104,7 +104,6 @@ test "mapto" {
 
         var sub = ctx.subscribe();
         var first = sub.next().?;
-        defer first.deinit(ctx.allocator);
         try testing.expectEqual(Result(String).init(5, String.init("hello")), first);
         try testing.expect(sub.next() == null);
     }

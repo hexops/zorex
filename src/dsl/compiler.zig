@@ -41,8 +41,6 @@ fn mapNodeSequence(in: Result(SequenceValue(Node)), compiler_context: *CompilerC
         .err => return Result(Node).initError(in.offset, in.result.err),
         else => {
             var sequence = in.result.value;
-            defer _allocator.destroy(sequence.results);
-            defer sequence.results.deinit();
 
             // TODO(slimsag): mapTo should be async
             nosuspend {
@@ -73,8 +71,6 @@ fn mapCompilationSequence(in: Result(SequenceValue(?Compilation)), compiler_cont
         .err => return Result(?Compilation).initError(in.offset, in.result.err),
         else => {
             var sequence = in.result.value;
-            defer _allocator.destroy(sequence.results);
-            defer sequence.results.deinit();
 
             // TODO(slimsag): mapTo should be async
             nosuspend {
@@ -113,7 +109,18 @@ fn mapCompilationSequence(in: Result(SequenceValue(?Compilation)), compiler_cont
     }
 }
 
-pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilation) {
+pub const CompilerResult = struct {
+    compilation: Result(Compilation),
+    ctx: Context(*CompilerContext, Compilation),
+    compilerContext: *CompilerContext,
+
+    pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
+        self.ctx.deinit();
+        self.compilerContext.deinit(allocator);
+    }
+};
+
+pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
     // DSL grammar
     //
     // ```ebnf
@@ -163,7 +170,6 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                     else => {
                         // optimization: newline and space parsers produce no compilations, so no
                         // need for us to pay any attention to repeated results.
-                        defer in.deinit(_allocator);
                         return Result(?Compilation).init(in.offset, null);
                     },
                 }
@@ -197,11 +203,8 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                     .err => return Result(?Compilation).initError(in.offset, in.result.err),
                     else => {
                         var sequence = in.result.value;
-                        //defer _allocator.destroy(sequence.results);
-                        //defer sequence.results.deinit();
 
                         // TODO(slimsag): actually compose the compilation to parse this regexp!
-                        defer in.deinit(_allocator);
                         const success = Result(Node).init(in.offset, Node{
                             .name = try String.init(_allocator, "TODO(slimsag): value from parsing regexp!"),
                             .value = null,
@@ -228,8 +231,6 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                 switch (in.result) {
                     .err => return Result(?Compilation).initError(in.offset, in.result.err),
                     else => {
-                        defer in.deinit(_allocator);
-
                         // Lookup this identifier, which was previously defined.
                         // TODO(slimsag): make it possible to reference future-definitions?
                         var compilation = compiler_context.identifiers.get(in.result.value.?);
@@ -273,8 +274,6 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                     .err => return Result(?Compilation).initError(in.offset, in.result.err),
                     else => {
                         var sequence = in.result.value;
-                        defer _allocator.destroy(sequence.results);
-                        defer sequence.results.deinit();
                         var sub = sequence.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"));
 
                         var _expr_list = sub.next().?;
@@ -319,8 +318,6 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                     .err => return Result(?Compilation).initError(in.offset, in.result.err),
                     else => {
                         var sequence = in.result.value;
-                        defer _allocator.destroy(sequence.results);
-                        defer sequence.results.deinit();
                         var sub = sequence.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"));
 
                         var identifier = sub.next().?;
@@ -339,8 +336,6 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                             return Result(?Compilation).initError(last.offset, "definition redefined");
                         }
                         v.entry.value = _expr_list.result.value.?;
-                        identifier.deinit(_allocator);
-                        _expr_list.deinit(_allocator);
 
                         // A definition assignment yields no nodes.
                         return Result(?Compilation).init(in.offset, null);
@@ -369,8 +364,6 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
                     .err => return Result(Compilation).initError(in.offset, in.result.err),
                     else => {
                         var repeated = in.result.value;
-                        defer _allocator.destroy(repeated.results);
-                        defer repeated.results.deinit();
                         var sub = repeated.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"));
 
                         var offset = in.offset;
@@ -404,47 +397,52 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !Result(Compilatio
     });
 
     var compilerContext = try CompilerContext.init(allocator);
-    defer compilerContext.deinit(allocator);
     var ctx = try Context(*CompilerContext, Compilation).init(allocator, syntax, compilerContext);
-    defer ctx.deinit();
     try grammar.parser.parse(&ctx);
 
     var sub = ctx.subscribe();
     var compilation = sub.next();
     assert(sub.next() == null); // our grammar is never ambiguous
     if (compilation == null) {
-        return Result(Compilation).initError(ctx.offset, "failed to compile");
+        return CompilerResult{
+            .compilation = Result(Compilation).initError(ctx.offset, "failed to compile"),
+            .compilerContext = compilerContext,
+            .ctx = ctx,
+        };
     }
-    return compilation.?;
+    return CompilerResult{
+        .compilation = compilation.?,
+        .compilerContext = compilerContext,
+        .ctx = ctx,
+    };
 }
 
-test "DSL" {
-    nosuspend {
-        const allocator = testing.allocator;
+// test "DSL" {
+//     nosuspend {
+//         const allocator = testing.allocator;
 
-        // Compile the regexp.
-        var compilation = try compile(allocator, "//");
-        switch (compilation.result) {
-            .err => |e| @panic(e),
-            .value => {},
-        }
-        var program = compilation.result.value;
-        defer program.deinit(allocator);
+//         // Compile the regexp.
+//         var compilerResult = try compile(allocator, "//");
+//         defer compilerResult.deinit(allocator);
+//         switch (compilerResult.compilation.result) {
+//             .err => |e| @panic(e),
+//             .value => {},
+//         }
+//         var program = compilerResult.compilation.result.value;
 
-        // Run the regexp.
-        var input = "//";
-        var compilerContext = try CompilerContext.init(allocator);
-        defer compilerContext.deinit(allocator);
-        var ctx = try Context(*CompilerContext, Node).init(allocator, input, compilerContext);
-        defer ctx.deinit();
+//         // Run the regexp.
+//         var input = "//";
+//         var compilerContext = try CompilerContext.init(allocator);
+//         defer compilerContext.deinit(allocator);
+//         var ctx = try Context(*CompilerContext, Node).init(allocator, input, compilerContext);
+//         defer ctx.deinit();
 
-        try program.value.parser.value.ptr.parse(&ctx);
+//         try program.value.parser.value.ptr.parse(&ctx);
 
-        var sub = ctx.subscribe();
-        var first = sub.next().?;
-        defer first.deinit(ctx.allocator);
-        try testing.expectEqualStrings("TODO(slimsag): value from parsing regexp!", first.result.value.name.value.items);
-        try testing.expectEqual(@as(usize, 0), first.offset);
-        try testing.expect(sub.next() == null);
-    }
-}
+//         var sub = ctx.subscribe();
+//         var first = sub.next().?;
+//         try testing.expectEqualStrings("TODO(slimsag): value from parsing regexp!", first.result.value.name.value.items);
+//         try testing.expectEqual(@as(usize, 0), first.offset);
+//         try testing.expect(sub.next() == null);
+//     }
+// }

@@ -34,7 +34,6 @@ pub fn RepeatedValue(comptime Value: type) type {
         results: *ResultStream(Result(Value)),
 
         pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
-            self.results.deinitAll(allocator);
             self.results.deinit();
             allocator.destroy(self.results);
         }
@@ -89,7 +88,7 @@ pub fn Repeated(comptime Payload: type, comptime Value: type) type {
             var buffer = try ctx.allocator.create(ResultStream(Result(Value)));
             errdefer ctx.allocator.destroy(buffer);
             errdefer buffer.deinit();
-            buffer.* = try ResultStream(Result(Value)).init(ctx.allocator, ctx.key);
+            buffer.* = try ResultStream(Result(Value)).init(ctx.allocator, ctx.key, false);
 
             var num_values: usize = 0;
             var offset: usize = ctx.offset;
@@ -154,7 +153,6 @@ test "repeated" {
 
         var sub = ctx.subscribe();
         var repeated = sub.next().?.result.value;
-        defer repeated.deinit(ctx.allocator);
         try testing.expect(sub.next() == null); // stream closed
 
         var repeatedSub = repeated.results.subscribe(ctx.key, ctx.path, Result(LiteralValue).initError(ctx.offset, "matches only the empty language"));

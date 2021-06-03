@@ -58,14 +58,13 @@ pub fn RepeatedAmbiguousValue(comptime Value: type) type {
         next: *ResultStream(Result(@This())),
 
         pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
-            self.node.deinit(allocator);
-            self.next.deinitAll(allocator);
             self.next.deinit();
+            self.node.deinit(allocator);
             allocator.destroy(self.next);
         }
 
         pub fn flatten(self: *const @This(), allocator: *mem.Allocator, subscriber: ParserPosKey, path: ParserPath) Error!ResultStream(Result(Value)) {
-            var dst = try ResultStream(Result(Value)).init(allocator, subscriber);
+            var dst = try ResultStream(Result(Value)).init(allocator, subscriber, false);
             try self.flatten_into(&dst, allocator, subscriber, path);
             dst.close(); // TODO(slimsag): why does deferring this not work?
             return dst;
@@ -74,10 +73,7 @@ pub fn RepeatedAmbiguousValue(comptime Value: type) type {
         pub fn flatten_into(self: *const @This(), dst: *ResultStream(Result(Value)), allocator: *mem.Allocator, subscriber: ParserPosKey, path: ParserPath) Error!void {
             try dst.add(self.node);
 
-            defer allocator.destroy(self.next);
-            defer self.next.deinit();
             var sub = self.next.subscribe(subscriber, path, Result(RepeatedAmbiguousValue(Value)).initError(0, "matches only the empty language"));
-
             nosuspend {
                 while (sub.next()) |next_path| {
                     switch (next_path.result) {
@@ -227,7 +223,7 @@ pub fn RepeatedAmbiguous(comptime Payload: type, comptime Value: type) type {
                         // Now get the stream that continues down this path (i.e. the stream
                         // associated with A, B, C.)
                         var path_results = try ctx.allocator.create(ResultStream(Result(RepeatedAmbiguousValue(Value))));
-                        path_results.* = try ResultStream(Result(RepeatedAmbiguousValue(Value))).init(ctx.allocator, ctx.key);
+                        path_results.* = try ResultStream(Result(RepeatedAmbiguousValue(Value))).init(ctx.allocator, ctx.key, false);
                         var path = RepeatedAmbiguous(Payload, Value).init(.{
                             .parser = self.input.parser,
                             .min = self.input.min,
