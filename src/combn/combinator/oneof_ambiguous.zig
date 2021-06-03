@@ -79,7 +79,7 @@ pub fn OneOfAmbiguous(comptime Payload: type, comptime Value: type) type {
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
 
-            var buffer = try ResultStream(Result(OneOfAmbiguousValue(Value))).init(ctx.allocator, ctx.key, false);
+            var buffer = try ResultStream(Result(OneOfAmbiguousValue(Value))).init(ctx.allocator, ctx.key);
             defer buffer.deinit();
             for (self.input) |in_parser| {
                 const child_node_name = try in_parser.nodeName(&in_ctx.memoizer.node_name_cache);
@@ -88,7 +88,7 @@ pub fn OneOfAmbiguous(comptime Payload: type, comptime Value: type) type {
                 if (!child_ctx.existing_results) try in_parser.parse(&child_ctx);
                 var sub = child_ctx.subscribe();
                 while (sub.next()) |next| {
-                    try buffer.add(next);
+                    try buffer.add(next.toUnowned());
                 }
             }
             buffer.close();
@@ -150,7 +150,7 @@ test "oneof" {
 
         var sub = ctx.subscribe();
         var first = sub.next().?;
-        try testing.expectEqual(Result(OneOfAmbiguousValue(LiteralValue)).init(4, .{ .value = "ello" }), first);
+        try testing.expectEqual(Result(OneOfAmbiguousValue(LiteralValue)).init(4, .{ .value = "ello" }).toUnowned(), first);
         try testing.expect(sub.next() == null); // stream closed
     }
 }

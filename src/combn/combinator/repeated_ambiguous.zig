@@ -64,14 +64,14 @@ pub fn RepeatedAmbiguousValue(comptime Value: type) type {
         }
 
         pub fn flatten(self: *const @This(), allocator: *mem.Allocator, subscriber: ParserPosKey, path: ParserPath) Error!ResultStream(Result(Value)) {
-            var dst = try ResultStream(Result(Value)).init(allocator, subscriber, false);
+            var dst = try ResultStream(Result(Value)).init(allocator, subscriber);
             try self.flatten_into(&dst, allocator, subscriber, path);
             dst.close(); // TODO(slimsag): why does deferring this not work?
             return dst;
         }
 
         pub fn flatten_into(self: *const @This(), dst: *ResultStream(Result(Value)), allocator: *mem.Allocator, subscriber: ParserPosKey, path: ParserPath) Error!void {
-            try dst.add(self.node);
+            try dst.add(self.node.toUnowned());
 
             var sub = self.next.subscribe(subscriber, path, Result(RepeatedAmbiguousValue(Value)).initError(0, "matches only the empty language"));
             nosuspend {
@@ -223,7 +223,7 @@ pub fn RepeatedAmbiguous(comptime Payload: type, comptime Value: type) type {
                         // Now get the stream that continues down this path (i.e. the stream
                         // associated with A, B, C.)
                         var path_results = try ctx.allocator.create(ResultStream(Result(RepeatedAmbiguousValue(Value))));
-                        path_results.* = try ResultStream(Result(RepeatedAmbiguousValue(Value))).init(ctx.allocator, ctx.key, false);
+                        path_results.* = try ResultStream(Result(RepeatedAmbiguousValue(Value))).init(ctx.allocator, ctx.key);
                         var path = RepeatedAmbiguous(Payload, Value).init(.{
                             .parser = self.input.parser,
                             .min = self.input.min,
@@ -235,13 +235,13 @@ pub fn RepeatedAmbiguous(comptime Payload: type, comptime Value: type) type {
                         if (!path_ctx.existing_results) try path.parser.parse(&path_ctx);
                         var path_results_sub = path_ctx.subscribe();
                         while (path_results_sub.next()) |next| {
-                            try path_results.add(next);
+                            try path_results.add(next.toUnowned());
                         }
                         path_results.close();
 
                         // Emit our top-level value tuple (e.g. (A, stream(...))
                         try ctx.results.add(Result(RepeatedAmbiguousValue(Value)).init(top_level.offset, .{
-                            .node = top_level,
+                            .node = top_level.toUnowned(),
                             .next = path_results,
                         }));
                     },

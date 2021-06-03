@@ -65,11 +65,11 @@ pub fn Reentrant(comptime Payload: type, comptime Value: type) type {
 
                 var buf = try ctx.allocator.create(ResultStream(Result(Value)));
                 defer ctx.allocator.destroy(buf);
-                buf.* = try ResultStream(Result(Value)).init(ctx.allocator, ctx.key, false);
+                buf.* = try ResultStream(Result(Value)).init(ctx.allocator, ctx.key);
                 defer buf.deinit();
                 var sub = child_ctx.subscribe();
                 while (sub.next()) |next| {
-                    try buf.add(next);
+                    try buf.add(next.toUnowned());
                 }
                 buf.close();
 

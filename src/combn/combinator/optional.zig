@@ -51,7 +51,7 @@ pub fn Optional(comptime Payload: type, comptime Value: type) type {
             while (sub.next()) |next| {
                 switch (next.result) {
                     .err => try ctx.results.add(Result(?Value).init(ctx.offset, null)),
-                    else => try ctx.results.add(Result(?Value).init(next.offset, next.result.value)),
+                    else => try ctx.results.add(Result(?Value).init(next.offset, next.result.value).toUnowned()),
                 }
             }
             return;

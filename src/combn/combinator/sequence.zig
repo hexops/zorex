@@ -83,7 +83,7 @@ pub fn Sequence(comptime Payload: type, comptime Value: type) type {
             var buffer = try ctx.allocator.create(ResultStream(Result(Value)));
             errdefer ctx.allocator.destroy(buffer);
             errdefer buffer.deinit();
-            buffer.* = try ResultStream(Result(Value)).init(ctx.allocator, ctx.key, false);
+            buffer.* = try ResultStream(Result(Value)).init(ctx.allocator, ctx.key);
 
             var offset: usize = ctx.offset;
             for (self.input) |child_parser| {
@@ -108,7 +108,7 @@ pub fn Sequence(comptime Payload: type, comptime Value: type) type {
                             if (num_local_values == 0) {
                                 // TODO(slimsag): if no consumption, could get stuck forever!
                                 offset = next.offset;
-                                try buffer.add(next);
+                                try buffer.add(next.toUnowned());
                             }
                             num_local_values += 1;
                         },

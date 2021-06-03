@@ -35,15 +35,18 @@ pub fn Result(comptime Value: type) type {
             value: Value,
             err: []const u8,
         },
+        owned: bool,
 
         pub fn init(offset: usize, value: Value) @This() {
             return .{
                 .offset = offset,
                 .result = .{ .value = value },
+                .owned = true,
             };
         }
 
         pub fn deinit(self: @This(), allocator: *mem.Allocator) void {
+            if (!self.owned) return;
             switch (self.result) {
                 .value => |value| {
                     deinitOptional(value, allocator);
@@ -52,10 +55,17 @@ pub fn Result(comptime Value: type) type {
             }
         }
 
+        pub fn toUnowned(self: @This()) @This() {
+            var tmp = self;
+            tmp.owned = false;
+            return tmp;
+        }
+
         pub fn initError(offset: usize, err: []const u8) @This() {
             return .{
                 .offset = offset,
                 .result = .{ .err = err },
+                .owned = false,
             };
         }
     };
@@ -238,7 +248,7 @@ const Memoizer = struct {
         if (!m.found_existing) {
             // Create a new result stream for this key.
             var results = try allocator.create(ResultStream(Result(Value)));
-            results.* = try ResultStream(Result(Value)).init(allocator, parser, true);
+            results.* = try ResultStream(Result(Value)).init(allocator, parser);
             m.entry.value = MemoizeValue{
                 .results = @ptrToInt(results),
                 .deinit = struct {
@@ -309,7 +319,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
             };
 
             var results = try allocator.create(ResultStream(Result(Value)));
-            results.* = try ResultStream(Result(Value)).init(allocator, key, true);
+            results.* = try ResultStream(Result(Value)).init(allocator, key);
             return @This(){
                 .input = input,
                 .allocator = allocator,

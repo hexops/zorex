@@ -88,7 +88,7 @@ pub fn Repeated(comptime Payload: type, comptime Value: type) type {
             var buffer = try ctx.allocator.create(ResultStream(Result(Value)));
             errdefer ctx.allocator.destroy(buffer);
             errdefer buffer.deinit();
-            buffer.* = try ResultStream(Result(Value)).init(ctx.allocator, ctx.key, false);
+            buffer.* = try ResultStream(Result(Value)).init(ctx.allocator, ctx.key);
 
             var num_values: usize = 0;
             var offset: usize = ctx.offset;
@@ -120,7 +120,7 @@ pub fn Repeated(comptime Payload: type, comptime Value: type) type {
                             if (num_local_values == 0) {
                                 offset = next.offset;
                                 // TODO(slimsag): if no consumption, could get stuck forever!
-                                try buffer.add(next);
+                                try buffer.add(next.toUnowned());
                             }
                             num_local_values += 1;
                         },

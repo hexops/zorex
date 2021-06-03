@@ -68,25 +68,24 @@ pub fn ResultStream(comptime T: type) type {
         closed: bool,
         source: ParserPosKey,
         allocator: *mem.Allocator,
-        own_values: bool,
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, source: ParserPosKey, own_values: bool) !Self {
+        pub fn init(allocator: *mem.Allocator, source: ParserPosKey) !Self {
             return Self{
                 .past_values = std.ArrayList(T).init(allocator),
                 .listeners = std.ArrayList(anyframe).init(allocator),
                 .closed = false,
                 .source = source,
                 .allocator = allocator,
-                .own_values = own_values,
             };
         }
 
         /// adds a value to the stream, resuming the frames of any pending listeners.
         ///
         /// Added values are owned by the result stream, subscribers borrow them and they are valid
-        /// until the result stream is deinitialized.
+        /// until the result stream is deinitialized - at which point `deinit(allocator)` is called
+        /// on all values.
         ///
         /// Returns only once all pending listeners' frames have been resumed.
         pub fn add(self: *Self, value: T) !void {
@@ -108,11 +107,13 @@ pub fn ResultStream(comptime T: type) type {
         }
 
         /// deinitializes the stream, all future calls to add, subscribe, and usage of iterators is
-        /// forbidden. All values in this result stream are deinitialized.
+        /// forbidden.
+        ///
+        /// All values in this result stream are deinitialized via a call to `v.deinit(allocator)`.
         ///
         /// `close` must be called before deinit.
         pub fn deinit(self: *const Self) void {
-            if (self.own_values) for (self.past_values.items) |v| deinitOptional(v, self.allocator);
+            for (self.past_values.items) |v| deinitOptional(v, self.allocator);
             self.past_values.deinit();
             self.listeners.deinit();
         }
@@ -147,7 +148,7 @@ test "result_stream" {
         };
         const source = subscriber;
         const path = ParserPath.init();
-        var stream = try ResultStream(value).init(testing.allocator, source, true);
+        var stream = try ResultStream(value).init(testing.allocator, source);
         defer stream.deinit();
 
         // Subscribe and begin to query a value (next() will suspend) before any values have been added
