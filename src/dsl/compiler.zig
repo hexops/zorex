@@ -58,7 +58,7 @@ fn mapNodeSequence(in: Result(SequenceValue(Node)), compiler_context: *CompilerC
                     .name = try String.init(_allocator, "unknown"),
                     .value = null,
                     .children = children,
-                });
+                }).toUnowned(); // TODO(slimsag): only children should be unowned
             }
         },
     }
@@ -76,16 +76,13 @@ fn mapCompilationSequence(in: Result(SequenceValue(?Compilation)), compiler_cont
             nosuspend {
                 // Collect all the parser compilations.
                 var parsers = std.ArrayList(*const Parser(*CompilerContext, Node)).init(_allocator);
-                var parser_refs = std.ArrayList(*Compilation.RefCountedParser).init(_allocator);
                 var sub = sequence.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"));
                 var offset = in.offset;
                 while (sub.next()) |next| {
                     offset = next.offset;
                     const compilation = next.result.value;
                     if (compilation) |c| {
-                        var ref = c.value.parser.ref();
-                        try parser_refs.append(ref);
-                        try parsers.append(ref.value.ptr);
+                        try parsers.append(c.value.parser.ptr);
                     }
                 }
                 var slice = parsers.toOwnedSlice();
@@ -98,12 +95,11 @@ fn mapCompilationSequence(in: Result(SequenceValue(?Compilation)), compiler_cont
                     .mapTo = mapNodeSequence,
                 });
 
-                var result_compilation = Compilation.initParser(try Compilation.RefCountedParser.init(_allocator, .{
+                var result_compilation = Compilation.initParser(Compilation.CompiledParser{
                     .ptr = try mapped.parser.heapAlloc(_allocator, mapped),
                     .slice = slice,
-                    .refs = parser_refs.toOwnedSlice(),
-                }));
-                return Result(?Compilation).init(offset, result_compilation);
+                });
+                return Result(?Compilation).init(offset, result_compilation).toUnowned(); // TODO(slimsag): only parsers should be unowned
             }
         },
     }
@@ -212,11 +208,10 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
                         });
                         var always_success = Always(*CompilerContext, Node).init(success);
 
-                        var result_compilation = Compilation.initParser(try Compilation.RefCountedParser.init(_allocator, .{
+                        var result_compilation = Compilation.initParser(Compilation.CompiledParser{
                             .ptr = try always_success.parser.heapAlloc(_allocator, always_success),
                             .slice = null,
-                            .refs = null,
-                        }));
+                        });
                         return Result(?Compilation).init(in.offset, result_compilation);
                     },
                 }
@@ -279,7 +274,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
                         var _expr_list = sub.next().?;
                         _ = sub.next().?; // non-capturing compilation for comma
                         assert(sub.next() == null);
-                        return _expr_list;
+                        return _expr_list.toUnowned();
                     },
                 }
             }
@@ -295,7 +290,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
                         if (in.result.value == null) {
                             return Result(?Compilation).init(in.offset, null);
                         }
-                        return Result(?Compilation).init(in.offset, in.result.value.?);
+                        return Result(?Compilation).init(in.offset, in.result.value.?).toUnowned();
                     },
                 }
             }
@@ -389,7 +384,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
                             // Grammar does not have a root expression
                             return Result(Compilation).initError(offset, "root expression missing");
                         }
-                        return compilation.?;
+                        return compilation.?.toUnowned();
                     },
                 }
             }
@@ -437,7 +432,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
 //         var ctx = try Context(*CompilerContext, Node).init(allocator, input, compilerContext);
 //         defer ctx.deinit();
 
-//         try program.value.parser.value.ptr.parse(&ctx);
+//         try program.value.parser.ptr.parse(&ctx);
 
 //         var sub = ctx.subscribe();
 //         var first = sub.next().?;
