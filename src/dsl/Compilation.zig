@@ -20,8 +20,8 @@ value: union(ValueTag) {
 },
 
 pub const CompiledParser = struct {
-    ptr: *const Parser(*CompilerContext, Node),
-    slice: ?[]*const Parser(*CompilerContext, Node),
+    ptr: *const Parser(void, Node),
+    slice: ?[]*const Parser(void, Node),
 
     pub fn deinit(self: @This(), allocator: *mem.Allocator) void {
         self.ptr.deinit(allocator);

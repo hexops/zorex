@@ -27,6 +27,9 @@ src: ?[]const u8,
 /// The compiled program.
 program: ?CompilerResult,
 
+/// Context for the program.
+context: ?Context(void, Node),
+
 allocator: *mem.Allocator,
 
 pub const Error = error{
@@ -42,6 +45,7 @@ pub fn init(allocator: *mem.Allocator, src: []const u8) Program {
         .error_offset = 0,
         .src = src,
         .program = null,
+        .context = null,
         .allocator = allocator,
     };
 }
@@ -64,18 +68,14 @@ pub fn compile(self: *Program) !void {
 }
 
 /// Executes the program with the given input.
-pub fn execute(self: *const Program, input: []const u8) !Node {
+pub fn execute(self: *Program, input: []const u8) !Node {
     nosuspend {
-        var compilerContext = try CompilerContext.init(self.allocator);
-        defer compilerContext.deinit(self.allocator);
-        var ctx = try Context(*CompilerContext, Node).init(self.allocator, input, compilerContext);
-        // TODO(slimsag): remove?
-        //defer ctx.deinit();
+        self.context = try Context(void, Node).init(self.allocator, input, {});
 
         const compilation = self.program.?.compilation.result.value;
-        try compilation.value.parser.value.ptr.parse(&ctx);
+        try compilation.value.parser.ptr.parse(&self.context.?);
 
-        var sub = ctx.subscribe();
+        var sub = self.context.?.subscribe();
         var first = sub.next().?;
         assert(sub.next() == null); // no ambiguous parse paths here
         return first.result.value;
@@ -84,6 +84,7 @@ pub fn execute(self: *const Program, input: []const u8) !Node {
 
 pub fn deinit(self: *const Program) void {
     if (self.program) |prog| {
+        self.context.?.deinit();
         prog.deinit(self.allocator);
     }
 }

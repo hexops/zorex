@@ -36,7 +36,7 @@ fn mapLiteralToNone(in: Result(LiteralValue), compiler_context: *CompilerContext
 
 /// Maps a SequenceValue(Node) -> singular Node with no name and children (each of the nodes in the
 /// sequence.)
-fn mapNodeSequence(in: Result(SequenceValue(Node)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!?Result(Node) {
+fn mapNodeSequence(in: Result(SequenceValue(Node)), program_context: void, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!?Result(Node) {
     switch (in.result) {
         .err => return Result(Node).initError(in.offset, in.result.err),
         else => {
@@ -75,7 +75,7 @@ fn mapCompilationSequence(in: Result(SequenceValue(?Compilation)), compiler_cont
             // TODO(slimsag): mapTo should be async
             nosuspend {
                 // Collect all the parser compilations.
-                var parsers = std.ArrayList(*const Parser(*CompilerContext, Node)).init(_allocator);
+                var parsers = std.ArrayList(*const Parser(void, Node)).init(_allocator);
                 var sub = sequence.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"));
                 var offset = in.offset;
                 while (sub.next()) |next| {
@@ -87,10 +87,10 @@ fn mapCompilationSequence(in: Result(SequenceValue(?Compilation)), compiler_cont
                 }
                 var slice = parsers.toOwnedSlice();
 
-                // Build a parser which maps the many Parser(*CompilerContext, Node) compilations into a single Parser(*CompilerContext, Node)
+                // Build a parser which maps the many Parser(void, Node) compilations into a single Parser(void, Node)
                 // which has each node as a child.
-                var sequence_compilation = Sequence(*CompilerContext, Node).init(slice);
-                var mapped = MapTo(*CompilerContext, SequenceValue(Node), Node).init(.{
+                var sequence_compilation = Sequence(void, Node).init(slice);
+                var mapped = MapTo(void, SequenceValue(Node), Node).init(.{
                     .parser = try sequence_compilation.parser.heapAlloc(_allocator, sequence_compilation),
                     .mapTo = mapNodeSequence,
                 });
@@ -202,11 +202,11 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
 
                         // TODO(slimsag): actually compose the compilation to parse this regexp!
                         const success = Result(Node).init(in.offset, Node{
-                            .name = try String.init(_allocator, "TODO(slimsag): value from parsing regexp!"),
+                            .name = try String.init(_allocator, "TODO(slimsag): value from parsing regexp!"), // leak
                             .value = null,
                             .children = null,
                         });
-                        var always_success = Always(*CompilerContext, Node).init(success);
+                        var always_success = Always(void, Node).init(success);
 
                         var result_compilation = Compilation.initParser(Compilation.CompiledParser{
                             .ptr = try always_success.parser.heapAlloc(_allocator, always_success),
@@ -427,9 +427,7 @@ test "DSL" {
 
         // Run the regexp.
         var input = "//";
-        var compilerContext = try CompilerContext.init(allocator);
-        defer compilerContext.deinit(allocator);
-        var ctx = try Context(*CompilerContext, Node).init(allocator, input, compilerContext);
+        var ctx = try Context(void, Node).init(allocator, input, {});
         defer ctx.deinit();
 
         try program.value.parser.ptr.parse(&ctx);
