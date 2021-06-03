@@ -80,7 +80,7 @@ pub fn OneOf(comptime Payload: type, comptime Value: type) type {
                         .err => {},
                         else => {
                             // TODO(slimsag): need path committal functionality
-                            if (gotValues == 0) try ctx.results.add(next);
+                            if (gotValues == 0) try ctx.results.add(next.toUnowned());
                             gotValues += 1;
                         },
                     }
