@@ -58,7 +58,7 @@ fn mapNodeSequence(in: Result(SequenceValue(Node)), compiler_context: *CompilerC
                     .name = try String.init(_allocator, "unknown"),
                     .value = null,
                     .children = children,
-                }).toUnowned(); // TODO(slimsag): only children should be unowned
+                });
             }
         },
     }
@@ -99,7 +99,7 @@ fn mapCompilationSequence(in: Result(SequenceValue(?Compilation)), compiler_cont
                     .ptr = try mapped.parser.heapAlloc(_allocator, mapped),
                     .slice = slice,
                 });
-                return Result(?Compilation).init(offset, result_compilation).toUnowned(); // TODO(slimsag): only parsers should be unowned
+                return Result(?Compilation).init(offset, result_compilation);
             }
         },
     }
@@ -412,32 +412,32 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
     };
 }
 
-// test "DSL" {
-//     nosuspend {
-//         const allocator = testing.allocator;
+test "DSL" {
+    nosuspend {
+        const allocator = testing.allocator;
 
-//         // Compile the regexp.
-//         var compilerResult = try compile(allocator, "//");
-//         defer compilerResult.deinit(allocator);
-//         switch (compilerResult.compilation.result) {
-//             .err => |e| @panic(e),
-//             .value => {},
-//         }
-//         var program = compilerResult.compilation.result.value;
+        // Compile the regexp.
+        var compilerResult = try compile(allocator, "//");
+        defer compilerResult.deinit(allocator);
+        switch (compilerResult.compilation.result) {
+            .err => |e| @panic(e),
+            .value => {},
+        }
+        var program = compilerResult.compilation.result.value;
 
-//         // Run the regexp.
-//         var input = "//";
-//         var compilerContext = try CompilerContext.init(allocator);
-//         defer compilerContext.deinit(allocator);
-//         var ctx = try Context(*CompilerContext, Node).init(allocator, input, compilerContext);
-//         defer ctx.deinit();
+        // Run the regexp.
+        var input = "//";
+        var compilerContext = try CompilerContext.init(allocator);
+        defer compilerContext.deinit(allocator);
+        var ctx = try Context(*CompilerContext, Node).init(allocator, input, compilerContext);
+        defer ctx.deinit();
 
-//         try program.value.parser.ptr.parse(&ctx);
+        try program.value.parser.ptr.parse(&ctx);
 
-//         var sub = ctx.subscribe();
-//         var first = sub.next().?;
-//         try testing.expectEqualStrings("TODO(slimsag): value from parsing regexp!", first.result.value.name.value.items);
-//         try testing.expectEqual(@as(usize, 0), first.offset);
-//         try testing.expect(sub.next() == null);
-//     }
-// }
+        var sub = ctx.subscribe();
+        var first = sub.next().?;
+        try testing.expectEqualStrings("TODO(slimsag): value from parsing regexp!", first.result.value.name.value.items);
+        try testing.expectEqual(@as(usize, 0), first.offset);
+        try testing.expect(sub.next() == null);
+    }
+}
