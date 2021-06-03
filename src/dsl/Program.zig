@@ -89,28 +89,28 @@ pub fn deinit(self: *const Program) void {
     }
 }
 
-// test "example_regex" {
-//     const allocator = testing.allocator;
+test "example_regex" {
+    const allocator = testing.allocator;
 
-//     const String = @import("String.zig");
+    const String = @import("String.zig");
 
-//     // Compile the regexp.
-//     var program = Program.init(allocator, "//");
-//     defer program.deinit();
-//     program.compile() catch |err| switch (err) {
-//         Error.CompilationFailed => @panic(program.error_message.?),
-//         else => unreachable,
-//     };
+    // Compile the regexp.
+    var program = Program.init(allocator, "//");
+    defer program.deinit();
+    program.compile() catch |err| switch (err) {
+        Error.CompilationFailed => @panic(program.error_message.?),
+        else => unreachable,
+    };
 
-//     // Execute the regexp.
-//     const input = "hmmm";
-//     const result = try program.execute(input);
+    // Execute the regexp.
+    const input = "hmmm";
+    const result = try program.execute(input);
 
-//     try testing.expectEqualStrings("TODO(slimsag): value from parsing regexp!", result.name.value.items);
-//     try testing.expect(result.value == null);
-//     try testing.expect(result.children == null);
+    try testing.expectEqualStrings("TODO(slimsag): value from parsing regexp!", result.name.value.items);
+    try testing.expect(result.value == null);
+    try testing.expect(result.children == null);
 
-//     // TODO(slimsag): Node type is not JSON-serializable for some reason.
-//     //const stdout = std.io.getStdOut().writer();
-//     //try std.json.stringify(result, std.json.StringifyOptions{}, stdout);
-// }
+    // TODO(slimsag): Node type is not JSON-serializable for some reason.
+    //const stdout = std.io.getStdOut().writer();
+    //try std.json.stringify(result, std.json.StringifyOptions{}, stdout);
+}
