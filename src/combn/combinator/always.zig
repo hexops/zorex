@@ -16,16 +16,21 @@ pub fn AlwaysContext(comptime Value: type) type {
 
 /// Always yields the input value (once/unambiguously), or no value (if the input value is null).
 ///
-/// The `input` must remain alive for as long as the `Always` parser will be used.
+/// The `input` value is taken ownership of by the parser, and deinitialized once the parser is.
 pub fn Always(comptime Payload: type, comptime Value: type) type {
     return struct {
-        parser: Parser(Payload, Value) = Parser(Payload, Value).init(parse, nodeName, null),
+        parser: Parser(Payload, Value) = Parser(Payload, Value).init(parse, nodeName, deinit),
         input: AlwaysContext(Value),
 
         const Self = @This();
 
         pub fn init(input: AlwaysContext(Value)) Self {
             return Self{ .input = input };
+        }
+
+        pub fn deinit(parser: *const Parser(Payload, Value), allocator: *mem.Allocator) void {
+            const self = @fieldParentPtr(Self, "parser", parser);
+            if (self.input) |input| input.deinit(allocator);
         }
 
         pub fn nodeName(parser: *const Parser(Payload, Value), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
@@ -42,7 +47,7 @@ pub fn Always(comptime Payload: type, comptime Value: type) type {
             defer ctx.results.close();
 
             if (self.input) |input| {
-                var tmp = input;
+                var tmp = input.toUnowned();
                 tmp.offset = ctx.offset;
                 try ctx.results.add(tmp);
             }
