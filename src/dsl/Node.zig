@@ -15,9 +15,6 @@ pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
         v.deinit(allocator);
     }
     if (self.children) |children| {
-        for (children.items) |child| {
-            child.deinit(allocator);
-        }
         children.deinit();
     }
 }
