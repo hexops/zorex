@@ -7,7 +7,7 @@ const testing = std.testing;
 const mem = std.mem;
 
 pub fn OneOfContext(comptime Payload: type, comptime Value: type) type {
-    return []const *const Parser(Payload, Value);
+    return []const *Parser(Payload, Value);
 }
 
 /// Represents values from one parse path.
@@ -46,7 +46,7 @@ pub fn OneOf(comptime Payload: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *const Parser(Payload, Value), allocator: *mem.Allocator) void {
+        pub fn deinit(parser: *Parser(Payload, Value), allocator: *mem.Allocator) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             for (self.input) |in_parser| {
                 in_parser.deinit(allocator);
@@ -113,7 +113,7 @@ test "oneof" {
         const ctx = try Context(Payload, OneOfValue(LiteralValue)).init(allocator, "elloworld", {});
         defer ctx.deinit();
 
-        const parsers: []*const Parser(Payload, LiteralValue) = &.{
+        const parsers: []*Parser(Payload, LiteralValue) = &.{
             &Literal(Payload).init("ello").parser,
             &Literal(Payload).init("world").parser,
         };
@@ -143,7 +143,7 @@ test "oneof_ambiguous_first" {
         const ctx = try Context(Payload, OneOfValue(LiteralValue)).init(allocator, "elloworld", {});
         defer ctx.deinit();
 
-        const parsers: []*const Parser(Payload, LiteralValue) = &.{
+        const parsers: []*Parser(Payload, LiteralValue) = &.{
             &Literal(Payload).init("ello").parser,
             &Literal(Payload).init("elloworld").parser,
         };

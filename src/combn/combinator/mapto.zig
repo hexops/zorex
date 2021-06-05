@@ -8,7 +8,7 @@ const mem = std.mem;
 
 pub fn MapToContext(comptime Payload: type, comptime Value: type, comptime Target: type) type {
     return struct {
-        parser: *const Parser(Payload, Value),
+        parser: *Parser(Payload, Value),
         mapTo: fn (in: Result(Value), payload: Payload, allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(Target),
     };
 }
@@ -27,7 +27,7 @@ pub fn MapTo(comptime Payload: type, comptime Value: type, comptime Target: type
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *const Parser(Payload, Target), allocator: *mem.Allocator) void {
+        pub fn deinit(parser: *Parser(Payload, Target), allocator: *mem.Allocator) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             self.input.parser.deinit(allocator);
         }

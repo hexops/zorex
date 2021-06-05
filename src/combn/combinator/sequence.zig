@@ -9,7 +9,7 @@ const testing = std.testing;
 const mem = std.mem;
 
 pub fn SequenceContext(comptime Payload: type, comptime Value: type) type {
-    return []const *const Parser(Payload, Value);
+    return []const *Parser(Payload, Value);
 }
 
 /// Represents a sequence of parsed values. 
@@ -48,7 +48,7 @@ pub fn Sequence(comptime Payload: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *const Parser(Payload, SequenceValue(Value)), allocator: *mem.Allocator) void {
+        pub fn deinit(parser: *Parser(Payload, SequenceValue(Value)), allocator: *mem.Allocator) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             for (self.input) |child_parser| {
                 child_parser.deinit(allocator);

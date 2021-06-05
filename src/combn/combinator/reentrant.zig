@@ -5,7 +5,7 @@ const testing = std.testing;
 const mem = std.mem;
 
 pub fn ReentrantContext(comptime Payload: type, comptime Value: type) type {
-    return *const Parser(Payload, Value);
+    return *Parser(Payload, Value);
 }
 
 /// Wraps the `input.parser`, allowing it to be reentrant (such as in the case of a left recursive
@@ -36,7 +36,7 @@ pub fn Reentrant(comptime Payload: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *const Parser(Payload, Value), allocator: *mem.Allocator) void {
+        pub fn deinit(parser: *Parser(Payload, Value), allocator: *mem.Allocator) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             self.input.deinit(allocator);
         }

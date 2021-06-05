@@ -9,7 +9,7 @@ const mem = std.mem;
 pub fn RepeatedAmbiguousContext(comptime Payload: type, comptime Value: type) type {
     return struct {
         /// The parser which should be repeatedly parsed.
-        parser: *const Parser(Payload, Value),
+        parser: *Parser(Payload, Value),
 
         /// The minimum number of times the parser must successfully match.
         min: usize,
@@ -100,7 +100,7 @@ pub fn RepeatedAmbiguous(comptime Payload: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *const Parser(Payload, RepeatedAmbiguousValue(Value)), allocator: *mem.Allocator) void {
+        pub fn deinit(parser: *Parser(Payload, RepeatedAmbiguousValue(Value)), allocator: *mem.Allocator) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             self.input.parser.deinit(allocator);
         }

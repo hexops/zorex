@@ -7,7 +7,7 @@ const testing = std.testing;
 const mem = std.mem;
 
 pub fn OptionalContext(comptime Payload: type, comptime Value: type) type {
-    return *const Parser(Payload, Value);
+    return *Parser(Payload, Value);
 }
 
 /// Wraps the `input.parser`, making it an optional parser producing an optional value.
@@ -24,7 +24,7 @@ pub fn Optional(comptime Payload: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *const Parser(Payload, ?Value), allocator: *mem.Allocator) void {
+        pub fn deinit(parser: *Parser(Payload, ?Value), allocator: *mem.Allocator) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             self.input.deinit(allocator);
         }

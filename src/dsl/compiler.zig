@@ -75,7 +75,7 @@ fn mapCompilationSequence(in: Result(SequenceValue(?Compilation)), compiler_cont
             // TODO(slimsag): mapTo should be async
             nosuspend {
                 // Collect all the parser compilations.
-                var parsers = std.ArrayList(*const Parser(void, Node)).init(_allocator);
+                var parsers = std.ArrayList(*Parser(void, Node)).init(_allocator);
                 var sub = sequence.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"));
                 var offset = in.offset;
                 while (sub.next()) |next| {

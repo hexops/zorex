@@ -28,7 +28,7 @@ pub fn Always(comptime Payload: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *const Parser(Payload, Value), allocator: *mem.Allocator) void {
+        pub fn deinit(parser: *Parser(Payload, Value), allocator: *mem.Allocator) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             if (self.input) |input| input.deinit(allocator);
         }

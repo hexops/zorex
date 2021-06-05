@@ -439,13 +439,13 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
         const Self = @This();
         _parse: fn (self: *const Self, ctx: *const Context(Payload, Value)) callconv(.Async) Error!void,
         _nodeName: fn (self: *const Self, node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64,
-        _deinit: ?fn (self: *const Self, allocator: *mem.Allocator) void,
+        _deinit: ?fn (self: *Self, allocator: *mem.Allocator) void,
         _heap_storage: ?[]u8,
 
         pub fn init(
             parseImpl: fn (self: *const Self, ctx: *const Context(Payload, Value)) callconv(.Async) Error!void,
             nodeNameImpl: fn (self: *const Self, node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64,
-            deinitImpl: ?fn (self: *const Self, allocator: *mem.Allocator) void,
+            deinitImpl: ?fn (self: *Self, allocator: *mem.Allocator) void,
         ) @This() {
             return .{
                 ._parse = parseImpl,
@@ -467,7 +467,7 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
             return &parent_ptr.parser;
         }
 
-        pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
+        pub fn deinit(self: *@This(), allocator: *mem.Allocator) void {
             if (self._deinit) |dfn| {
                 dfn(self, allocator);
             }
