@@ -55,7 +55,7 @@ fn mapNodeSequence(in: Result(SequenceValue(Node)), program_context: void, _allo
                 }
 
                 return Result(Node).init(in.offset, Node{
-                    .name = try String.init(_allocator, "unknown"),
+                    .name = String.init("unknown"),
                     .value = null,
                     .children = children.toOwnedSlice(),
                 });
@@ -202,7 +202,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
 
                         // TODO(slimsag): actually compose the compilation to parse this regexp!
                         const success = Result(Node).init(in.offset, Node{
-                            .name = try String.init(_allocator, "TODO(slimsag): value from parsing regexp!"),
+                            .name = String.init("TODO(slimsag): value from parsing regexp!"),
                             .value = null,
                             .children = null,
                         });
@@ -434,7 +434,7 @@ test "DSL" {
 
         var sub = ctx.subscribe();
         var first = sub.next().?;
-        try testing.expectEqualStrings("TODO(slimsag): value from parsing regexp!", first.result.value.name.value.items);
+        try testing.expectEqualStrings("TODO(slimsag): value from parsing regexp!", first.result.value.name.value);
         try testing.expectEqual(@as(usize, 0), first.offset);
         try testing.expect(sub.next() == null);
     }

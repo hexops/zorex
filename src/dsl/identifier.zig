@@ -63,7 +63,7 @@ pub const Identifier = struct {
             }
             offset += 1;
         }
-        try ctx.results.add(Result(?Compilation).init(ctx.offset + offset, Compilation.initIdentifier(try String.init(ctx.allocator, src[0..offset]))));
+        try ctx.results.add(Result(?Compilation).init(ctx.offset + offset, Compilation.initIdentifier(String.init(src[0..offset]))));
     }
 };
 
@@ -82,7 +82,7 @@ test "identifier" {
         var sub = ctx.subscribe();
         var r1 = sub.next().?;
         try testing.expectEqual(@as(usize, 8), r1.offset);
-        try testing.expectEqualStrings("Grammar2", r1.result.value.?.value.identifier.value.items);
+        try testing.expectEqualStrings("Grammar2", r1.result.value.?.value.identifier.value);
         try testing.expect(sub.next() == null);
     }
 }

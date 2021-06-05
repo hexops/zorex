@@ -61,7 +61,7 @@ fn eqlFn(a: Compilation, b: Compilation) bool {
         },
         .identifier => |aa| switch (b.value) {
             .parser => false,
-            .identifier => |bb| std.mem.eql(u8, aa.value.items, bb.value.items),
+            .identifier => |bb| std.mem.eql(u8, aa.value, bb.value),
         },
     };
 }
@@ -69,6 +69,6 @@ fn eqlFn(a: Compilation, b: Compilation) bool {
 fn hashFn(key: Compilation) u64 {
     return switch (key.value) {
         .parser => |p| @ptrToInt(p.ptr),
-        .identifier => |ident| std.hash_map.hashString(ident.value.items),
+        .identifier => |ident| std.hash_map.hashString(ident.value),
     };
 }

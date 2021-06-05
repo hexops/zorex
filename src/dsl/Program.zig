@@ -106,7 +106,7 @@ test "example_regex" {
     const input = "hmmm";
     const result = try program.execute(input);
 
-    try testing.expectEqualStrings("TODO(slimsag): value from parsing regexp!", result.name.value.items);
+    try testing.expectEqualStrings("TODO(slimsag): value from parsing regexp!", result.name.value);
     try testing.expect(result.value == null);
     try testing.expect(result.children == null);
 
@@ -133,12 +133,12 @@ test "example_zorex" {
     const result = try program.execute(input);
 
     // TODO(slimsag): node name should not be unknown
-    try testing.expectEqualStrings("unknown", result.name.value.items);
+    try testing.expectEqualStrings("unknown", result.name.value);
     try testing.expect(result.value == null);
     try testing.expect(result.children != null);
     try testing.expectEqual(@as(usize, 1), result.children.?.len);
     var child = (result.children.?)[0];
-    try testing.expectEqualStrings("TODO(slimsag): value from parsing regexp!", child.name.value.items);
+    try testing.expectEqualStrings("TODO(slimsag): value from parsing regexp!", child.name.value);
     try testing.expect(child.value == null);
     try testing.expect(child.children == null);
 
