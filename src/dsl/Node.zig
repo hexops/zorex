@@ -14,3 +14,13 @@ pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
         v.deinit(allocator);
     }
 }
+
+pub fn writeJSON(self: *const @This(), allocator: *mem.Allocator, out_stream: anytype) !void {
+    var w = std.json.WriteStream(@TypeOf(out_stream), 6).init(out_stream);
+    try w.beginObject();
+    try w.objectField("name");
+    try w.emitString(self.name.value);
+    try w.objectField("value");
+    if (self.value) |value| try w.emitString(value.value) else try w.emitNull();
+    try w.endObject();
+}

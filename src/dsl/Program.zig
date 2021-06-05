@@ -109,16 +109,13 @@ test "example_regex" {
     // Serialize to JSON.
     var buffer = std.ArrayList(u8).init(allocator);
     defer buffer.deinit();
-    try std.json.stringify(result, std.json.StringifyOptions{ .whitespace = std.json.StringifyOptions.Whitespace{} }, buffer.writer());
+    try result.writeJSON(allocator, buffer.writer());
 
     // Confirm the results.
     try testing.expectEqualStrings(
         \\{
-        \\    "name": {
-        \\        "value": "TODO(slimsag): value from parsing regexp!",
-        \\        "owned": false
-        \\    },
-        \\    "value": null
+        \\ "name": "TODO(slimsag): value from parsing regexp!",
+        \\ "value": null
         \\}
     , buffer.items);
 }
@@ -143,16 +140,13 @@ test "example_zorex" {
     // Serialize to JSON.
     var buffer = std.ArrayList(u8).init(allocator);
     defer buffer.deinit();
-    try std.json.stringify(result, std.json.StringifyOptions{ .whitespace = std.json.StringifyOptions.Whitespace{} }, buffer.writer());
+    try result.writeJSON(allocator, buffer.writer());
 
     // Confirm the results.
     try testing.expectEqualStrings(
         \\{
-        \\    "name": {
-        \\        "value": "unknown",
-        \\        "owned": false
-        \\    },
-        \\    "value": null
+        \\ "name": "unknown",
+        \\ "value": null
         \\}
     , buffer.items);
 }
