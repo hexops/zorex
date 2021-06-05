@@ -89,7 +89,7 @@ test "mapto" {
         defer ctx.deinit();
 
         const mapTo = MapTo(Payload, LiteralValue, String).init(.{
-            .parser = &Literal(Payload).init("hello").parser,
+            .parser = (&Literal(Payload).init("hello").parser).ref(),
             .mapTo = struct {
                 fn mapTo(in: Result(LiteralValue), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(String) {
                     switch (in.result) {

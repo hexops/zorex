@@ -203,10 +203,10 @@ test "sequence" {
         defer ctx.deinit();
 
         var seq = SequenceAmbiguous(Payload, LiteralValue).init(&.{
-            &Literal(Payload).init("abc").parser,
-            &Literal(Payload).init("123ab").parser,
-            &Literal(Payload).init("c45").parser,
-            &Literal(Payload).init("6").parser,
+            (&Literal(Payload).init("abc").parser).ref(),
+            (&Literal(Payload).init("123ab").parser).ref(),
+            (&Literal(Payload).init("c45").parser).ref(),
+            (&Literal(Payload).init("6").parser).ref(),
         });
         try seq.parser.parse(&ctx);
 

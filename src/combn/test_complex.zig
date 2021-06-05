@@ -31,7 +31,7 @@ test "direct_left_recursion_empty_language" {
             undefined, // placeholder for left-recursive Expr itself
         };
         var expr = MapTo(Payload, SequenceAmbiguousValue(node), node).init(.{
-            .parser = &SequenceAmbiguous(Payload, node).init(&parsers).parser,
+            .parser = (&SequenceAmbiguous(Payload, node).init(&parsers).parser).ref(),
             .mapTo = struct {
                 fn mapTo(in: Result(SequenceAmbiguousValue(node)), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(node) {
                     switch (in.result) {
@@ -45,7 +45,7 @@ test "direct_left_recursion_empty_language" {
                 }
             }.mapTo,
         });
-        parsers[0] = &expr.parser;
+        parsers[0] = (&expr.parser).ref();
         try expr.parser.parse(&ctx);
 
         var sub = ctx.subscribe();
@@ -81,7 +81,7 @@ test "direct_left_recursion" {
     defer ctx.deinit();
 
     var abcAsNode = MapTo(Payload, LiteralValue, node).init(.{
-        .parser = &Literal(Payload).init("abc").parser,
+        .parser = (&Literal(Payload).init("abc").parser).ref(),
         .mapTo = struct {
             fn mapTo(in: Result(LiteralValue), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(node) {
                 switch (in.result) {
@@ -98,38 +98,40 @@ test "direct_left_recursion" {
 
     var parsers = [_]*Parser(Payload, node){
         undefined, // placeholder for left-recursive Expr itself
-        &abcAsNode.parser,
+        (&abcAsNode.parser).ref(),
     };
-    var expr = Reentrant(Payload, node).init(&MapTo(Payload, SequenceAmbiguousValue(node), node).init(.{
-        .parser = &SequenceAmbiguous(Payload, node).init(&parsers).parser,
-        .mapTo = struct {
-            fn mapTo(in: Result(SequenceAmbiguousValue(node)), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(node) {
-                switch (in.result) {
-                    .err => return Result(node).initError(in.offset, in.result.err),
-                    else => {
-                        var name = std.ArrayList(u8).init(_allocator);
+    var expr = Reentrant(Payload, node).init(
+        (&MapTo(Payload, SequenceAmbiguousValue(node), node).init(.{
+            .parser = (&SequenceAmbiguous(Payload, node).init(&parsers).parser).ref(),
+            .mapTo = struct {
+                fn mapTo(in: Result(SequenceAmbiguousValue(node)), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(node) {
+                    switch (in.result) {
+                        .err => return Result(node).initError(in.offset, in.result.err),
+                        else => {
+                            var name = std.ArrayList(u8).init(_allocator);
 
-                        var flattened = try in.result.value.flatten(_allocator, key, path);
-                        defer flattened.deinit();
-                        var sub = flattened.subscribe(key, path, Result(node).initError(0, "matches only the empty language"));
-                        try name.appendSlice("(");
-                        var prev = false;
-                        while (sub.next()) |next| {
-                            if (prev) {
-                                try name.appendSlice(",");
+                            var flattened = try in.result.value.flatten(_allocator, key, path);
+                            defer flattened.deinit();
+                            var sub = flattened.subscribe(key, path, Result(node).initError(0, "matches only the empty language"));
+                            try name.appendSlice("(");
+                            var prev = false;
+                            while (sub.next()) |next| {
+                                if (prev) {
+                                    try name.appendSlice(",");
+                                }
+                                prev = true;
+                                try name.appendSlice(next.result.value.name.items);
                             }
-                            prev = true;
-                            try name.appendSlice(next.result.value.name.items);
-                        }
-                        try name.appendSlice(")");
-                        return Result(node).init(in.offset, node{ .name = name });
-                    },
+                            try name.appendSlice(")");
+                            return Result(node).init(in.offset, node{ .name = name });
+                        },
+                    }
                 }
-            }
-        }.mapTo,
-    }).parser);
+            }.mapTo,
+        }).parser).ref(),
+    );
     var optionalExpr = MapTo(Payload, ?node, node).init(.{
-        .parser = &Optional(Payload, node).init(&expr.parser).parser,
+        .parser = (&Optional(Payload, node).init((&expr.parser).ref()).parser).ref(),
         .mapTo = struct {
             fn mapTo(in: Result(?node), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(node) {
                 switch (in.result) {
@@ -149,7 +151,7 @@ test "direct_left_recursion" {
             }
         }.mapTo,
     });
-    parsers[0] = &optionalExpr.parser;
+    parsers[0] = (&optionalExpr.parser).ref();
     try expr.parser.parse(&ctx);
 
     var sub = ctx.subscribe();

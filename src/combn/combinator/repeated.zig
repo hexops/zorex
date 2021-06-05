@@ -145,7 +145,7 @@ test "repeated" {
         defer ctx.deinit();
 
         var abcInfinity = Repeated(Payload, LiteralValue).init(.{
-            .parser = &Literal(Payload).init("abc").parser,
+            .parser = (&Literal(Payload).init("abc").parser).ref(),
             .min = 0,
             .max = -1,
         });

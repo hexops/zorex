@@ -441,6 +441,7 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
         _nodeName: fn (self: *const Self, node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64,
         _deinit: ?fn (self: *Self, allocator: *mem.Allocator) void,
         _heap_storage: ?[]u8,
+        _refs: usize,
 
         pub fn init(
             parseImpl: fn (self: *const Self, ctx: *const Context(Payload, Value)) callconv(.Async) Error!void,
@@ -452,6 +453,7 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
                 ._nodeName = nodeNameImpl,
                 ._deinit = deinitImpl,
                 ._heap_storage = null,
+                ._refs = 0,
             };
         }
 
@@ -464,16 +466,26 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
             var parent_ptr = @ptrCast(*Parent, &memory[0]);
             parent_ptr.* = parent;
             parent_ptr.parser._heap_storage = memory;
+            parent_ptr.parser._refs += 1;
             return &parent_ptr.parser;
         }
 
+        pub fn ref(self: *@This()) *@This() {
+            self._refs += 1;
+            return self;
+        }
+
         pub fn deinit(self: *@This(), allocator: *mem.Allocator) void {
-            if (self._deinit) |dfn| {
-                dfn(self, allocator);
+            self._refs -= 1;
+            if (self._refs == 0) {
+                if (self._deinit) |dfn| {
+                    dfn(self, allocator);
+                }
+                if (self._heap_storage) |s| {
+                    allocator.free(s);
+                }
             }
-            if (self._heap_storage) |s| {
-                allocator.free(s);
-            }
+            if (self._refs < 0) unreachable;
         }
 
         pub fn parse(self: *const Self, ctx: *const Context(Payload, Value)) callconv(.Async) Error!void {
