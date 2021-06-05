@@ -57,7 +57,7 @@ fn mapNodeSequence(in: Result(SequenceValue(Node)), program_context: void, _allo
                 return Result(Node).init(in.offset, Node{
                     .name = try String.init(_allocator, "unknown"),
                     .value = null,
-                    .children = children,
+                    .children = children.toOwnedSlice(),
                 });
             }
         },

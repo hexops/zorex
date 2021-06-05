@@ -7,14 +7,12 @@ const mem = std.mem;
 
 name: String,
 value: ?String,
-children: ?std.ArrayList(@This()),
+children: ?[]@This(),
 
 pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
     self.name.deinit(allocator);
     if (self.value) |v| {
         v.deinit(allocator);
     }
-    if (self.children) |children| {
-        children.deinit();
-    }
+    if (self.children) |children| allocator.free(children);
 }

@@ -136,13 +136,13 @@ test "example_zorex" {
     try testing.expectEqualStrings("unknown", result.name.value.items);
     try testing.expect(result.value == null);
     try testing.expect(result.children != null);
-    try testing.expectEqual(@as(usize, 1), result.children.?.items.len);
-    var child = result.children.?.items[0];
+    try testing.expectEqual(@as(usize, 1), result.children.?.len);
+    var child = (result.children.?)[0];
     try testing.expectEqualStrings("TODO(slimsag): value from parsing regexp!", child.name.value.items);
     try testing.expect(child.value == null);
     try testing.expect(child.children == null);
 
     // TODO(slimsag): Node type is not JSON-serializable for some reason.
-    //const stdout = std.io.getStdOut().writer();
-    //try std.json.stringify(result, std.json.StringifyOptions{}, stdout);
+    // const stdout = std.io.getStdOut().writer();
+    // try std.json.stringify(result, std.json.StringifyOptions{}, stdout);
 }
