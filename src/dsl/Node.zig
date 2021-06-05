@@ -7,15 +7,38 @@ const mem = std.mem;
 
 name: String,
 value: ?String,
+refs: usize,
 
-pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
-    self.name.deinit(allocator);
-    if (self.value) |v| {
-        v.deinit(allocator);
-    }
+const Node = @This();
+
+pub fn init(allocator: *mem.Allocator, name: String, value: ?String) !*Node {
+    var self = try allocator.create(Node);
+    self.* = .{
+        .name = name,
+        .value = value,
+        .refs = 1,
+    };
+    return self;
 }
 
-pub fn writeJSON(self: *const @This(), allocator: *mem.Allocator, out_stream: anytype) !void {
+pub fn ref(self: *Node) *Node {
+    self.refs += 1;
+    return self;
+}
+
+pub fn deinit(self: *Node, allocator: *mem.Allocator) void {
+    self.refs -= 1;
+    if (self.refs == 0) {
+        self.name.deinit(allocator);
+        if (self.value) |v| {
+            v.deinit(allocator);
+        }
+        allocator.destroy(self);
+    }
+    if (self.refs < 0) unreachable;
+}
+
+pub fn writeJSON(self: *const Node, allocator: *mem.Allocator, out_stream: anytype) !void {
     var w = std.json.WriteStream(@TypeOf(out_stream), 6).init(out_stream);
     try w.beginObject();
     try w.objectField("name");

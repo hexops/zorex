@@ -28,7 +28,7 @@ src: ?[]const u8,
 program: ?CompilerResult,
 
 /// Context for the program.
-context: ?Context(void, Node),
+context: ?Context(void, *Node),
 
 allocator: *mem.Allocator,
 
@@ -68,9 +68,9 @@ pub fn compile(self: *Program) !void {
 }
 
 /// Executes the program with the given input.
-pub fn execute(self: *Program, input: []const u8) !Node {
+pub fn execute(self: *Program, input: []const u8) !*Node {
     nosuspend {
-        self.context = try Context(void, Node).init(self.allocator, input, {});
+        self.context = try Context(void, *Node).init(self.allocator, input, {});
 
         const compilation = self.program.?.compilation.result.value;
         try compilation.value.parser.ptr.parse(&self.context.?);
