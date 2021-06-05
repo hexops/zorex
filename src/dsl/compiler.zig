@@ -53,11 +53,13 @@ fn mapNodeSequence(in: Result(SequenceValue(Node)), program_context: void, _allo
                     offset = next.offset;
                     try children.append(next.result.value);
                 }
+                // TODO(slimsag): instead of discarding children, build a separate relational mapping
+                // which can express cyclic node children/parents in JSON as well.
+                _allocator.free(children.toOwnedSlice());
 
                 return Result(Node).init(in.offset, Node{
                     .name = String.init("unknown"),
                     .value = null,
-                    .children = children.toOwnedSlice(),
                 });
             }
         },
@@ -204,7 +206,6 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
                         const success = Result(Node).init(in.offset, Node{
                             .name = String.init("TODO(slimsag): value from parsing regexp!"),
                             .value = null,
-                            .children = null,
                         });
                         var always_success = Always(void, Node).init(success);
 

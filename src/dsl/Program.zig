@@ -94,7 +94,7 @@ test "example_regex" {
 
     const String = @import("String.zig");
 
-    // Compile the regexp.
+    // Compile the regex.
     var program = Program.init(allocator, "//");
     defer program.deinit();
     program.compile() catch |err| switch (err) {
@@ -102,17 +102,19 @@ test "example_regex" {
         else => unreachable,
     };
 
-    // Execute the regexp.
+    // Execute the regex.
     const input = "hmmm";
     const result = try program.execute(input);
 
-    try testing.expectEqualStrings("TODO(slimsag): value from parsing regexp!", result.name.value);
-    try testing.expect(result.value == null);
-    try testing.expect(result.children == null);
+    // Serialize to JSON.
+    var buffer = std.ArrayList(u8).init(allocator);
+    defer buffer.deinit();
+    try std.json.stringify(result, std.json.StringifyOptions{}, buffer.writer());
 
-    // TODO(slimsag): Node type is not JSON-serializable for some reason.
-    //const stdout = std.io.getStdOut().writer();
-    //try std.json.stringify(result, std.json.StringifyOptions{}, stdout);
+    // Confirm the results.
+    try testing.expectEqualStrings(
+        \\{"name":{"value":"TODO(slimsag): value from parsing regexp!","owned":false},"value":null}
+    , buffer.items);
 }
 
 test "example_zorex" {
@@ -132,17 +134,13 @@ test "example_zorex" {
     const input = "hmmm";
     const result = try program.execute(input);
 
-    // TODO(slimsag): node name should not be unknown
-    try testing.expectEqualStrings("unknown", result.name.value);
-    try testing.expect(result.value == null);
-    try testing.expect(result.children != null);
-    try testing.expectEqual(@as(usize, 1), result.children.?.len);
-    var child = (result.children.?)[0];
-    try testing.expectEqualStrings("TODO(slimsag): value from parsing regexp!", child.name.value);
-    try testing.expect(child.value == null);
-    try testing.expect(child.children == null);
+    // Serialize to JSON.
+    var buffer = std.ArrayList(u8).init(allocator);
+    defer buffer.deinit();
+    try std.json.stringify(result, std.json.StringifyOptions{}, buffer.writer());
 
-    // TODO(slimsag): Node type is not JSON-serializable for some reason.
-    // const stdout = std.io.getStdOut().writer();
-    // try std.json.stringify(result, std.json.StringifyOptions{}, stdout);
+    // Confirm the results.
+    try testing.expectEqualStrings(
+        \\{"name":{"value":"unknown","owned":false},"value":null}
+    , buffer.items);
 }
