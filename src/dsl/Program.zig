@@ -114,3 +114,35 @@ test "example_regex" {
     //const stdout = std.io.getStdOut().writer();
     //try std.json.stringify(result, std.json.StringifyOptions{}, stdout);
 }
+
+test "example_zorex" {
+    const allocator = testing.allocator;
+
+    const String = @import("String.zig");
+
+    // Compile the zorex.
+    var program = Program.init(allocator, "Date = //; Date");
+    defer program.deinit();
+    program.compile() catch |err| switch (err) {
+        Error.CompilationFailed => @panic(program.error_message.?),
+        else => unreachable,
+    };
+
+    // Execute the zorex.
+    const input = "hmmm";
+    const result = try program.execute(input);
+
+    // TODO(slimsag): node name should not be unknown
+    try testing.expectEqualStrings("unknown", result.name.value.items);
+    try testing.expect(result.value == null);
+    try testing.expect(result.children != null);
+    try testing.expectEqual(@as(usize, 1), result.children.?.items.len);
+    var child = result.children.?.items[0];
+    try testing.expectEqualStrings("TODO(slimsag): value from parsing regexp!", child.name.value.items);
+    try testing.expect(child.value == null);
+    try testing.expect(child.children == null);
+
+    // TODO(slimsag): Node type is not JSON-serializable for some reason.
+    //const stdout = std.io.getStdOut().writer();
+    //try std.json.stringify(result, std.json.StringifyOptions{}, stdout);
+}
