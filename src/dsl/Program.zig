@@ -113,10 +113,11 @@ test "example_regex" {
 
     // Confirm the results.
     try testing.expectEqualStrings(
-        \\{
-        \\ "name": "TODO(slimsag): value from parsing regexp!",
-        \\ "value": null
-        \\}
+        \\[
+        \\ {
+        \\  "name": "TODO(slimsag): value from parsing regexp!"
+        \\ }
+        \\]
     , buffer.items);
 }
 
@@ -144,9 +145,17 @@ test "example_zorex" {
 
     // Confirm the results.
     try testing.expectEqualStrings(
-        \\{
-        \\ "name": "unknown",
-        \\ "value": null
-        \\}
+        \\[
+        \\ {
+        \\  "name": "TODO(slimsag): value from parsing regexp!"
+        \\ },
+        \\ {
+        \\  "name": "unknown",
+        \\  "children": [
+        \\   0
+        \\  ]
+        \\ }
+        \\]
     , buffer.items);
 }
+

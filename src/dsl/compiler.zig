@@ -51,13 +51,11 @@ fn mapNodeSequence(in: Result(SequenceValue(*Node)), program_context: void, _all
                 var offset = in.offset;
                 while (sub.next()) |next| {
                     offset = next.offset;
-                    try children.append(next.result.value);
+                    try children.append(next.result.value.ref());
                 }
-                // TODO(slimsag): instead of discarding children, build a separate relational mapping
-                // which can express cyclic node children/parents in JSON as well.
-                _allocator.free(children.toOwnedSlice());
 
                 const node = try Node.init(_allocator, String.init("unknown"), null);
+                node.children = children.toOwnedSlice();
                 return Result(*Node).init(in.offset, node);
             }
         },
