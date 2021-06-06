@@ -37,7 +37,7 @@ pub fn Always(comptime Payload: type, comptime Value: type) type {
             const self = @fieldParentPtr(Self, "parser", parser);
 
             var v = std.hash_map.hashString("Always");
-            v +%= std.hash_map.getAutoHashFn(?Result(Value))(self.input);
+            v +%= std.hash_map.getAutoHashFn(?Result(Value), void)({}, self.input);
             return v;
         }
 

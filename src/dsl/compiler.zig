@@ -325,7 +325,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
                             // TODO(slimsag): include name of definition in error message
                             return Result(?Compilation).initError(last.offset, "definition redefined");
                         }
-                        v.entry.value = _expr_list.result.value.?;
+                        v.value_ptr.* = _expr_list.result.value.?;
 
                         // A definition assignment yields no nodes.
                         return Result(?Compilation).init(in.offset, null);

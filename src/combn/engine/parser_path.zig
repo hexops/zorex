@@ -43,9 +43,9 @@ pub const ParserPath = struct {
 
     pub fn contains(self: ParserPath, key: ParserPosKey) bool {
         var next = self.stack.root;
-        const eql = std.hash_map.getAutoEqlFn(ParserPosKey);
+        const eql = std.hash_map.getAutoEqlFn(ParserPosKey, void);
         while (next != null) : (next = next.?.next) {
-            if (eql(next.?.data, key)) return true;
+            if (eql({}, next.?.data, key)) return true;
         }
         return false;
     }

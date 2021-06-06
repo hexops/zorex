@@ -61,7 +61,7 @@ fn _writeJSON(self: *const Node, w: anytype, ptrToID: *std.AutoHashMap(*const No
     var v = try ptrToID.getOrPut(self);
     if (v.found_existing) return; // visited already
 
-    v.entry.value = @intCast(i32, ptrToID.count()-1);
+    v.value_ptr.* = @intCast(i32, ptrToID.count() - 1);
     try w.arrayElem();
     try w.beginObject();
     try w.objectField("name");

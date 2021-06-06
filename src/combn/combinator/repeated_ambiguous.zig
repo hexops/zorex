@@ -110,8 +110,8 @@ pub fn RepeatedAmbiguous(comptime Payload: type, comptime Value: type) type {
 
             var v = std.hash_map.hashString("RepeatedAmbiguous");
             v +%= try self.input.parser.nodeName(node_name_cache);
-            v +%= std.hash_map.getAutoHashFn(usize)(self.input.min);
-            v +%= std.hash_map.getAutoHashFn(isize)(self.input.max);
+            v +%= std.hash_map.getAutoHashFn(usize, void)({}, self.input.min);
+            v +%= std.hash_map.getAutoHashFn(isize, void)({}, self.input.max);
             return v;
         }
 

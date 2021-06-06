@@ -51,24 +51,26 @@ pub fn deinit(self: *const Compilation, allocator: *mem.Allocator) void {
     }
 }
 
-pub const HashMap = std.HashMap(Compilation, Compilation, hashFn, eqlFn, std.hash_map.default_max_load_percentage);
+const HashContext = struct {
+    pub fn hash(self: @This(), key: Compilation) u64 {
+        return switch (key.value) {
+            .parser => |p| @ptrToInt(p.ptr),
+            .identifier => |ident| std.hash_map.hashString(ident.value),
+        };
+    }
 
-fn eqlFn(a: Compilation, b: Compilation) bool {
-    return switch (a.value) {
-        .parser => |aa| switch (b.value) {
-            .parser => |bb| aa.ptr == bb.ptr,
-            .identifier => false,
-        },
-        .identifier => |aa| switch (b.value) {
-            .parser => false,
-            .identifier => |bb| std.mem.eql(u8, aa.value, bb.value),
-        },
-    };
-}
+    pub fn eql(self: @This(), a: Compilation, b: Compilation) bool {
+        return switch (a.value) {
+            .parser => |aa| switch (b.value) {
+                .parser => |bb| aa.ptr == bb.ptr,
+                .identifier => false,
+            },
+            .identifier => |aa| switch (b.value) {
+                .parser => false,
+                .identifier => |bb| std.mem.eql(u8, aa.value, bb.value),
+            },
+        };
+    }
+};
 
-fn hashFn(key: Compilation) u64 {
-    return switch (key.value) {
-        .parser => |p| @ptrToInt(p.ptr),
-        .identifier => |ident| std.hash_map.hashString(ident.value),
-    };
-}
+pub const HashMap = std.HashMap(Compilation, Compilation, HashContext, std.hash_map.default_max_load_percentage);

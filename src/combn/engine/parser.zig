@@ -15,7 +15,7 @@ pub const ResultTag = enum {
 
 /// deinitOptional invokes value.deinit(allocator), taking into account it being an optional
 /// `?Value`, `??Value`, etc.
-pub fn deinitOptional(value: anytype, allocator: *mem.Allocator) callconv(.Inline) void {
+pub inline fn deinitOptional(value: anytype, allocator: *mem.Allocator) void {
     switch (@typeInfo(@TypeOf(value))) {
         .Optional => if (value) |v| return deinitOptional(v, allocator),
         else => value.deinit(allocator),
@@ -150,11 +150,12 @@ const Memoizer = struct {
     fn clearPastRecursions(self: *@This(), parser: ParserPosKey, new_max_depth: usize) !void {
         var i: usize = 0;
         while (i <= new_max_depth) : (i += 1) {
-            var removed_entry = self.memoized.remove(ParserPosDepthKey{
+            const k = ParserPosDepthKey{
                 .pos_key = parser,
                 .reentrant_depth = i,
-            });
-            if (removed_entry) |e| try self.deferred_cleanups.append(e.value);
+            };
+            if (self.memoized.get(k)) |memoized| try self.deferred_cleanups.append(memoized);
+            _ = self.memoized.remove(k);
         }
     }
 
@@ -249,7 +250,7 @@ const Memoizer = struct {
             // Create a new result stream for this key.
             var results = try allocator.create(ResultStream(Result(Value)));
             results.* = try ResultStream(Result(Value)).init(allocator, parser);
-            m.entry.value = MemoizeValue{
+            m.value_ptr.* = MemoizeValue{
                 .results = @ptrToInt(results),
                 .deinit = struct {
                     fn deinit(_resultsPtr: usize, _allocator: *mem.Allocator) void {
@@ -261,7 +262,7 @@ const Memoizer = struct {
             };
         }
         return MemoizedResult(Value){
-            .results = @intToPtr(*ResultStream(Result(Value)), m.entry.value.results),
+            .results = @intToPtr(*ResultStream(Result(Value)), m.value_ptr.results),
             .was_cached = m.found_existing,
         };
     }
@@ -280,7 +281,7 @@ const Memoizer = struct {
     pub fn deinit(self: *@This(), allocator: *mem.Allocator) void {
         var iter = self.memoized.iterator();
         while (iter.next()) |memoized| {
-            memoized.value.deinit(memoized.value.results, allocator);
+            memoized.value_ptr.deinit(memoized.value_ptr.results, allocator);
         }
         self.memoized.deinit();
         self.node_name_cache.deinit();
@@ -497,18 +498,18 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
         pub fn nodeName(self: *const Self, node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
             var v = try node_name_cache.getOrPut(@ptrToInt(self));
             if (!v.found_existing) {
-                v.entry.value = 1337; // "currently calculating" code
+                v.value_ptr.* = 1337; // "currently calculating" code
                 const calculated = try self._nodeName(self, node_name_cache);
 
                 // If self._nodeName added more entries to node_name_cache, ours is now potentially invalid.
                 var vv = node_name_cache.getEntry(@ptrToInt(self));
-                vv.?.value = calculated;
+                vv.?.value_ptr.* = calculated;
                 return calculated;
             }
-            if (v.entry.value == 1337) {
+            if (v.value_ptr.* == 1337) {
                 return 0; // reentrant, don't bother trying to calculate any more recursively
             }
-            return v.entry.value;
+            return v.value_ptr.*;
         }
     };
 }
