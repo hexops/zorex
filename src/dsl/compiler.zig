@@ -42,22 +42,19 @@ fn mapNodeSequence(in: Result(SequenceValue(*Node)), program_context: void, _all
         else => {
             var sequence = in.result.value;
 
-            // TODO(slimsag): mapTo should be async
-            nosuspend {
-                // Collect all the children nodes.
-                var children = std.ArrayList(*Node).init(_allocator);
-                errdefer children.deinit();
-                var sub = sequence.results.subscribe(key, path, Result(*Node).initError(in.offset, "matches only the empty language"));
-                var offset = in.offset;
-                while (sub.next()) |next| {
-                    offset = next.offset;
-                    try children.append(next.result.value.ref());
-                }
-
-                const node = try Node.init(_allocator, String.init("unknown"), null);
-                node.children = children.toOwnedSlice();
-                return Result(*Node).init(in.offset, node);
+            // Collect all the children nodes.
+            var children = std.ArrayList(*Node).init(_allocator);
+            errdefer children.deinit();
+            var sub = sequence.results.subscribe(key, path, Result(*Node).initError(in.offset, "matches only the empty language"));
+            var offset = in.offset;
+            while (sub.next()) |next| {
+                offset = next.offset;
+                try children.append(next.result.value.ref());
             }
+
+            const node = try Node.init(_allocator, String.init("unknown"), null);
+            node.children = children.toOwnedSlice();
+            return Result(*Node).init(in.offset, node);
         },
     }
 }
@@ -70,35 +67,32 @@ fn mapCompilationSequence(in: Result(SequenceValue(?Compilation)), compiler_cont
         else => {
             var sequence = in.result.value;
 
-            // TODO(slimsag): mapTo should be async
-            nosuspend {
-                // Collect all the parser compilations.
-                var parsers = std.ArrayList(*Parser(void, *Node)).init(_allocator);
-                var sub = sequence.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"));
-                var offset = in.offset;
-                while (sub.next()) |next| {
-                    offset = next.offset;
-                    const compilation = next.result.value;
-                    if (compilation) |c| {
-                        try parsers.append(c.value.parser.ptr.ref());
-                    }
+            // Collect all the parser compilations.
+            var parsers = std.ArrayList(*Parser(void, *Node)).init(_allocator);
+            var sub = sequence.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"));
+            var offset = in.offset;
+            while (sub.next()) |next| {
+                offset = next.offset;
+                const compilation = next.result.value;
+                if (compilation) |c| {
+                    try parsers.append(c.value.parser.ptr.ref());
                 }
-                var slice = parsers.toOwnedSlice();
-
-                // Build a parser which maps the many Parser(void, *Node) compilations into a
-                // single Parser(void, *Node) which has each node as a child.
-                var sequence_compilation = Sequence(void, *Node).init(slice);
-                var mapped = MapTo(void, SequenceValue(*Node), *Node).init(.{
-                    .parser = try sequence_compilation.parser.heapAlloc(_allocator, sequence_compilation),
-                    .mapTo = mapNodeSequence,
-                });
-
-                var result_compilation = Compilation.initParser(Compilation.CompiledParser{
-                    .ptr = try mapped.parser.heapAlloc(_allocator, mapped),
-                    .slice = slice,
-                });
-                return Result(?Compilation).init(offset, result_compilation);
             }
+            var slice = parsers.toOwnedSlice();
+
+            // Build a parser which maps the many Parser(void, *Node) compilations into a
+            // single Parser(void, *Node) which has each node as a child.
+            var sequence_compilation = Sequence(void, *Node).init(slice);
+            var mapped = MapTo(void, SequenceValue(*Node), *Node).init(.{
+                .parser = try sequence_compilation.parser.heapAlloc(_allocator, sequence_compilation),
+                .mapTo = mapNodeSequence,
+            });
+
+            var result_compilation = Compilation.initParser(Compilation.CompiledParser{
+                .ptr = try mapped.parser.heapAlloc(_allocator, mapped),
+                .slice = slice,
+            });
+            return Result(?Compilation).init(offset, result_compilation);
         },
     }
 }
