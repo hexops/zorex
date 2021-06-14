@@ -123,14 +123,15 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
     // Whitespace = Newline | Space ;
     // Assignment = "=" ;
     // Semicolon = ";" ;
-    // Identifier = /[A-Z][[:alnum:]_]*/
-    // RegExpr = "/", RegexpGrammar, "/" ;
-    // Expr = RegExpr | Identifier ;
+    // Identifier = /[A-Z][[:alnum:]_]*/ ;
+    // NestedPattern = "/", Pattern, "/" ;
+    // Expr = NestedPattern | Identifier ;
     // ExprList = (ExprList, ",")? , Expr ;
     // Definition = Identifier , Whitespace+, Assignment, Whitespace+, ExprList, Semicolon ;
     // Grammar = (Definition | Expr | Whitespace+)+, EOF ;
     // ```
     //
+
     var newline = MapTo(*CompilerContext, LiteralValue, ?Compilation).init(.{
         .parser = (&OneOf(*CompilerContext, LiteralValue).init(&.{
             (&Literal(*CompilerContext).init("\r\n").parser).ref(),
@@ -188,11 +189,10 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
         .mapTo = mapLiteralToNone,
     });
 
-    var reg_expr = MapTo(*CompilerContext, SequenceValue(?Compilation), ?Compilation).init(.{
+    var nested_pattern = MapTo(*CompilerContext, SequenceValue(?Compilation), ?Compilation).init(.{
         .parser = (&Sequence(*CompilerContext, ?Compilation).init(&.{
             (&forward_slash.parser).ref(),
-            // TODO(slimsag): define the regular expression grammar!
-            //(&reg_expr_grammar.parser).ref(),
+            //(&pattern.parser).ref(),
             (&forward_slash.parser).ref(),
         }).parser).ref(),
         .mapTo = struct {
@@ -246,7 +246,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
         }.mapTo,
     });
     var expr = OneOf(*CompilerContext, ?Compilation).init(&.{
-        (&reg_expr.parser).ref(),
+        (&nested_pattern.parser).ref(),
         (&identifier_expr.parser).ref(),
     });
 
