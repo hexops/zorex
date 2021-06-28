@@ -20,7 +20,7 @@ It uses [an optimized GLL parser combinator framework called Combn](./src/combn/
 
 ## A quick note about academic terminology
 
-Technically, Zorex is "an advanced pattern matching engine", and it is arguably incorrect to call it a _regular expression engine_ because regular expressions by nature cannot parse non-regular languages (such as HTML, which is a context-free grammar.)
+Technically, Zorex is "an advanced pattern matching engine", and it is arguably incorrect to call it a _regular expression engine_ because regular expressions by nature cannot parse non-regular languages (such as HTML).
 
 Any regex engine that supports backtracking, however, is _also_ "not a regular expression engine", as the author of Perl's regex engine Larry Wall [puts it](https://raku.org/archive/doc/design/apo/A05.html):
 
