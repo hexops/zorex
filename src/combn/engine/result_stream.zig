@@ -139,7 +139,10 @@ test "result_stream" {
         const value = struct {
             value: i32,
 
-            pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {}
+            pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
+                _ = self;
+                _ = allocator;
+            }
         };
         const subscriber = ParserPosKey{
             .node_name = 0,

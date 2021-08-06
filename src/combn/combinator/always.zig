@@ -5,7 +5,10 @@ const testing = std.testing;
 const mem = std.mem;
 
 pub const AlwaysVoid = struct {
-    pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {}
+    pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
+        _ = self;
+        _ = allocator;
+    }
 };
 
 /// If the result is not `null`, its `.offset` value will be updated to reflect the current parse
@@ -34,6 +37,7 @@ pub fn Always(comptime Payload: type, comptime Value: type) type {
         }
 
         pub fn nodeName(parser: *const Parser(Payload, Value), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+            _ = node_name_cache;
             const self = @fieldParentPtr(Self, "parser", parser);
 
             var v = std.hash_map.hashString("Always");

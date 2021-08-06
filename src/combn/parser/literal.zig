@@ -10,7 +10,10 @@ pub const LiteralValue = struct {
     /// The `input` string itself.
     value: []const u8,
 
-    pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {}
+    pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
+        _ = self;
+        _ = allocator;
+    }
 };
 
 /// Matches the literal `input` string.
@@ -28,6 +31,7 @@ pub fn Literal(comptime Payload: type) type {
         }
 
         pub fn nodeName(parser: *const Parser(Payload, LiteralValue), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+            _ = node_name_cache;
             const self = @fieldParentPtr(Self, "parser", parser);
 
             var v = std.hash_map.hashString("Literal");

@@ -92,8 +92,6 @@ pub fn deinit(self: *const Program) void {
 test "example_regex" {
     const allocator = testing.allocator;
 
-    const String = @import("String.zig");
-
     // Compile the regex.
     var program = Program.init(allocator, "//");
     defer program.deinit();
@@ -123,8 +121,6 @@ test "example_regex" {
 
 test "example_zorex" {
     const allocator = testing.allocator;
-
-    const String = @import("String.zig");
 
     // Compile the zorex.
     var program = Program.init(allocator, "Date = //; Date");

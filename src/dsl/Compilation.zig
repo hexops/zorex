@@ -53,6 +53,7 @@ pub fn deinit(self: *const Compilation, allocator: *mem.Allocator) void {
 
 const HashContext = struct {
     pub fn hash(self: @This(), key: Compilation) u64 {
+        _ = self;
         return switch (key.value) {
             .parser => |p| @ptrToInt(p.ptr),
             .identifier => |ident| std.hash_map.hashString(ident.value),
@@ -60,6 +61,7 @@ const HashContext = struct {
     }
 
     pub fn eql(self: @This(), a: Compilation, b: Compilation) bool {
+        _ = self;
         return switch (a.value) {
             .parser => |aa| switch (b.value) {
                 .parser => |bb| aa.ptr == bb.ptr,

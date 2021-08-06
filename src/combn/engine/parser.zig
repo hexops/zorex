@@ -462,6 +462,7 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
         /// turning this `Parser` into a heap-allocated one. Returned is a poiner to the
         /// heap-allocated `&parent.parser`.
         pub fn heapAlloc(self: *const @This(), allocator: *mem.Allocator, parent: anytype) !*@This() {
+            _ = self;
             const Parent = @TypeOf(parent);
             var memory = try allocator.allocAdvanced(u8, @alignOf(Parent), @sizeOf(Parent), mem.Allocator.Exact.at_least);
             var parent_ptr = @ptrCast(*Parent, &memory[0]);
@@ -515,14 +516,13 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
 }
 
 test "syntax" {
-    const p = Parser(void, []u8);
+    _ = Parser(void, []u8);
 }
 
 test "heap_parser" {
     nosuspend {
         const Literal = @import("../parser/literal.zig").Literal;
         const LiteralValue = @import("../parser/literal.zig").LiteralValue;
-        const LiteralContext = @import("../parser/literal.zig").LiteralContext;
 
         const allocator = testing.allocator;
 

@@ -28,6 +28,10 @@ const mem = std.mem;
 const assert = std.debug.assert;
 
 fn mapLiteralToNone(in: Result(LiteralValue), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!?Result(?Compilation) {
+    _ = compiler_context;
+    _ = _allocator;
+    _ = path;
+    _ = key;
     return switch (in.result) {
         .err => Result(?Compilation).initError(in.offset, in.result.err),
         else => Result(?Compilation).init(in.offset, null),
@@ -37,6 +41,7 @@ fn mapLiteralToNone(in: Result(LiteralValue), compiler_context: *CompilerContext
 /// Maps a SequenceValue(*Node) -> singular *Node with no name and children (each of the nodes in
 /// the sequence.)
 fn mapNodeSequence(in: Result(SequenceValue(*Node)), program_context: void, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!?Result(*Node) {
+    _ = program_context;
     switch (in.result) {
         .err => return Result(*Node).initError(in.offset, in.result.err),
         else => {
@@ -62,6 +67,7 @@ fn mapNodeSequence(in: Result(SequenceValue(*Node)), program_context: void, _all
 /// Maps a SequenceValue(?Compilation) -> singular ?Compilation which parses all compilations in sequence,
 /// emitting a single unnamed Node with children.
 fn mapCompilationSequence(in: Result(SequenceValue(?Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!?Result(?Compilation) {
+    _ = compiler_context;
     switch (in.result) {
         .err => return Result(?Compilation).initError(in.offset, in.result.err),
         else => {
@@ -153,6 +159,10 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
         }).parser).ref(),
         .mapTo = struct {
             fn mapTo(in: Result(RepeatedValue(?Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
+                _ = compiler_context;
+                _ = _allocator;
+                _ = key;
+                _ = path;
                 switch (in.result) {
                     .err => return Result(?Compilation).initError(in.offset, in.result.err),
                     else => {
@@ -187,10 +197,14 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
         }).parser).ref(),
         .mapTo = struct {
             fn mapTo(in: Result(SequenceValue(?Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
+                _ = compiler_context;
+                _ = key;
+                _ = path;
                 switch (in.result) {
                     .err => return Result(?Compilation).initError(in.offset, in.result.err),
                     else => {
                         var sequence = in.result.value;
+                        _ = sequence;
 
                         // TODO(slimsag): actually compose the compilation to parse this regexp!
                         const node = try Node.init(_allocator, String.init("TODO(slimsag): value from parsing regexp!"), null);
@@ -212,6 +226,9 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
         .parser = (&Identifier.init().parser).ref(),
         .mapTo = struct {
             fn mapTo(in: Result(?Compilation), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
+                _ = _allocator;
+                _ = key;
+                _ = path;
                 switch (in.result) {
                     .err => return Result(?Compilation).initError(in.offset, in.result.err),
                     else => {
@@ -254,6 +271,8 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
         }).parser).ref(),
         .mapTo = struct {
             fn mapTo(in: Result(SequenceValue(?Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
+                _ = compiler_context;
+                _ = _allocator;
                 switch (in.result) {
                     .err => return Result(?Compilation).initError(in.offset, in.result.err),
                     else => {
@@ -273,6 +292,10 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
         .parser = (&Optional(*CompilerContext, ?Compilation).init((&expr_list_inner_left.parser).ref()).parser).ref(),
         .mapTo = struct {
             fn mapTo(in: Result(??Compilation), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
+                _ = compiler_context;
+                _ = _allocator;
+                _ = key;
+                _ = path;
                 switch (in.result) {
                     .err => return Result(?Compilation).initError(in.offset, in.result.err),
                     else => {
@@ -298,6 +321,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
         }).parser).ref(),
         .mapTo = struct {
             fn mapTo(in: Result(SequenceValue(?Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
+                _ = _allocator;
                 switch (in.result) {
                     .err => return Result(?Compilation).initError(in.offset, in.result.err),
                     else => {
@@ -344,6 +368,8 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
         }).parser).ref(),
         .mapTo = struct {
             fn mapTo(in: Result(RepeatedValue(?Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(Compilation) {
+                _ = compiler_context;
+                _ = _allocator;
                 switch (in.result) {
                     .err => return Result(Compilation).initError(in.offset, in.result.err),
                     else => {

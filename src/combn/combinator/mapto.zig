@@ -81,7 +81,10 @@ test "mapto" {
                 return .{ .value = value };
             }
 
-            pub fn deinit(self: *const @This(), _allocator: *mem.Allocator) void {}
+            pub fn deinit(self: *const @This(), _allocator: *mem.Allocator) void {
+                _ = self;
+                _ = _allocator;
+            }
         };
 
         const Payload = void;
@@ -92,6 +95,10 @@ test "mapto" {
             .parser = (&Literal(Payload).init("hello").parser).ref(),
             .mapTo = struct {
                 fn mapTo(in: Result(LiteralValue), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(String) {
+                    _ = payload;
+                    _ = _allocator;
+                    _ = key;
+                    _ = path;
                     switch (in.result) {
                         .err => return Result(String).initError(in.offset, in.result.err),
                         else => return Result(String).init(in.offset, String.init("hello")),

@@ -20,7 +20,10 @@ test "direct_left_recursion_empty_language" {
         const node = struct {
             name: []const u8,
 
-            pub fn deinit(self: *const @This(), _allocator: *mem.Allocator) void {}
+            pub fn deinit(self: *const @This(), _allocator: *mem.Allocator) void {
+                _ = self;
+                _ = _allocator;
+            }
         };
 
         const Payload = void;
@@ -34,6 +37,7 @@ test "direct_left_recursion_empty_language" {
             .parser = (&SequenceAmbiguous(Payload, node).init(&parsers).parser).ref(),
             .mapTo = struct {
                 fn mapTo(in: Result(SequenceAmbiguousValue(node)), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(node) {
+                    _ = payload;
                     switch (in.result) {
                         .err => return Result(node).initError(in.offset, in.result.err),
                         else => {
@@ -72,6 +76,7 @@ test "direct_left_recursion" {
         name: std.ArrayList(u8),
 
         pub fn deinit(self: *const @This(), _allocator: *mem.Allocator) void {
+            _ = _allocator;
             self.name.deinit();
         }
     };
@@ -84,6 +89,10 @@ test "direct_left_recursion" {
         .parser = (&Literal(Payload).init("abc").parser).ref(),
         .mapTo = struct {
             fn mapTo(in: Result(LiteralValue), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(node) {
+                _ = _allocator;
+                _ = payload;
+                _ = key;
+                _ = path;
                 switch (in.result) {
                     .err => return Result(node).initError(in.offset, in.result.err),
                     else => {
@@ -105,6 +114,7 @@ test "direct_left_recursion" {
             .parser = (&SequenceAmbiguous(Payload, node).init(&parsers).parser).ref(),
             .mapTo = struct {
                 fn mapTo(in: Result(SequenceAmbiguousValue(node)), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(node) {
+                    _ = payload;
                     switch (in.result) {
                         .err => return Result(node).initError(in.offset, in.result.err),
                         else => {
@@ -134,6 +144,9 @@ test "direct_left_recursion" {
         .parser = (&Optional(Payload, node).init((&expr.parser).ref()).parser).ref(),
         .mapTo = struct {
             fn mapTo(in: Result(?node), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(node) {
+                _ = payload;
+                _ = key;
+                _ = path;
                 switch (in.result) {
                     .err => return Result(node).initError(in.offset, in.result.err),
                     else => {

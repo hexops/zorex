@@ -28,14 +28,14 @@ pub const Identifier = struct {
     }
 
     pub fn nodeName(parser: *const Parser(*CompilerContext, ?Compilation), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
-        const self = @fieldParentPtr(Self, "parser", parser);
-
+        _ = parser;
+        _ = node_name_cache;
         var v = std.hash_map.hashString("Identifier");
         return v;
     }
 
     pub fn parse(parser: *const Parser(*CompilerContext, ?Compilation), in_ctx: *const Context(*CompilerContext, ?Compilation)) callconv(.Async) !void {
-        const self = @fieldParentPtr(Self, "parser", parser);
+        _ = parser;
         var ctx = in_ctx.with({});
         defer ctx.results.close();
 

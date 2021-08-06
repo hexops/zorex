@@ -5,7 +5,10 @@ const testing = std.testing;
 const mem = std.mem;
 
 pub const EndValue = struct {
-    pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {}
+    pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
+        _ = self;
+        _ = allocator;
+    }
 };
 
 /// Matches the end of the `input` string.
@@ -20,12 +23,13 @@ pub fn End(comptime Payload: type) type {
         }
 
         pub fn nodeName(parser: *const Parser(Payload, EndValue), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
-            const self = @fieldParentPtr(Self, "parser", parser);
+            _ = parser;
+            _ = node_name_cache;
             return std.hash_map.hashString("End");
         }
 
         pub fn parse(parser: *const Parser(Payload, EndValue), in_ctx: *const Context(Payload, EndValue)) callconv(.Async) !void {
-            const self = @fieldParentPtr(Self, "parser", parser);
+            _ = parser;
             var ctx = in_ctx.with({});
             defer ctx.results.close();
 
