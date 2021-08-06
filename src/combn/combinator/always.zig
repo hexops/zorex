@@ -27,8 +27,9 @@ pub fn Always(comptime Payload: type, comptime Value: type) type {
 
         const Self = @This();
 
-        pub fn init(input: AlwaysContext(Value)) Self {
-            return Self{ .input = input };
+        pub fn init(allocator: *mem.Allocator, input: AlwaysContext(Value)) !*Parser(Payload, Value) {
+            const self = Self{ .input = input };
+            return try self.parser.heapAlloc(allocator, self);
         }
 
         pub fn deinit(parser: *Parser(Payload, Value), allocator: *mem.Allocator) void {
@@ -67,9 +68,10 @@ test "always" {
         const ctx = try Context(Payload, AlwaysVoid).init(allocator, "hello world", {});
         defer ctx.deinit();
 
-        const noop = Always(Payload, AlwaysVoid).init(null);
+        const noop = try Always(Payload, AlwaysVoid).init(allocator, null);
+        defer noop.deinit(allocator);
 
-        try noop.parser.parse(&ctx);
+        try noop.parse(&ctx);
 
         var sub = ctx.subscribe();
         try testing.expect(sub.next() == null);

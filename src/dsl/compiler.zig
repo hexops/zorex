@@ -209,10 +209,10 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
                         // TODO(slimsag): actually compose the compilation to parse this regexp!
                         const node = try Node.init(_allocator, String.init("TODO(slimsag): value from parsing regexp!"), null);
                         const success = Result(*Node).init(in.offset, node);
-                        var always_success = Always(void, *Node).init(success);
+                        var always_success = try Always(void, *Node).init(_allocator, success);
 
                         var result_compilation = Compilation.initParser(Compilation.CompiledParser{
-                            .ptr = try always_success.parser.heapAlloc(_allocator, always_success),
+                            .ptr = always_success,
                             .slice = null,
                         });
                         return Result(?Compilation).init(in.offset, result_compilation);
