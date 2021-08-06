@@ -1,7 +1,7 @@
 const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
-const ParserPath = @import("parser_path.zig").ParserPath;
+const ParserPath = @import("ParserPath.zig");
 const ParserPosKey = @import("parser.zig").ParserPosKey;
 const deinitOptional = @import("parser.zig").deinitOptional;
 

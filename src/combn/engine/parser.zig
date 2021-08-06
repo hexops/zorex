@@ -1,6 +1,6 @@
 const ResultStream = @import("result_stream.zig").ResultStream;
 const Iterator = @import("result_stream.zig").Iterator;
-const ParserPath = @import("parser_path.zig").ParserPath;
+const ParserPath = @import("ParserPath.zig");
 
 const std = @import("std");
 const testing = std.testing;
