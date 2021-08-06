@@ -1,6 +1,6 @@
 # Zorex: the omnipotent regex engine <a href="https://hexops.com"><img align="right" alt="Hexops logo" src="https://raw.githubusercontent.com/hexops/media/main/readme.svg"></img></a>
 
-[![CI](https://github.com/hexops/ztemplate/workflows/CI/badge.svg)](https://github.com/hexops/ztemplate/actions)
+[![CI](https://github.com/hexops/zorex/workflows/CI/badge.svg)](https://github.com/hexops/zorex/actions)
 
 Zorex blurs the line between regex engine and advanced parsing algorithms used to parse programming languages.
 
