@@ -448,7 +448,7 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
             parseImpl: fn (self: *const Self, ctx: *const Context(Payload, Value)) callconv(.Async) Error!void,
             nodeNameImpl: fn (self: *const Self, node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64,
             deinitImpl: ?fn (self: *Self, allocator: *mem.Allocator) void,
-        ) @This() {
+        ) Self {
             return .{
                 ._parse = parseImpl,
                 ._nodeName = nodeNameImpl,
@@ -461,7 +461,7 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
         /// Allocates and stores the `parent` value (e.g. `Literal(...).init(...)` on the heap,
         /// turning this `Parser` into a heap-allocated one. Returned is a poiner to the
         /// heap-allocated `&parent.parser`.
-        pub fn heapAlloc(self: *const @This(), allocator: *mem.Allocator, parent: anytype) !*@This() {
+        pub fn heapAlloc(self: *const Self, allocator: *mem.Allocator, parent: anytype) !*Self {
             _ = self;
             const Parent = @TypeOf(parent);
             var memory = try allocator.allocAdvanced(u8, @alignOf(Parent), @sizeOf(Parent), mem.Allocator.Exact.at_least);
@@ -472,12 +472,12 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
             return &parent_ptr.parser;
         }
 
-        pub fn ref(self: *@This()) *@This() {
+        pub fn ref(self: *Self) *Self {
             self._refs += 1;
             return self;
         }
 
-        pub fn deinit(self: *@This(), allocator: *mem.Allocator) void {
+        pub fn deinit(self: *Self, allocator: *mem.Allocator) void {
             self._refs -= 1;
             if (self._refs == 0) {
                 if (self._deinit) |dfn| {
