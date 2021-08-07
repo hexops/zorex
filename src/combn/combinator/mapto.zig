@@ -23,8 +23,9 @@ pub fn MapTo(comptime Payload: type, comptime Value: type, comptime Target: type
 
         const Self = @This();
 
-        pub fn init(input: MapToContext(Payload, Value, Target)) Self {
-            return Self{ .input = input };
+        pub fn init(allocator: *mem.Allocator, input: MapToContext(Payload, Value, Target)) !*Parser(Payload, Target) {
+            const self = Self{ .input = input };
+            return try self.parser.heapAlloc(allocator, self);
         }
 
         pub fn deinit(parser: *Parser(Payload, Target), allocator: *mem.Allocator) void {
@@ -91,7 +92,7 @@ test "mapto" {
         const ctx = try Context(Payload, String).init(allocator, "hello world", {});
         defer ctx.deinit();
 
-        const mapTo = MapTo(Payload, LiteralValue, String).init(.{
+        const mapTo = try MapTo(Payload, LiteralValue, String).init(allocator, .{
             .parser = (&Literal(Payload).init("hello").parser).ref(),
             .mapTo = struct {
                 fn mapTo(in: Result(LiteralValue), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(String) {
@@ -106,8 +107,9 @@ test "mapto" {
                 }
             }.mapTo,
         });
+        defer mapTo.deinit(allocator);
 
-        try mapTo.parser.parse(&ctx);
+        try mapTo.parse(&ctx);
 
         var sub = ctx.subscribe();
         var first = sub.next().?;
