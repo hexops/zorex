@@ -49,7 +49,7 @@ test "direct_left_recursion_empty_language" {
                 }
             }.mapTo,
         });
-        defer expr.deinit(allocator);
+        defer expr.deinit(allocator, null);
         parsers[0] = expr.ref();
         try expr.parse(&ctx);
 
@@ -105,7 +105,6 @@ test "direct_left_recursion" {
             }
         }.mapTo,
     });
-    defer abcAsNode.deinit(allocator);
 
     var parsers = [_]*Parser(Payload, node){
         undefined, // placeholder for left-recursive Expr itself
@@ -166,7 +165,7 @@ test "direct_left_recursion" {
             }
         }.mapTo,
     });
-    defer optionalExpr.deinit(allocator);
+    defer optionalExpr.deinit(allocator, null);
     parsers[0] = optionalExpr.ref();
     try expr.parser.parse(&ctx);
 

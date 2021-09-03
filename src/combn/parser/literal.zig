@@ -21,7 +21,7 @@ pub const LiteralValue = struct {
 /// The `input` string must remain alive for as long as the `Literal` parser will be used.
 pub fn Literal(comptime Payload: type) type {
     return struct {
-        parser: Parser(Payload, LiteralValue) = Parser(Payload, LiteralValue).init(parse, nodeName, null),
+        parser: Parser(Payload, LiteralValue) = Parser(Payload, LiteralValue).init(parse, nodeName, null, null),
         input: LiteralContext,
 
         const Self = @This();

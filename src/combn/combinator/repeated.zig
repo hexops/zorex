@@ -46,7 +46,7 @@ pub fn RepeatedValue(comptime Value: type) type {
 /// The `input` parsers must remain alive for as long as the `Repeated` parser will be used.
 pub fn Repeated(comptime Payload: type, comptime Value: type) type {
     return struct {
-        parser: Parser(Payload, RepeatedValue(Value)) = Parser(Payload, RepeatedValue(Value)).init(parse, nodeName, deinit),
+        parser: Parser(Payload, RepeatedValue(Value)) = Parser(Payload, RepeatedValue(Value)).init(parse, nodeName, deinit, countReferencesTo),
         input: RepeatedContext(Payload, Value),
 
         const Self = @This();
@@ -55,9 +55,15 @@ pub fn Repeated(comptime Payload: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *Parser(Payload, RepeatedValue(Value)), allocator: *mem.Allocator) void {
+        pub fn deinit(parser: *Parser(Payload, RepeatedValue(Value)), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
             const self = @fieldParentPtr(Self, "parser", parser);
-            self.input.parser.deinit(allocator);
+            self.input.parser.deinit(allocator, freed);
+        }
+
+        pub fn countReferencesTo(parser: *const Parser(Payload, RepeatedValue(Value)), other: usize, freed: *std.AutoHashMap(usize, void)) usize {
+            const self = @fieldParentPtr(Self, "parser", parser);
+            if (@ptrToInt(parser) == other) return 1;
+            return self.input.parser.countReferencesTo(other, freed);
         }
 
         pub fn nodeName(parser: *const Parser(Payload, RepeatedValue(Value)), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {

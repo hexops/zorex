@@ -19,7 +19,7 @@ const mem = std.mem;
 ///
 /// The `input` string must remain alive for as long as the `Identifier` parser will be used.
 pub const Identifier = struct {
-    parser: Parser(*CompilerContext, ?Compilation) = Parser(*CompilerContext, ?Compilation).init(parse, nodeName, null),
+    parser: Parser(*CompilerContext, ?Compilation) = Parser(*CompilerContext, ?Compilation).init(parse, nodeName, null, null),
 
     const Self = @This();
 

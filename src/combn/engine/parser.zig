@@ -440,19 +440,22 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
         const Self = @This();
         _parse: fn (self: *const Self, ctx: *const Context(Payload, Value)) callconv(.Async) Error!void,
         _nodeName: fn (self: *const Self, node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64,
-        _deinit: ?fn (self: *Self, allocator: *mem.Allocator) void,
+        _deinit: ?fn (self: *Self, allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void,
+        _countReferencesTo: ?fn(self: *const Self, other: usize, freed: *std.AutoHashMap(usize, void)) usize,
         _heap_storage: ?[]u8,
         _refs: usize,
 
         pub fn init(
             parseImpl: fn (self: *const Self, ctx: *const Context(Payload, Value)) callconv(.Async) Error!void,
             nodeNameImpl: fn (self: *const Self, node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64,
-            deinitImpl: ?fn (self: *Self, allocator: *mem.Allocator) void,
+            deinitImpl: ?fn (self: *Self, allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void,
+            countReferencesToImpl: ?fn (self: *const Self, other: usize, freed: *std.AutoHashMap(usize, void)) usize,
         ) Self {
             return .{
                 ._parse = parseImpl,
                 ._nodeName = nodeNameImpl,
                 ._deinit = deinitImpl,
+                ._countReferencesTo = countReferencesToImpl,
                 ._heap_storage = null,
                 ._refs = 0,
             };
@@ -477,17 +480,33 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
             return self;
         }
 
-        pub fn deinit(self: *Self, allocator: *mem.Allocator) void {
+        pub fn countReferencesTo(self: *Self, other: usize, freed: *std.AutoHashMap(usize, void)) usize {
+            if (freed.contains(@ptrToInt(self))) return 0;
+            return if (self._countReferencesTo) |countRefs| countRefs(self, other, freed) else 0;
+        }
+
+        pub fn deinit(self: *Self, allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
+            var freed_parsers = if (freed) |f| f else &std.AutoHashMap(usize, void).init(allocator);
+            if (freed_parsers.contains(@ptrToInt(self)) or self._refs == 0) {
+                if (freed == null) {
+                    freed_parsers.deinit();
+                }
+                return;
+            }
             self._refs -= 1;
-            if (self._refs == 0) {
+            if (self._refs == 0 or self._refs == self.countReferencesTo(@ptrToInt(self), freed_parsers)) {
+                freed_parsers.put(@ptrToInt(self), .{}) catch unreachable;
+                self._refs = 0;
                 if (self._deinit) |dfn| {
-                    dfn(self, allocator);
+                    dfn(self, allocator, freed_parsers);
                 }
                 if (self._heap_storage) |s| {
                     allocator.free(s);
                 }
             }
-            if (self._refs < 0) unreachable;
+            if (freed == null) {
+                freed_parsers.deinit();
+            }
         }
 
         pub fn parse(self: *const Self, ctx: *const Context(Payload, Value)) callconv(.Async) Error!void {
@@ -536,7 +555,7 @@ test "heap_parser" {
 
         // Move to heap.
         var heap_parser = try literal_parser.parser.heapAlloc(allocator, literal_parser);
-        defer heap_parser.deinit(allocator);
+        defer heap_parser.deinit(allocator, null);
 
         // Use it.
         try heap_parser.parse(&ctx);

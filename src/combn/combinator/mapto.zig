@@ -18,7 +18,7 @@ pub fn MapToContext(comptime Payload: type, comptime Value: type, comptime Targe
 /// The `input.parser` must remain alive for as long as the `MapTo` parser will be used.
 pub fn MapTo(comptime Payload: type, comptime Value: type, comptime Target: type) type {
     return struct {
-        parser: Parser(Payload, Target) = Parser(Payload, Target).init(parse, nodeName, deinit),
+        parser: Parser(Payload, Target) = Parser(Payload, Target).init(parse, nodeName, deinit, countReferencesTo),
         input: MapToContext(Payload, Value, Target),
 
         const Self = @This();
@@ -28,9 +28,15 @@ pub fn MapTo(comptime Payload: type, comptime Value: type, comptime Target: type
             return try self.parser.heapAlloc(allocator, self);
         }
 
-        pub fn deinit(parser: *Parser(Payload, Target), allocator: *mem.Allocator) void {
+        pub fn deinit(parser: *Parser(Payload, Target), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
             const self = @fieldParentPtr(Self, "parser", parser);
-            self.input.parser.deinit(allocator);
+            self.input.parser.deinit(allocator, freed);
+        }
+
+        pub fn countReferencesTo(parser: *const Parser(Payload, Target), other: usize, freed: *std.AutoHashMap(usize, void)) usize {
+            const self = @fieldParentPtr(Self, "parser", parser);
+            if (@ptrToInt(parser) == other) return 1;
+            return self.input.parser.countReferencesTo(other, freed);
         }
 
         pub fn nodeName(parser: *const Parser(Payload, Target), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
@@ -107,7 +113,7 @@ test "mapto" {
                 }
             }.mapTo,
         });
-        defer mapTo.deinit(allocator);
+        defer mapTo.deinit(allocator, null);
 
         try mapTo.parse(&ctx);
 
