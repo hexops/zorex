@@ -22,7 +22,7 @@ pub fn AlwaysContext(comptime Value: type) type {
 /// The `input` value is taken ownership of by the parser, and deinitialized once the parser is.
 pub fn Always(comptime Payload: type, comptime Value: type) type {
     return struct {
-        parser: Parser(Payload, Value) = Parser(Payload, Value).init(parse, nodeName, deinit),
+        parser: Parser(Payload, Value) = Parser(Payload, Value).init(parse, nodeName, deinit, null),
         input: AlwaysContext(Value),
 
         const Self = @This();
@@ -32,7 +32,8 @@ pub fn Always(comptime Payload: type, comptime Value: type) type {
             return try self.parser.heapAlloc(allocator, self);
         }
 
-        pub fn deinit(parser: *Parser(Payload, Value), allocator: *mem.Allocator) void {
+        pub fn deinit(parser: *Parser(Payload, Value), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
+            _ = freed;
             const self = @fieldParentPtr(Self, "parser", parser);
             if (self.input) |input| input.deinit(allocator);
         }
@@ -69,7 +70,7 @@ test "always" {
         defer ctx.deinit();
 
         const noop = try Always(Payload, AlwaysVoid).init(allocator, null);
-        defer noop.deinit(allocator);
+        defer noop.deinit(allocator, null);
 
         try noop.parse(&ctx);
 

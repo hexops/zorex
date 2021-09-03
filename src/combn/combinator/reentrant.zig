@@ -27,7 +27,7 @@ pub fn ReentrantContext(comptime Payload: type, comptime Value: type) type {
 /// The `input.parser` must remain alive for as long as the `Reentrant` parser will be used.
 pub fn Reentrant(comptime Payload: type, comptime Value: type) type {
     return struct {
-        parser: Parser(Payload, Value) = Parser(Payload, Value).init(parse, nodeName, deinit),
+        parser: Parser(Payload, Value) = Parser(Payload, Value).init(parse, nodeName, deinit, countReferencesTo),
         input: ReentrantContext(Payload, Value),
 
         const Self = @This();
@@ -36,9 +36,15 @@ pub fn Reentrant(comptime Payload: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *Parser(Payload, Value), allocator: *mem.Allocator) void {
+        pub fn deinit(parser: *Parser(Payload, Value), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
             const self = @fieldParentPtr(Self, "parser", parser);
-            self.input.deinit(allocator);
+            self.input.deinit(allocator, freed);
+        }
+
+        pub fn countReferencesTo(parser: *const Parser(Payload, Value), other: usize, freed: *std.AutoHashMap(usize, void)) usize {
+            const self = @fieldParentPtr(Self, "parser", parser);
+            if (@ptrToInt(parser) == other) return 1;
+            return self.input.countReferencesTo(other, freed);
         }
 
         pub fn nodeName(parser: *const Parser(Payload, Value), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {

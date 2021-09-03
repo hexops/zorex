@@ -91,7 +91,7 @@ pub fn RepeatedAmbiguousValue(comptime Value: type) type {
 /// The `input` parsers must remain alive for as long as the `RepeatedAmbiguous` parser will be used.
 pub fn RepeatedAmbiguous(comptime Payload: type, comptime Value: type) type {
     return struct {
-        parser: Parser(Payload, RepeatedAmbiguousValue(Value)) = Parser(Payload, RepeatedAmbiguousValue(Value)).init(parse, nodeName, deinit),
+        parser: Parser(Payload, RepeatedAmbiguousValue(Value)) = Parser(Payload, RepeatedAmbiguousValue(Value)).init(parse, nodeName, deinit, countReferencesTo),
         input: RepeatedAmbiguousContext(Payload, Value),
 
         const Self = @This();
@@ -100,9 +100,15 @@ pub fn RepeatedAmbiguous(comptime Payload: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *Parser(Payload, RepeatedAmbiguousValue(Value)), allocator: *mem.Allocator) void {
+        pub fn deinit(parser: *Parser(Payload, RepeatedAmbiguousValue(Value)), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
             const self = @fieldParentPtr(Self, "parser", parser);
-            self.input.parser.deinit(allocator);
+            self.input.parser.deinit(allocator, freed);
+        }
+
+        pub fn countReferencesTo(parser: *const Parser(Payload, RepeatedAmbiguousValue(Value)), other: usize, freed: *std.AutoHashMap(usize, void)) usize {
+            const self = @fieldParentPtr(Self, "parser", parser);
+            if (@ptrToInt(parser) == other) return 1;
+            return self.input.parser.countReferencesTo(other, freed);
         }
 
         pub fn nodeName(parser: *const Parser(Payload, RepeatedAmbiguousValue(Value)), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {

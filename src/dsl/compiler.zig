@@ -93,7 +93,7 @@ fn mapCompilationSequence(in: Result(SequenceValue(?Compilation)), compiler_cont
                 .parser = try sequence_compilation.parser.heapAlloc(_allocator, sequence_compilation),
                 .mapTo = mapNodeSequence,
             });
-            defer mapped.deinit(_allocator);
+            mapped._refs = 0;
 
             var result_compilation = Compilation.initParser(Compilation.CompiledParser{
                 .ptr = mapped.ref(),
@@ -141,7 +141,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
         }).parser).ref(),
         .mapTo = mapLiteralToNone,
     });
-    defer newline.deinit(allocator);
+    newline._refs = 0;
     var space = try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
         .parser = (&OneOf(*CompilerContext, LiteralValue).init(&.{
             (&Literal(*CompilerContext).init(" ").parser).ref(),
@@ -149,7 +149,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
         }).parser).ref(),
         .mapTo = mapLiteralToNone,
     });
-    defer space.deinit(allocator);
+    space._refs = 0;
 
     var whitespace = OneOf(*CompilerContext, ?Compilation).init(&.{
         newline.ref(),
@@ -178,23 +178,23 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
             }
         }.mapTo,
     });
-    defer whitespace_one_or_more.deinit(allocator);
+    whitespace_one_or_more._refs = 0;
 
     var assignment = try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
         .parser = (&Literal(*CompilerContext).init("=").parser).ref(),
         .mapTo = mapLiteralToNone,
     });
-    defer assignment.deinit(allocator);
+    assignment._refs = 0;
     var semicolon = try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
         .parser = (&Literal(*CompilerContext).init(";").parser).ref(),
         .mapTo = mapLiteralToNone,
     });
-    defer semicolon.deinit(allocator);
+    semicolon._refs = 0;
     var forward_slash = try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
         .parser = (&Literal(*CompilerContext).init("/").parser).ref(),
         .mapTo = mapLiteralToNone,
     });
-    defer forward_slash.deinit(allocator);
+    forward_slash._refs = 0;
 
     var nested_pattern = try MapTo(*CompilerContext, SequenceValue(?Compilation), ?Compilation).init(allocator, .{
         .parser = (&Sequence(*CompilerContext, ?Compilation).init(&.{
@@ -228,7 +228,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
             }
         }.mapTo,
     });
-    defer nested_pattern.deinit(allocator);
+    nested_pattern._refs = 0;
 
     var identifier_expr = try MapTo(*CompilerContext, ?Compilation, ?Compilation).init(allocator, .{
         .parser = (&Identifier.init().parser).ref(),
@@ -253,7 +253,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
             }
         }.mapTo,
     });
-    defer identifier_expr.deinit(allocator);
+    identifier_expr._refs = 0;
     var expr = OneOf(*CompilerContext, ?Compilation).init(&.{
         nested_pattern.ref(),
         identifier_expr.ref(),
@@ -268,13 +268,13 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
         .parser = (&Sequence(*CompilerContext, ?Compilation).init(&expr_list_parsers).parser).ref(),
         .mapTo = mapCompilationSequence,
     });
-    defer expr_list.deinit(allocator);
+    expr_list._refs = 0;
     // (ExprList, ",")
     var comma = try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
         .parser = (&Literal(*CompilerContext).init(",").parser).ref(),
         .mapTo = mapLiteralToNone,
     });
-    defer comma.deinit(allocator);
+    comma._refs = 0;
     var expr_list_inner_left = try MapTo(*CompilerContext, SequenceValue(?Compilation), ?Compilation).init(allocator, .{
         .parser = (&Sequence(*CompilerContext, ?Compilation).init(&.{
             expr_list.ref(),
@@ -299,7 +299,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
             }
         }.mapTo,
     });
-    defer expr_list_inner_left.deinit(allocator);
+    expr_list_inner_left._refs = 0;
     var optional_expr_list_inner_left = try MapTo(*CompilerContext, ??Compilation, ?Compilation).init(allocator, .{
         .parser = (&Optional(*CompilerContext, ?Compilation).init(expr_list_inner_left.ref()).parser).ref(),
         .mapTo = struct {
@@ -320,7 +320,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
             }
         }.mapTo,
     });
-    defer optional_expr_list_inner_left.deinit(allocator);
+    optional_expr_list_inner_left._refs = 0;
     expr_list_parsers[0] = optional_expr_list_inner_left.ref();
 
     var definition = try MapTo(*CompilerContext, SequenceValue(?Compilation), ?Compilation).init(allocator, .{
@@ -365,7 +365,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
             }
         }.mapTo,
     });
-    defer definition.deinit(allocator);
+    definition._refs = 0;
 
     var definition_or_expr_or_whitespace = OneOf(*CompilerContext, ?Compilation).init(&.{
         definition.ref(),
@@ -419,7 +419,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
             }
         }.mapTo,
     });
-    defer grammar.deinit(allocator);
+    defer grammar.deinit(allocator, null);
 
     var compilerContext = try CompilerContext.init(allocator);
     var ctx = try Context(*CompilerContext, Compilation).init(allocator, syntax, compilerContext);

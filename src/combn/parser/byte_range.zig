@@ -24,7 +24,7 @@ pub const ByteRangeValue = struct {
 /// Matches any single byte in the specified range.
 pub fn ByteRange(comptime Payload: type) type {
     return struct {
-        parser: Parser(Payload, ByteRangeValue) = Parser(Payload, ByteRangeValue).init(parse, nodeName, null),
+        parser: Parser(Payload, ByteRangeValue) = Parser(Payload, ByteRangeValue).init(parse, nodeName, null, null),
         input: ByteRangeContext,
 
         const Self = @This();

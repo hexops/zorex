@@ -39,7 +39,7 @@ pub fn SequenceValue(comptime Value: type) type {
 /// The `input` parsers must remain alive for as long as the `Sequence` parser will be used.
 pub fn Sequence(comptime Payload: type, comptime Value: type) type {
     return struct {
-        parser: Parser(Payload, SequenceValue(Value)) = Parser(Payload, SequenceValue(Value)).init(parse, nodeName, deinit),
+        parser: Parser(Payload, SequenceValue(Value)) = Parser(Payload, SequenceValue(Value)).init(parse, nodeName, deinit, countReferencesTo),
         input: SequenceContext(Payload, Value),
 
         const Self = @This();
@@ -48,11 +48,21 @@ pub fn Sequence(comptime Payload: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *Parser(Payload, SequenceValue(Value)), allocator: *mem.Allocator) void {
+        pub fn deinit(parser: *Parser(Payload, SequenceValue(Value)), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             for (self.input) |child_parser| {
-                child_parser.deinit(allocator);
+                child_parser.deinit(allocator, freed);
             }
+        }
+
+        pub fn countReferencesTo(parser: *const Parser(Payload, SequenceValue(Value)), other: usize, freed: *std.AutoHashMap(usize, void)) usize {
+            const self = @fieldParentPtr(Self, "parser", parser);
+            if (@ptrToInt(parser) == other) return 1;
+            var count: usize = 0;
+            for (self.input) |in_parser| {
+                count += in_parser.countReferencesTo(other, freed);
+            }
+            return count;
         }
 
         pub fn nodeName(parser: *const Parser(Payload, SequenceValue(Value)), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {

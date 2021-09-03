@@ -14,7 +14,7 @@ pub const EndValue = struct {
 /// Matches the end of the `input` string.
 pub fn End(comptime Payload: type) type {
     return struct {
-        parser: Parser(Payload, EndValue) = Parser(Payload, EndValue).init(parse, nodeName, null),
+        parser: Parser(Payload, EndValue) = Parser(Payload, EndValue).init(parse, nodeName, null, null),
 
         const Self = @This();
 
