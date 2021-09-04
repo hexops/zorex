@@ -222,7 +222,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
     });
 
     var identifier_expr = try MapTo(*CompilerContext, ?Compilation, ?Compilation).init(allocator, .{
-        .parser = (&Identifier.init().parser).ref(),
+        .parser = (try Identifier.init(allocator)).ref(),
         .mapTo = struct {
             fn mapTo(in: Result(?Compilation), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
                 _ = _allocator;
@@ -311,7 +311,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
 
     var definition = try MapTo(*CompilerContext, SequenceValue(?Compilation), ?Compilation).init(allocator, .{
         .parser = (try Sequence(*CompilerContext, ?Compilation).init(allocator, &.{
-            (&Identifier.init().parser).ref(),
+            (try Identifier.init(allocator)).ref(),
             whitespace_one_or_more.ref(),
             assignment.ref(),
             whitespace_one_or_more.ref(),
