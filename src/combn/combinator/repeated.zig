@@ -51,8 +51,9 @@ pub fn Repeated(comptime Payload: type, comptime Value: type) type {
 
         const Self = @This();
 
-        pub fn init(input: RepeatedContext(Payload, Value)) Self {
-            return Self{ .input = input };
+        pub fn init(allocator: *mem.Allocator, input: RepeatedContext(Payload, Value)) !*Parser(Payload, RepeatedValue(Value)) {
+            const self = Self{ .input = input };
+            return try self.parser.heapAlloc(allocator, self);
         }
 
         pub fn deinit(parser: *Parser(Payload, RepeatedValue(Value)), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
@@ -150,12 +151,13 @@ test "repeated" {
         const ctx = try Context(Payload, RepeatedValue(LiteralValue)).init(allocator, "abcabcabc123abc", {});
         defer ctx.deinit();
 
-        var abcInfinity = Repeated(Payload, LiteralValue).init(.{
+        var abcInfinity = try Repeated(Payload, LiteralValue).init(allocator, .{
             .parser = (&Literal(Payload).init("abc").parser).ref(),
             .min = 0,
             .max = -1,
         });
-        try abcInfinity.parser.parse(&ctx);
+        defer abcInfinity.deinit(allocator, null);
+        try abcInfinity.parse(&ctx);
 
         var sub = ctx.subscribe();
         var repeated = sub.next().?.result.value;
