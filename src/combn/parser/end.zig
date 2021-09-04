@@ -18,7 +18,12 @@ pub fn End(comptime Payload: type) type {
 
         const Self = @This();
 
-        pub fn init() Self {
+        pub fn init(allocator: *mem.Allocator) !*Parser(Payload, EndValue) {
+            const self = Self{};
+            return try self.parser.heapAlloc(allocator, self);
+        }
+
+        pub fn initStack() Self {
             return Self{};
         }
 
@@ -51,8 +56,9 @@ test "end" {
         var ctx = try Context(Payload, EndValue).init(allocator, "", {});
         defer ctx.deinit();
 
-        var e = End(Payload).init();
-        try e.parser.parse(&ctx);
+        var e = try End(Payload).init(allocator);
+        defer e.deinit(allocator, null);
+        try e.parse(&ctx);
 
         var sub = ctx.subscribe();
         var first = sub.next().?;
