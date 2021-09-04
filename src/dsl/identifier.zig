@@ -23,7 +23,12 @@ pub const Identifier = struct {
 
     const Self = @This();
 
-    pub fn init() Self {
+    pub fn init(allocator: *mem.Allocator) !*Parser(*CompilerContext, ?Compilation) {
+        const self = Self{};
+        return try self.parser.heapAlloc(allocator, self);
+    }
+
+    pub fn initStack() Self {
         return Self{};
     }
 
@@ -76,8 +81,9 @@ test "identifier" {
         var ctx = try Context(*CompilerContext, ?Compilation).init(allocator, "Grammar2", compilerContext);
         defer ctx.deinit();
 
-        var l = Identifier.init();
-        try l.parser.parse(&ctx);
+        var l = try Identifier.init(allocator);
+        defer l.deinit(allocator, null);
+        try l.parse(&ctx);
 
         var sub = ctx.subscribe();
         var r1 = sub.next().?;
