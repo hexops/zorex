@@ -29,7 +29,12 @@ pub fn ByteRange(comptime Payload: type) type {
 
         const Self = @This();
 
-        pub fn init(input: ByteRangeContext) Self {
+        pub fn init(allocator: *mem.Allocator, input: ByteRangeContext) !*Parser(Payload, ByteRangeValue) {
+            const self = Self{ .input = input };
+            return try self.parser.heapAlloc(allocator, self);
+        }
+
+        pub fn initStack(input: ByteRangeContext) Self {
             return Self{ .input = input };
         }
 
@@ -68,8 +73,9 @@ test "byte_range" {
         var ctx = try Context(Payload, ByteRangeValue).init(allocator, "hello world", {});
         defer ctx.deinit();
 
-        var any_byte = ByteRange(Payload).init(.{ .from = 0, .to = 255 });
-        try any_byte.parser.parse(&ctx);
+        var any_byte = try ByteRange(Payload).init(allocator, .{ .from = 0, .to = 255 });
+        defer any_byte.deinit(allocator, null);
+        try any_byte.parse(&ctx);
 
         var sub = ctx.subscribe();
         var first = sub.next().?;
