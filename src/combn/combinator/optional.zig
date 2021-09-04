@@ -20,8 +20,9 @@ pub fn Optional(comptime Payload: type, comptime Value: type) type {
 
         const Self = @This();
 
-        pub fn init(input: OptionalContext(Payload, Value)) Self {
-            return Self{ .input = input };
+        pub fn init(allocator: *mem.Allocator, input: OptionalContext(Payload, Value)) !*Parser(Payload, ?Value) {
+            const self = Self{ .input = input };
+            return try self.parser.heapAlloc(allocator, self);
         }
 
         pub fn deinit(parser: *Parser(Payload, ?Value), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
@@ -73,9 +74,10 @@ test "optional_some" {
         const ctx = try Context(Payload, ?LiteralValue).init(allocator, "hello world", {});
         defer ctx.deinit();
 
-        const optional = Optional(Payload, LiteralValue).init((&Literal(Payload).init("hello").parser).ref());
+        const optional = try Optional(Payload, LiteralValue).init(allocator, (&Literal(Payload).init("hello").parser).ref());
+        defer optional.deinit(allocator, null);
 
-        try optional.parser.parse(&ctx);
+        try optional.parse(&ctx);
 
         var sub = ctx.subscribe();
         var r1 = sub.next().?;
@@ -93,9 +95,10 @@ test "optional_none" {
         const ctx = try Context(Payload, ?LiteralValue).init(allocator, "hello world", {});
         defer ctx.deinit();
 
-        const optional = Optional(Payload, LiteralValue).init((&Literal(Payload).init("world").parser).ref());
+        const optional = try Optional(Payload, LiteralValue).init(allocator, (&Literal(Payload).init("world").parser).ref());
+        defer optional.deinit(allocator, null);
 
-        try optional.parser.parse(&ctx);
+        try optional.parse(&ctx);
 
         var sub = ctx.subscribe();
         var first = sub.next().?;

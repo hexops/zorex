@@ -289,7 +289,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
         }.mapTo,
     });
     var optional_expr_list_inner_left = try MapTo(*CompilerContext, ??Compilation, ?Compilation).init(allocator, .{
-        .parser = (&Optional(*CompilerContext, ?Compilation).init(expr_list_inner_left.ref()).parser).ref(),
+        .parser = (try Optional(*CompilerContext, ?Compilation).init(allocator, expr_list_inner_left.ref())).ref(),
         .mapTo = struct {
             fn mapTo(in: Result(??Compilation), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
                 _ = compiler_context;

@@ -142,7 +142,7 @@ test "direct_left_recursion" {
         }),
     );
     var optionalExpr = try MapTo(Payload, ?node, node).init(allocator, .{
-        .parser = (&Optional(Payload, node).init((&expr.parser).ref()).parser).ref(),
+        .parser = (try Optional(Payload, node).init(allocator, (&expr.parser).ref())).ref(),
         .mapTo = struct {
             fn mapTo(in: Result(?node), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(node) {
                 _ = payload;
