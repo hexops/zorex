@@ -56,6 +56,10 @@ pub fn Repeated(comptime Payload: type, comptime Value: type) type {
             return try self.parser.heapAlloc(allocator, self);
         }
 
+        pub fn initStack(input: RepeatedContext(Payload, Value)) Self {
+            return Self{ .input = input };
+        }
+
         pub fn deinit(parser: *Parser(Payload, RepeatedValue(Value)), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             self.input.parser.deinit(allocator, freed);

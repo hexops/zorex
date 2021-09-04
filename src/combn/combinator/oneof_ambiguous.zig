@@ -58,6 +58,10 @@ pub fn OneOfAmbiguous(comptime Payload: type, comptime Value: type) type {
             return try self.parser.heapAlloc(allocator, self);
         }
 
+        pub fn initStack(input: OneOfAmbiguousContext(Payload, Value)) Self {
+            return Self{ .input = input };
+        }
+
         pub fn deinit(parser: *Parser(Payload, Value), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             for (self.input) |in_parser| {

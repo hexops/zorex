@@ -101,6 +101,10 @@ pub fn RepeatedAmbiguous(comptime Payload: type, comptime Value: type) type {
             return try self.parser.heapAlloc(allocator, self);
         }
 
+        pub fn initStack(input: RepeatedAmbiguousContext(Payload, Value)) Self {
+            return Self{ .input = input };
+        }
+
         pub fn deinit(parser: *Parser(Payload, RepeatedAmbiguousValue(Value)), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             self.input.parser.deinit(allocator, freed);
@@ -231,16 +235,15 @@ pub fn RepeatedAmbiguous(comptime Payload: type, comptime Value: type) type {
                         // associated with A, B, C.)
                         var path_results = try ctx.allocator.create(ResultStream(Result(RepeatedAmbiguousValue(Value))));
                         path_results.* = try ResultStream(Result(RepeatedAmbiguousValue(Value))).init(ctx.allocator, ctx.key);
-                        var path = try RepeatedAmbiguous(Payload, Value).init(ctx.allocator, .{
+                        var path = RepeatedAmbiguous(Payload, Value).initStack(.{
                             .parser = self.input.parser,
                             .min = self.input.min,
                             .max = if (self.input.max == -1) -1 else self.input.max - 1,
                         });
-                        defer path.deinit(ctx.allocator, null);
-                        const path_node_name = try path.nodeName(&in_ctx.memoizer.node_name_cache);
+                        const path_node_name = try path.parser.nodeName(&in_ctx.memoizer.node_name_cache);
                         var path_ctx = try in_ctx.initChild(RepeatedAmbiguousValue(Value), path_node_name, top_level.offset);
                         defer path_ctx.deinitChild();
-                        if (!path_ctx.existing_results) try path.parse(&path_ctx);
+                        if (!path_ctx.existing_results) try path.parser.parse(&path_ctx);
                         var path_results_sub = path_ctx.subscribe();
                         while (path_results_sub.next()) |next| {
                             try path_results.add(next.toUnowned());
