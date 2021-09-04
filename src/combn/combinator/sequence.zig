@@ -44,7 +44,12 @@ pub fn Sequence(comptime Payload: type, comptime Value: type) type {
 
         const Self = @This();
 
-        pub fn init(input: SequenceContext(Payload, Value)) Self {
+        pub fn init(allocator: *mem.Allocator, input: SequenceContext(Payload, Value)) !*Parser(Payload, SequenceValue(Value)) {
+            const self = Self{ .input = input };
+            return try self.parser.heapAlloc(allocator, self);
+        }
+
+        pub fn initStack(input: SequenceContext(Payload, Value)) Self {
             return Self{ .input = input };
         }
 
@@ -139,13 +144,14 @@ test "sequence" {
         const ctx = try Context(Payload, SequenceValue(LiteralValue)).init(allocator, "abc123abc456_123abc", {});
         defer ctx.deinit();
 
-        var seq = Sequence(Payload, LiteralValue).init(&.{
+        var seq = try Sequence(Payload, LiteralValue).init(allocator, &.{
             (&Literal(Payload).init("abc").parser).ref(),
             (&Literal(Payload).init("123ab").parser).ref(),
             (&Literal(Payload).init("c45").parser).ref(),
             (&Literal(Payload).init("6").parser).ref(),
         });
-        try seq.parser.parse(&ctx);
+        defer seq.deinit(allocator, null);
+        try seq.parse(&ctx);
 
         var sub = ctx.subscribe();
         var sequence = sub.next().?.result.value;
