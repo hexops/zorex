@@ -153,11 +153,11 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
         space.ref(),
     });
     var whitespace_one_or_more = try MapTo(*CompilerContext, RepeatedValue(?Compilation), ?Compilation).init(allocator, .{
-        .parser = (&Repeated(*CompilerContext, ?Compilation).init(.{
+        .parser = (try Repeated(*CompilerContext, ?Compilation).init(allocator, .{
             .parser = whitespace.ref(),
             .min = 1,
             .max = -1,
-        }).parser).ref(),
+        })).ref(),
         .mapTo = struct {
             fn mapTo(in: Result(RepeatedValue(?Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
                 _ = compiler_context;
@@ -361,11 +361,11 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
 
     // TODO(slimsag): match EOF
     var grammar = try MapTo(*CompilerContext, RepeatedValue(?Compilation), Compilation).init(allocator, .{
-        .parser = (&Repeated(*CompilerContext, ?Compilation).init(.{
+        .parser = (try Repeated(*CompilerContext, ?Compilation).init(allocator, .{
             .parser = definition_or_expr_or_whitespace.ref(),
             .min = 1,
             .max = -1,
-        }).parser).ref(),
+        })).ref(),
         .mapTo = struct {
             fn mapTo(in: Result(RepeatedValue(?Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(Compilation) {
                 _ = compiler_context;
