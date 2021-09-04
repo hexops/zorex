@@ -471,7 +471,6 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
             var parent_ptr = @ptrCast(*Parent, &memory[0]);
             parent_ptr.* = parent;
             parent_ptr.parser._heap_storage = memory;
-            parent_ptr.parser._refs += 1;
             return &parent_ptr.parser;
         }
 
@@ -487,13 +486,13 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
 
         pub fn deinit(self: *Self, allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
             var freed_parsers = if (freed) |f| f else &std.AutoHashMap(usize, void).init(allocator);
-            if (freed_parsers.contains(@ptrToInt(self)) or self._refs == 0) {
+            if (freed_parsers.contains(@ptrToInt(self))) {
                 if (freed == null) {
                     freed_parsers.deinit();
                 }
                 return;
             }
-            self._refs -= 1;
+            if (self._refs > 0) self._refs -= 1;
             if (self._refs == 0 or self._refs == self.countReferencesTo(@ptrToInt(self), freed_parsers)) {
                 freed_parsers.put(@ptrToInt(self), .{}) catch unreachable;
                 self._refs = 0;
