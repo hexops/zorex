@@ -28,6 +28,10 @@ pub fn MapTo(comptime Payload: type, comptime Value: type, comptime Target: type
             return try self.parser.heapAlloc(allocator, self);
         }
 
+        pub fn initStack(input: MapToContext(Payload, Value, Target)) Self {
+            return Self{ .input = input };
+        }
+
         pub fn deinit(parser: *Parser(Payload, Target), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             self.input.parser.deinit(allocator, freed);
