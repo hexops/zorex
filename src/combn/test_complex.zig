@@ -34,7 +34,7 @@ test "direct_left_recursion_empty_language" {
             undefined, // placeholder for left-recursive Expr itself
         };
         var expr = try MapTo(Payload, SequenceAmbiguousValue(node), node).init(allocator, .{
-            .parser = (&SequenceAmbiguous(Payload, node).init(&parsers).parser).ref(),
+            .parser = (try SequenceAmbiguous(Payload, node).init(allocator, &parsers)).ref(),
             .mapTo = struct {
                 fn mapTo(in: Result(SequenceAmbiguousValue(node)), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(node) {
                     _ = payload;
@@ -113,7 +113,7 @@ test "direct_left_recursion" {
     var expr = try Reentrant(Payload, node).init(
         allocator,
         try MapTo(Payload, SequenceAmbiguousValue(node), node).init(allocator, .{
-            .parser = (&SequenceAmbiguous(Payload, node).init(&parsers).parser).ref(),
+            .parser = (try SequenceAmbiguous(Payload, node).init(allocator, &parsers)).ref(),
             .mapTo = struct {
                 fn mapTo(in: Result(SequenceAmbiguousValue(node)), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(node) {
                     _ = payload;
