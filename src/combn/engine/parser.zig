@@ -441,7 +441,7 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
         _parse: fn (self: *const Self, ctx: *const Context(Payload, Value)) callconv(.Async) Error!void,
         _nodeName: fn (self: *const Self, node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64,
         _deinit: ?fn (self: *Self, allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void,
-        _countReferencesTo: ?fn(self: *const Self, other: usize, freed: *std.AutoHashMap(usize, void)) usize,
+        _countReferencesTo: ?fn (self: *const Self, other: usize, freed: *std.AutoHashMap(usize, void)) usize,
         _heap_storage: ?[]u8,
         _refs: usize,
 
