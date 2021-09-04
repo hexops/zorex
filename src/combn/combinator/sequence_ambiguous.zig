@@ -90,7 +90,12 @@ pub fn SequenceAmbiguous(comptime Payload: type, comptime Value: type) type {
 
         const Self = @This();
 
-        pub fn init(input: SequenceAmbiguousContext(Payload, Value)) Self {
+        pub fn init(allocator: *mem.Allocator, input: SequenceAmbiguousContext(Payload, Value)) !*Parser(Payload, SequenceAmbiguousValue(Value)) {
+            const self = Self{ .input = input };
+            return try self.parser.heapAlloc(allocator, self);
+        }
+
+        pub fn initStack(input: SequenceAmbiguousContext(Payload, Value)) Self {
             return Self{ .input = input };
         }
 
@@ -181,7 +186,7 @@ pub fn SequenceAmbiguous(comptime Payload: type, comptime Value: type) type {
                         // associated with A1, A2.)
                         var path_results = try ctx.allocator.create(ResultStream(Result(SequenceAmbiguousValue(Value))));
                         path_results.* = try ResultStream(Result(SequenceAmbiguousValue(Value))).init(ctx.allocator, ctx.key);
-                        var path = SequenceAmbiguous(Payload, Value).init(self.input[1..]);
+                        var path = SequenceAmbiguous(Payload, Value).initStack(self.input[1..]);
                         const path_node_name = try path.parser.nodeName(&in_ctx.memoizer.node_name_cache);
                         var path_ctx = try in_ctx.initChild(SequenceAmbiguousValue(Value), path_node_name, top_level.offset);
                         defer path_ctx.deinitChild();
@@ -212,13 +217,14 @@ test "sequence" {
         const ctx = try Context(Payload, SequenceAmbiguousValue(LiteralValue)).init(allocator, "abc123abc456_123abc", {});
         defer ctx.deinit();
 
-        var seq = SequenceAmbiguous(Payload, LiteralValue).init(&.{
+        var seq = try SequenceAmbiguous(Payload, LiteralValue).init(allocator, &.{
             (&Literal(Payload).init("abc").parser).ref(),
             (&Literal(Payload).init("123ab").parser).ref(),
             (&Literal(Payload).init("c45").parser).ref(),
             (&Literal(Payload).init("6").parser).ref(),
         });
-        try seq.parser.parse(&ctx);
+        defer seq.deinit(allocator, null);
+        try seq.parse(&ctx);
 
         var sub = ctx.subscribe();
         var list = sub.next();
