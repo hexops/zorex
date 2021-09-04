@@ -133,16 +133,16 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
 
     var newline = try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
         .parser = (try OneOf(*CompilerContext, LiteralValue).init(allocator, &.{
-            (&Literal(*CompilerContext).init("\r\n").parser).ref(),
-            (&Literal(*CompilerContext).init("\r").parser).ref(),
-            (&Literal(*CompilerContext).init("\n").parser).ref(),
+            (try Literal(*CompilerContext).init(allocator, "\r\n")).ref(),
+            (try Literal(*CompilerContext).init(allocator, "\r")).ref(),
+            (try Literal(*CompilerContext).init(allocator, "\n")).ref(),
         })).ref(),
         .mapTo = mapLiteralToNone,
     });
     var space = try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
         .parser = (try OneOf(*CompilerContext, LiteralValue).init(allocator, &.{
-            (&Literal(*CompilerContext).init(" ").parser).ref(),
-            (&Literal(*CompilerContext).init("\t").parser).ref(),
+            (try Literal(*CompilerContext).init(allocator, " ")).ref(),
+            (try Literal(*CompilerContext).init(allocator, "\t")).ref(),
         })).ref(),
         .mapTo = mapLiteralToNone,
     });
@@ -176,15 +176,15 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
     });
 
     var assignment = try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
-        .parser = (&Literal(*CompilerContext).init("=").parser).ref(),
+        .parser = (try Literal(*CompilerContext).init(allocator, "=")).ref(),
         .mapTo = mapLiteralToNone,
     });
     var semicolon = try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
-        .parser = (&Literal(*CompilerContext).init(";").parser).ref(),
+        .parser = (try Literal(*CompilerContext).init(allocator, ";")).ref(),
         .mapTo = mapLiteralToNone,
     });
     var forward_slash = try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
-        .parser = (&Literal(*CompilerContext).init("/").parser).ref(),
+        .parser = (try Literal(*CompilerContext).init(allocator, "/")).ref(),
         .mapTo = mapLiteralToNone,
     });
 
@@ -260,7 +260,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
     });
     // (ExprList, ",")
     var comma = try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
-        .parser = (&Literal(*CompilerContext).init(",").parser).ref(),
+        .parser = (try Literal(*CompilerContext).init(allocator, ",")).ref(),
         .mapTo = mapLiteralToNone,
     });
     var expr_list_inner_left = try MapTo(*CompilerContext, SequenceValue(?Compilation), ?Compilation).init(allocator, .{

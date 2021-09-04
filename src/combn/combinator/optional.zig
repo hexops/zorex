@@ -78,7 +78,7 @@ test "optional_some" {
         const ctx = try Context(Payload, ?LiteralValue).init(allocator, "hello world", {});
         defer ctx.deinit();
 
-        const optional = try Optional(Payload, LiteralValue).init(allocator, (&Literal(Payload).init("hello").parser).ref());
+        const optional = try Optional(Payload, LiteralValue).init(allocator, (try Literal(Payload).init(allocator, "hello")).ref());
         defer optional.deinit(allocator, null);
 
         try optional.parse(&ctx);
@@ -99,7 +99,7 @@ test "optional_none" {
         const ctx = try Context(Payload, ?LiteralValue).init(allocator, "hello world", {});
         defer ctx.deinit();
 
-        const optional = try Optional(Payload, LiteralValue).init(allocator, (&Literal(Payload).init("world").parser).ref());
+        const optional = try Optional(Payload, LiteralValue).init(allocator, (try Literal(Payload).init(allocator, "world")).ref());
         defer optional.deinit(allocator, null);
 
         try optional.parse(&ctx);

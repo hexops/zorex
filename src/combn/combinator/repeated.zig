@@ -156,7 +156,7 @@ test "repeated" {
         defer ctx.deinit();
 
         var abcInfinity = try Repeated(Payload, LiteralValue).init(allocator, .{
-            .parser = (&Literal(Payload).init("abc").parser).ref(),
+            .parser = (try Literal(Payload).init(allocator, "abc")).ref(),
             .min = 0,
             .max = -1,
         });

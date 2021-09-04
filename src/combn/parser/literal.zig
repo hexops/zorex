@@ -26,7 +26,12 @@ pub fn Literal(comptime Payload: type) type {
 
         const Self = @This();
 
-        pub fn init(input: LiteralContext) Self {
+        pub fn init(allocator: *mem.Allocator, input: LiteralContext) !*Parser(Payload, LiteralValue) {
+            const self = Self{ .input = input };
+            return try self.parser.heapAlloc(allocator, self);
+        }
+
+        pub fn initStack(input: LiteralContext) Self {
             return Self{ .input = input };
         }
 
@@ -65,8 +70,9 @@ test "literal" {
         defer ctx.deinit();
 
         var want = "hello";
-        var l = Literal(Payload).init(want);
-        try l.parser.parse(&ctx);
+        var l = try Literal(Payload).init(allocator, want);
+        defer l.deinit(allocator, null);
+        try l.parse(&ctx);
 
         var sub = ctx.subscribe();
         var first = sub.next().?;

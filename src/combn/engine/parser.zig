@@ -550,7 +550,7 @@ test "heap_parser" {
 
         // The parser we'll store on the heap.
         var want = "hello";
-        var literal_parser = Literal(Payload).init(want);
+        var literal_parser = Literal(Payload).initStack(want);
 
         // Move to heap.
         var heap_parser = try literal_parser.parser.heapAlloc(allocator, literal_parser);
