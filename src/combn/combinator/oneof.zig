@@ -42,8 +42,9 @@ pub fn OneOf(comptime Payload: type, comptime Value: type) type {
 
         const Self = @This();
 
-        pub fn init(input: OneOfContext(Payload, Value)) Self {
-            return Self{ .input = input };
+        pub fn init(allocator: *mem.Allocator, input: OneOfContext(Payload, Value)) !*Parser(Payload, OneOfValue(Value)) {
+            const self = Self{ .input = input };
+            return try self.parser.heapAlloc(allocator, self);
         }
 
         pub fn deinit(parser: *Parser(Payload, Value), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
@@ -127,8 +128,9 @@ test "oneof" {
             (&Literal(Payload).init("ello").parser).ref(),
             (&Literal(Payload).init("world").parser).ref(),
         };
-        var helloOrWorld = OneOf(Payload, LiteralValue).init(parsers);
-        try helloOrWorld.parser.parse(&ctx);
+        var helloOrWorld = try OneOf(Payload, LiteralValue).init(allocator, parsers);
+        defer helloOrWorld.deinit(allocator, null);
+        try helloOrWorld.parse(&ctx);
 
         var sub = ctx.subscribe();
         var r1 = sub.next().?;
@@ -157,8 +159,9 @@ test "oneof_ambiguous_first" {
             (&Literal(Payload).init("ello").parser).ref(),
             (&Literal(Payload).init("elloworld").parser).ref(),
         };
-        var helloOrWorld = OneOf(Payload, LiteralValue).init(parsers);
-        try helloOrWorld.parser.parse(&ctx);
+        var helloOrWorld = try OneOf(Payload, LiteralValue).init(allocator, parsers);
+        defer helloOrWorld.deinit(allocator, null);
+        try helloOrWorld.parse(&ctx);
 
         var sub = ctx.subscribe();
         var r1 = sub.next().?;

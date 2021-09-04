@@ -133,28 +133,28 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
     //
 
     var newline = try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
-        .parser = (&OneOf(*CompilerContext, LiteralValue).init(&.{
+        .parser = (try OneOf(*CompilerContext, LiteralValue).init(allocator, &.{
             (&Literal(*CompilerContext).init("\r\n").parser).ref(),
             (&Literal(*CompilerContext).init("\r").parser).ref(),
             (&Literal(*CompilerContext).init("\n").parser).ref(),
-        }).parser).ref(),
+        })).ref(),
         .mapTo = mapLiteralToNone,
     });
     var space = try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
-        .parser = (&OneOf(*CompilerContext, LiteralValue).init(&.{
+        .parser = (try OneOf(*CompilerContext, LiteralValue).init(allocator, &.{
             (&Literal(*CompilerContext).init(" ").parser).ref(),
             (&Literal(*CompilerContext).init("\t").parser).ref(),
-        }).parser).ref(),
+        })).ref(),
         .mapTo = mapLiteralToNone,
     });
 
-    var whitespace = OneOf(*CompilerContext, ?Compilation).init(&.{
+    var whitespace = try OneOf(*CompilerContext, ?Compilation).init(allocator, &.{
         newline.ref(),
         space.ref(),
     });
     var whitespace_one_or_more = try MapTo(*CompilerContext, RepeatedValue(?Compilation), ?Compilation).init(allocator, .{
         .parser = (&Repeated(*CompilerContext, ?Compilation).init(.{
-            .parser = (&whitespace.parser).ref(),
+            .parser = whitespace.ref(),
             .min = 1,
             .max = -1,
         }).parser).ref(),
@@ -245,7 +245,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
             }
         }.mapTo,
     });
-    var expr = OneOf(*CompilerContext, ?Compilation).init(&.{
+    var expr = try OneOf(*CompilerContext, ?Compilation).init(allocator, &.{
         nested_pattern.ref(),
         identifier_expr.ref(),
     });
@@ -253,7 +253,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
     // ExprList = (ExprList, ",")? , Expr ;
     var expr_list_parsers = [_]*Parser(*CompilerContext, ?Compilation){
         undefined, // placeholder for left-recursive `(ExprList, ",")?`
-        (&expr.parser).ref(),
+        expr.ref(),
     };
     var expr_list = try MapTo(*CompilerContext, SequenceValue(?Compilation), ?Compilation).init(allocator, .{
         .parser = (&Sequence(*CompilerContext, ?Compilation).init(&expr_list_parsers).parser).ref(),
@@ -353,16 +353,16 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
         }.mapTo,
     });
 
-    var definition_or_expr_or_whitespace = OneOf(*CompilerContext, ?Compilation).init(&.{
+    var definition_or_expr_or_whitespace = try OneOf(*CompilerContext, ?Compilation).init(allocator, &.{
         definition.ref(),
-        (&expr.parser).ref(),
+        expr.ref(),
         whitespace_one_or_more.ref(),
     });
 
     // TODO(slimsag): match EOF
     var grammar = try MapTo(*CompilerContext, RepeatedValue(?Compilation), Compilation).init(allocator, .{
         .parser = (&Repeated(*CompilerContext, ?Compilation).init(.{
-            .parser = (&definition_or_expr_or_whitespace.parser).ref(),
+            .parser = definition_or_expr_or_whitespace.ref(),
             .min = 1,
             .max = -1,
         }).parser).ref(),
