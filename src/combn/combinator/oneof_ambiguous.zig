@@ -157,8 +157,8 @@ test "oneof" {
         defer ctx.deinit();
 
         const parsers: []*Parser(Payload, LiteralValue) = &.{
-            (&Literal(Payload).init("ello").parser).ref(),
-            (&Literal(Payload).init("world").parser).ref(),
+            (try Literal(Payload).init(allocator, "ello")).ref(),
+            (try Literal(Payload).init(allocator, "world")).ref(),
         };
         var helloOrWorld = try OneOfAmbiguous(Payload, LiteralValue).init(allocator, parsers);
         defer helloOrWorld.deinit(allocator, null);
@@ -186,8 +186,8 @@ test "oneof_ambiguous" {
         defer ctx.deinit();
 
         const parsers: []*Parser(Payload, LiteralValue) = &.{
-            (&Literal(Payload).init("ello").parser).ref(),
-            (&Literal(Payload).init("elloworld").parser).ref(),
+            (try Literal(Payload).init(allocator, "ello")).ref(),
+            (try Literal(Payload).init(allocator, "elloworld")).ref(),
         };
         var helloOrWorld = try OneOfAmbiguous(Payload, LiteralValue).init(allocator, parsers);
         defer helloOrWorld.deinit(allocator, null);

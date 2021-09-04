@@ -87,7 +87,7 @@ test "direct_left_recursion" {
     defer ctx.deinit();
 
     var abcAsNode = try MapTo(Payload, LiteralValue, node).init(allocator, .{
-        .parser = (&Literal(Payload).init("abc").parser).ref(),
+        .parser = (try Literal(Payload).init(allocator, "abc")).ref(),
         .mapTo = struct {
             fn mapTo(in: Result(LiteralValue), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(node) {
                 _ = _allocator;

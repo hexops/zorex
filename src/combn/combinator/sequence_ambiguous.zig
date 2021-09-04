@@ -218,10 +218,10 @@ test "sequence" {
         defer ctx.deinit();
 
         var seq = try SequenceAmbiguous(Payload, LiteralValue).init(allocator, &.{
-            (&Literal(Payload).init("abc").parser).ref(),
-            (&Literal(Payload).init("123ab").parser).ref(),
-            (&Literal(Payload).init("c45").parser).ref(),
-            (&Literal(Payload).init("6").parser).ref(),
+            (try Literal(Payload).init(allocator, "abc")).ref(),
+            (try Literal(Payload).init(allocator, "123ab")).ref(),
+            (try Literal(Payload).init(allocator, "c45")).ref(),
+            (try Literal(Payload).init(allocator, "6")).ref(),
         });
         defer seq.deinit(allocator, null);
         try seq.parse(&ctx);
