@@ -43,6 +43,12 @@ pub fn OneOfAmbiguousValue(comptime Value: type) type {
     return Value;
 }
 
+pub const Ownership = enum {
+    borrowed,
+    owned,
+    copy,
+};
+
 /// Matches one of the given `input` parsers, supporting ambiguous and unambiguous grammars.
 ///
 /// The `input` parsers must remain alive for as long as the `OneOfAmbiguous` parser will be used.
@@ -50,16 +56,25 @@ pub fn OneOfAmbiguous(comptime Payload: type, comptime Value: type) type {
     return struct {
         parser: Parser(Payload, OneOfAmbiguousValue(Value)) = Parser(Payload, OneOfAmbiguousValue(Value)).init(parse, nodeName, deinit, countReferencesTo),
         input: OneOfAmbiguousContext(Payload, Value),
+        ownership: Ownership,
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, input: OneOfAmbiguousContext(Payload, Value)) !*Parser(Payload, OneOfAmbiguousValue(Value)) {
-            const self = Self{ .input = input };
+        pub fn init(allocator: *mem.Allocator, input: OneOfAmbiguousContext(Payload, Value), ownership: Ownership) !*Parser(Payload, OneOfAmbiguousValue(Value)) {
+            var self = Self{ .input = input, .ownership = ownership };
+            if (ownership == .copy) {
+                const Elem = std.meta.Elem(@TypeOf(input));
+                var copy = try allocator.alloc(Elem, input.len);
+                std.mem.copy(Elem, copy, input);
+                self.input = copy;
+                self.ownership = .owned;
+            }
             return try self.parser.heapAlloc(allocator, self);
         }
 
-        pub fn initStack(input: OneOfAmbiguousContext(Payload, Value)) Self {
-            return Self{ .input = input };
+        pub fn initStack(input: OneOfAmbiguousContext(Payload, Value), ownership: Ownership) Self {
+            if (ownership == Ownership.copy) unreachable;
+            return Self{ .input = input, .ownership = ownership };
         }
 
         pub fn deinit(parser: *Parser(Payload, Value), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
@@ -67,6 +82,7 @@ pub fn OneOfAmbiguous(comptime Payload: type, comptime Value: type) type {
             for (self.input) |in_parser| {
                 in_parser.deinit(allocator, freed);
             }
+            if (self.ownership == .owned) allocator.free(self.input);
         }
 
         pub fn countReferencesTo(parser: *const Parser(Payload, Value), other: usize, freed: *std.AutoHashMap(usize, void)) usize {
@@ -160,7 +176,7 @@ test "oneof" {
             (try Literal(Payload).init(allocator, "ello")).ref(),
             (try Literal(Payload).init(allocator, "world")).ref(),
         };
-        var helloOrWorld = try OneOfAmbiguous(Payload, LiteralValue).init(allocator, parsers);
+        var helloOrWorld = try OneOfAmbiguous(Payload, LiteralValue).init(allocator, parsers, .borrowed);
         defer helloOrWorld.deinit(allocator, null);
         try helloOrWorld.parse(&ctx);
 
@@ -185,11 +201,8 @@ test "oneof_ambiguous" {
         const ctx = try Context(Payload, OneOfAmbiguousValue(LiteralValue)).init(allocator, "elloworld", {});
         defer ctx.deinit();
 
-        const parsers: []*Parser(Payload, LiteralValue) = &.{
-            (try Literal(Payload).init(allocator, "ello")).ref(),
-            (try Literal(Payload).init(allocator, "elloworld")).ref(),
-        };
-        var helloOrWorld = try OneOfAmbiguous(Payload, LiteralValue).init(allocator, parsers);
+        const parsers: []*Parser(Payload, LiteralValue) = &.{ (try Literal(Payload).init(allocator, "ello")).ref(), (try Literal(Payload).init(allocator, "elloworld")).ref() };
+        var helloOrWorld = try OneOfAmbiguous(Payload, LiteralValue).init(allocator, parsers, .borrowed);
         defer helloOrWorld.deinit(allocator, null);
         try helloOrWorld.parse(&ctx);
 
