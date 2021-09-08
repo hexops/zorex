@@ -136,21 +136,21 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
             (try Literal(*CompilerContext).init(allocator, "\r\n")).ref(),
             (try Literal(*CompilerContext).init(allocator, "\r")).ref(),
             (try Literal(*CompilerContext).init(allocator, "\n")).ref(),
-        })).ref(),
+        }, .borrowed)).ref(),
         .mapTo = mapLiteralToNone,
     });
     var space = try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
         .parser = (try OneOf(*CompilerContext, LiteralValue).init(allocator, &.{
             (try Literal(*CompilerContext).init(allocator, " ")).ref(),
             (try Literal(*CompilerContext).init(allocator, "\t")).ref(),
-        })).ref(),
+        }, .borrowed)).ref(),
         .mapTo = mapLiteralToNone,
     });
 
     var whitespace = try OneOf(*CompilerContext, ?Compilation).init(allocator, &.{
         newline.ref(),
         space.ref(),
-    });
+    }, .borrowed);
     var whitespace_one_or_more = try MapTo(*CompilerContext, RepeatedValue(?Compilation), ?Compilation).init(allocator, .{
         .parser = (try Repeated(*CompilerContext, ?Compilation).init(allocator, .{
             .parser = whitespace.ref(),
@@ -247,7 +247,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
     var expr = try OneOf(*CompilerContext, ?Compilation).init(allocator, &.{
         nested_pattern.ref(),
         identifier_expr.ref(),
-    });
+    }, .borrowed);
 
     // ExprList = (ExprList, ",")? , Expr ;
     var expr_list_parsers = [_]*Parser(*CompilerContext, ?Compilation){
@@ -356,7 +356,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
         definition.ref(),
         expr.ref(),
         whitespace_one_or_more.ref(),
-    });
+    }, .borrowed);
 
     // TODO(slimsag): match EOF
     var grammar = try MapTo(*CompilerContext, RepeatedValue(?Compilation), Compilation).init(allocator, .{

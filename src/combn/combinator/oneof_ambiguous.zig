@@ -43,7 +43,7 @@ pub fn OneOfAmbiguousValue(comptime Value: type) type {
     return Value;
 }
 
-pub const Ownership = enum {
+pub const OneOfAmbigousOwnership = enum {
     borrowed,
     owned,
     copy,
@@ -56,11 +56,11 @@ pub fn OneOfAmbiguous(comptime Payload: type, comptime Value: type) type {
     return struct {
         parser: Parser(Payload, OneOfAmbiguousValue(Value)) = Parser(Payload, OneOfAmbiguousValue(Value)).init(parse, nodeName, deinit, countReferencesTo),
         input: OneOfAmbiguousContext(Payload, Value),
-        ownership: Ownership,
+        ownership: OneOfAmbigousOwnership,
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, input: OneOfAmbiguousContext(Payload, Value), ownership: Ownership) !*Parser(Payload, OneOfAmbiguousValue(Value)) {
+        pub fn init(allocator: *mem.Allocator, input: OneOfAmbiguousContext(Payload, Value), ownership: OneOfAmbigousOwnership) !*Parser(Payload, OneOfAmbiguousValue(Value)) {
             var self = Self{ .input = input, .ownership = ownership };
             if (ownership == .copy) {
                 const Elem = std.meta.Elem(@TypeOf(input));
@@ -72,8 +72,8 @@ pub fn OneOfAmbiguous(comptime Payload: type, comptime Value: type) type {
             return try self.parser.heapAlloc(allocator, self);
         }
 
-        pub fn initStack(input: OneOfAmbiguousContext(Payload, Value), ownership: Ownership) Self {
-            if (ownership == Ownership.copy) unreachable;
+        pub fn initStack(input: OneOfAmbiguousContext(Payload, Value), ownership: OneOfAmbigousOwnership) Self {
+            if (ownership == OneOfAmbigousOwnership.copy) unreachable;
             return Self{ .input = input, .ownership = ownership };
         }
 
