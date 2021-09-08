@@ -22,21 +22,12 @@ const Compilation = @import("Compilation.zig");
 const Identifier = @import("identifier.zig").Identifier;
 const CompilerContext = @import("CompilerContext.zig");
 
+const grammar = @import("grammar.zig");
+
 const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
 const assert = std.debug.assert;
-
-fn mapLiteralToNone(in: Result(LiteralValue), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) Error!?Result(?Compilation) {
-    _ = compiler_context;
-    _ = _allocator;
-    _ = path;
-    _ = key;
-    return switch (in.result) {
-        .err => Result(?Compilation).initError(in.offset, in.result.err),
-        else => Result(?Compilation).init(in.offset, null),
-    };
-}
 
 /// Maps a SequenceValue(*Node) -> singular *Node with no name and children (each of the nodes in
 /// the sequence.)
@@ -131,21 +122,8 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
     // ```
     //
 
-    var newline = try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
-        .parser = (try OneOf(*CompilerContext, LiteralValue).init(allocator, &.{
-            (try Literal(*CompilerContext).init(allocator, "\r\n")).ref(),
-            (try Literal(*CompilerContext).init(allocator, "\r")).ref(),
-            (try Literal(*CompilerContext).init(allocator, "\n")).ref(),
-        }, .borrowed)).ref(),
-        .mapTo = mapLiteralToNone,
-    });
-    var space = try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
-        .parser = (try OneOf(*CompilerContext, LiteralValue).init(allocator, &.{
-            (try Literal(*CompilerContext).init(allocator, " ")).ref(),
-            (try Literal(*CompilerContext).init(allocator, "\t")).ref(),
-        }, .borrowed)).ref(),
-        .mapTo = mapLiteralToNone,
-    });
+    const newline = try grammar.newline(allocator);
+    const space = try grammar.space(allocator);
 
     var whitespace = try OneOf(*CompilerContext, ?Compilation).init(allocator, &.{
         newline.ref(),
@@ -177,15 +155,15 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
 
     var assignment = try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
         .parser = (try Literal(*CompilerContext).init(allocator, "=")).ref(),
-        .mapTo = mapLiteralToNone,
+        .mapTo = grammar.mapLiteralToNone,
     });
     var semicolon = try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
         .parser = (try Literal(*CompilerContext).init(allocator, ";")).ref(),
-        .mapTo = mapLiteralToNone,
+        .mapTo = grammar.mapLiteralToNone,
     });
     var forward_slash = try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
         .parser = (try Literal(*CompilerContext).init(allocator, "/")).ref(),
-        .mapTo = mapLiteralToNone,
+        .mapTo = grammar.mapLiteralToNone,
     });
 
     var nested_pattern = try MapTo(*CompilerContext, SequenceValue(?Compilation), ?Compilation).init(allocator, .{
@@ -261,7 +239,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
     // (ExprList, ",")
     var comma = try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
         .parser = (try Literal(*CompilerContext).init(allocator, ",")).ref(),
-        .mapTo = mapLiteralToNone,
+        .mapTo = grammar.mapLiteralToNone,
     });
     var expr_list_inner_left = try MapTo(*CompilerContext, SequenceValue(?Compilation), ?Compilation).init(allocator, .{
         .parser = (try Sequence(*CompilerContext, ?Compilation).init(allocator, &.{
@@ -359,7 +337,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
     }, .borrowed);
 
     // TODO(slimsag): match EOF
-    var grammar = try MapTo(*CompilerContext, RepeatedValue(?Compilation), Compilation).init(allocator, .{
+    var final_grammar = try MapTo(*CompilerContext, RepeatedValue(?Compilation), Compilation).init(allocator, .{
         .parser = (try Repeated(*CompilerContext, ?Compilation).init(allocator, .{
             .parser = definition_or_expr_or_whitespace.ref(),
             .min = 1,
@@ -404,11 +382,11 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
             }
         }.mapTo,
     });
-    defer grammar.deinit(allocator, null);
+    defer final_grammar.deinit(allocator, null);
 
     var compilerContext = try CompilerContext.init(allocator);
     var ctx = try Context(*CompilerContext, Compilation).init(allocator, syntax, compilerContext);
-    try grammar.parse(&ctx);
+    try final_grammar.parse(&ctx);
 
     var sub = ctx.subscribe();
     var compilation = sub.next();
