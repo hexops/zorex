@@ -79,6 +79,12 @@ pub fn SequenceAmbiguousValue(comptime Value: type) type {
     };
 }
 
+pub const SequenceAmbiguousOwnership = enum {
+    borrowed,
+    owned,
+    copy,
+};
+
 /// Matches the `input` parsers sequentially. The parsers must produce the same data type (use
 /// MapTo, if needed.)
 ///
@@ -87,16 +93,25 @@ pub fn SequenceAmbiguous(comptime Payload: type, comptime Value: type) type {
     return struct {
         parser: Parser(Payload, SequenceAmbiguousValue(Value)) = Parser(Payload, SequenceAmbiguousValue(Value)).init(parse, nodeName, deinit, countReferencesTo),
         input: SequenceAmbiguousContext(Payload, Value),
+        ownership: SequenceAmbiguousOwnership,
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, input: SequenceAmbiguousContext(Payload, Value)) !*Parser(Payload, SequenceAmbiguousValue(Value)) {
-            const self = Self{ .input = input };
+        pub fn init(allocator: *mem.Allocator, input: SequenceAmbiguousContext(Payload, Value), ownership: SequenceAmbiguousOwnership) !*Parser(Payload, SequenceAmbiguousValue(Value)) {
+            var self = Self{ .input = input, .ownership = ownership };
+            if (ownership == .copy) {
+                const Elem = std.meta.Elem(@TypeOf(input));
+                var copy = try allocator.alloc(Elem, input.len);
+                std.mem.copy(Elem, copy, input);
+                self.input = copy;
+                self.ownership = .owned;
+            }
             return try self.parser.heapAlloc(allocator, self);
         }
 
-        pub fn initStack(input: SequenceAmbiguousContext(Payload, Value)) Self {
-            return Self{ .input = input };
+        pub fn initStack(input: SequenceAmbiguousContext(Payload, Value), ownership: SequenceAmbiguousOwnership) Self {
+            if (ownership == SequenceAmbiguousOwnership.copy) unreachable;
+            return Self{ .input = input, .ownership = ownership };
         }
 
         pub fn deinit(parser: *Parser(Payload, SequenceAmbiguousValue(Value)), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
@@ -104,6 +119,7 @@ pub fn SequenceAmbiguous(comptime Payload: type, comptime Value: type) type {
             for (self.input) |child_parser| {
                 child_parser.deinit(allocator, freed);
             }
+            if (self.ownership == .owned) allocator.free(self.input);
         }
 
         pub fn countReferencesTo(parser: *const Parser(Payload, SequenceAmbiguousValue(Value)), other: usize, freed: *std.AutoHashMap(usize, void)) usize {
@@ -186,7 +202,7 @@ pub fn SequenceAmbiguous(comptime Payload: type, comptime Value: type) type {
                         // associated with A1, A2.)
                         var path_results = try ctx.allocator.create(ResultStream(Result(SequenceAmbiguousValue(Value))));
                         path_results.* = try ResultStream(Result(SequenceAmbiguousValue(Value))).init(ctx.allocator, ctx.key);
-                        var path = SequenceAmbiguous(Payload, Value).initStack(self.input[1..]);
+                        var path = SequenceAmbiguous(Payload, Value).initStack(self.input[1..], .borrowed);
                         const path_node_name = try path.parser.nodeName(&in_ctx.memoizer.node_name_cache);
                         var path_ctx = try in_ctx.initChild(SequenceAmbiguousValue(Value), path_node_name, top_level.offset);
                         defer path_ctx.deinitChild();
@@ -222,7 +238,7 @@ test "sequence" {
             (try Literal(Payload).init(allocator, "123ab")).ref(),
             (try Literal(Payload).init(allocator, "c45")).ref(),
             (try Literal(Payload).init(allocator, "6")).ref(),
-        });
+        }, .borrowed);
         defer seq.deinit(allocator, null);
         try seq.parse(&ctx);
 
