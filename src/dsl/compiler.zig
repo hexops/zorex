@@ -122,36 +122,7 @@ pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
     // ```
     //
 
-    const newline = try grammar.newline(allocator);
-    const space = try grammar.space(allocator);
-
-    var whitespace = try OneOf(*CompilerContext, ?Compilation).init(allocator, &.{
-        newline.ref(),
-        space.ref(),
-    }, .borrowed);
-    var whitespace_one_or_more = try MapTo(*CompilerContext, RepeatedValue(?Compilation), ?Compilation).init(allocator, .{
-        .parser = (try Repeated(*CompilerContext, ?Compilation).init(allocator, .{
-            .parser = whitespace.ref(),
-            .min = 1,
-            .max = -1,
-        })).ref(),
-        .mapTo = struct {
-            fn mapTo(in: Result(RepeatedValue(?Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
-                _ = compiler_context;
-                _ = _allocator;
-                _ = key;
-                _ = path;
-                switch (in.result) {
-                    .err => return Result(?Compilation).initError(in.offset, in.result.err),
-                    else => {
-                        // optimization: newline and space parsers produce no compilations, so no
-                        // need for us to pay any attention to repeated results.
-                        return Result(?Compilation).init(in.offset, null);
-                    },
-                }
-            }
-        }.mapTo,
-    });
+    const whitespace_one_or_more = try grammar.whitespaceOneOrMore(allocator);
 
     var assignment = try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
         .parser = (try Literal(*CompilerContext).init(allocator, "=")).ref(),

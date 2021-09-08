@@ -37,8 +37,8 @@ pub fn mapLiteralToNone(in: Result(LiteralValue), compiler_context: *CompilerCon
     };
 }
 
-pub fn newline(allocator: *mem.Allocator) !*Parser(*CompilerContext, ?Compilation) {
-    return try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
+pub fn whitespaceOneOrMore(allocator: *mem.Allocator) !*Parser(*CompilerContext, ?Compilation) {
+    const newline = try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
         .parser = (try OneOf(*CompilerContext, LiteralValue).init(allocator, &.{
             (try Literal(*CompilerContext).init(allocator, "\r\n")).ref(),
             (try Literal(*CompilerContext).init(allocator, "\r")).ref(),
@@ -46,14 +46,42 @@ pub fn newline(allocator: *mem.Allocator) !*Parser(*CompilerContext, ?Compilatio
         }, .copy)).ref(),
         .mapTo = mapLiteralToNone,
     });
-}
 
-pub fn space(allocator: *mem.Allocator) !*Parser(*CompilerContext, ?Compilation) {
-    return try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
+    const space = try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
         .parser = (try OneOf(*CompilerContext, LiteralValue).init(allocator, &.{
             (try Literal(*CompilerContext).init(allocator, " ")).ref(),
             (try Literal(*CompilerContext).init(allocator, "\t")).ref(),
         }, .copy)).ref(),
         .mapTo = mapLiteralToNone,
+    });
+
+    const whitespace = try OneOf(*CompilerContext, ?Compilation).init(allocator, &.{
+        newline.ref(),
+        space.ref(),
+    }, .copy);
+
+    // Whitespace+
+    return try MapTo(*CompilerContext, RepeatedValue(?Compilation), ?Compilation).init(allocator, .{
+        .parser = (try Repeated(*CompilerContext, ?Compilation).init(allocator, .{
+            .parser = whitespace.ref(),
+            .min = 1,
+            .max = -1,
+        })).ref(),
+        .mapTo = struct {
+            fn mapTo(in: Result(RepeatedValue(?Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
+                _ = compiler_context;
+                _ = _allocator;
+                _ = key;
+                _ = path;
+                switch (in.result) {
+                    .err => return Result(?Compilation).initError(in.offset, in.result.err),
+                    else => {
+                        // optimization: newline and space parsers produce no compilations, so no
+                        // need for us to pay any attention to repeated results.
+                        return Result(?Compilation).init(in.offset, null);
+                    },
+                }
+            }
+        }.mapTo,
     });
 }
