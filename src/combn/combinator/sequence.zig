@@ -33,6 +33,12 @@ pub fn SequenceValue(comptime Value: type) type {
     };
 }
 
+pub const SequenceOwnership = enum {
+    borrowed,
+    owned,
+    copy,
+};
+
 /// Matches the `input` parsers sequentially. The parsers must produce the same data type (use
 /// MapTo, if needed.) If ambiguous parse paths are desirable, use SequenceAmbiguous.
 ///
@@ -41,15 +47,24 @@ pub fn Sequence(comptime Payload: type, comptime Value: type) type {
     return struct {
         parser: Parser(Payload, SequenceValue(Value)) = Parser(Payload, SequenceValue(Value)).init(parse, nodeName, deinit, countReferencesTo),
         input: SequenceContext(Payload, Value),
+        ownership: SequenceOwnership,
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, input: SequenceContext(Payload, Value)) !*Parser(Payload, SequenceValue(Value)) {
-            const self = Self{ .input = input };
+        pub fn init(allocator: *mem.Allocator, input: SequenceContext(Payload, Value), ownership: SequenceOwnership) !*Parser(Payload, SequenceValue(Value)) {
+            var self = Self{ .input = input, .ownership = ownership };
+            if (ownership == .copy) {
+                const Elem = std.meta.Elem(@TypeOf(input));
+                var copy = try allocator.alloc(Elem, input.len);
+                std.mem.copy(Elem, copy, input);
+                self.input = copy;
+                self.ownership = .owned;
+            }
             return try self.parser.heapAlloc(allocator, self);
         }
 
-        pub fn initStack(input: SequenceContext(Payload, Value)) Self {
+        pub fn initStack(input: SequenceContext(Payload, Value), ownership: SequenceOwnership) Self {
+            if (ownership == SequenceOwnership.copy) unreachable;
             return Self{ .input = input };
         }
 
@@ -58,6 +73,7 @@ pub fn Sequence(comptime Payload: type, comptime Value: type) type {
             for (self.input) |child_parser| {
                 child_parser.deinit(allocator, freed);
             }
+            if (self.ownership == .owned) allocator.free(self.input);
         }
 
         pub fn countReferencesTo(parser: *const Parser(Payload, SequenceValue(Value)), other: usize, freed: *std.AutoHashMap(usize, void)) usize {
@@ -149,7 +165,7 @@ test "sequence" {
             (try Literal(Payload).init(allocator, "123ab")).ref(),
             (try Literal(Payload).init(allocator, "c45")).ref(),
             (try Literal(Payload).init(allocator, "6")).ref(),
-        });
+        }, .borrowed);
         defer seq.deinit(allocator, null);
         try seq.parse(&ctx);
 
