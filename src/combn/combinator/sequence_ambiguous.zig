@@ -2,7 +2,6 @@ usingnamespace @import("../engine/engine.zig");
 const Literal = @import("../parser/literal.zig").Literal;
 const LiteralValue = @import("../parser/literal.zig").LiteralValue;
 const MapTo = @import("mapto.zig").MapTo;
-const MapToValue = @import("mapto.zig").MapToValue;
 
 const std = @import("std");
 const testing = std.testing;

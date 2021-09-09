@@ -1,7 +1,9 @@
 pub const always = @import("always.zig");
 pub const Always = always.Always;
 
-pub usingnamespace @import("mapto.zig");
+pub const mapto = @import("mapto.zig");
+pub const MapTo = mapto.MapTo;
+
 pub usingnamespace @import("oneof_ambiguous.zig");
 pub usingnamespace @import("oneof.zig");
 pub usingnamespace @import("optional.zig");

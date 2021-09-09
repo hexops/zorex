@@ -1,4 +1,12 @@
-usingnamespace @import("../engine/engine.zig");
+const engine = @import("../engine/engine.zig");
+const Error = engine.Error;
+const Parser = engine.Parser;
+const ParserContext = engine.Context;
+const Result = engine.Result;
+const ParserNodeName = engine.ParserNodeName;
+const ParserPosKey = engine.ParserPosKey;
+const ParserPath = engine.ParserPath;
+
 const Literal = @import("../parser/literal.zig").Literal;
 const LiteralValue = @import("../parser/literal.zig").LiteralValue;
 
@@ -6,7 +14,7 @@ const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
 
-pub fn MapToContext(comptime Payload: type, comptime Value: type, comptime Target: type) type {
+pub fn Context(comptime Payload: type, comptime Value: type, comptime Target: type) type {
     return struct {
         parser: *Parser(Payload, Value),
         mapTo: fn (in: Result(Value), payload: Payload, allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(Target),
@@ -19,16 +27,16 @@ pub fn MapToContext(comptime Payload: type, comptime Value: type, comptime Targe
 pub fn MapTo(comptime Payload: type, comptime Value: type, comptime Target: type) type {
     return struct {
         parser: Parser(Payload, Target) = Parser(Payload, Target).init(parse, nodeName, deinit, countReferencesTo),
-        input: MapToContext(Payload, Value, Target),
+        input: Context(Payload, Value, Target),
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, input: MapToContext(Payload, Value, Target)) !*Parser(Payload, Target) {
+        pub fn init(allocator: *mem.Allocator, input: Context(Payload, Value, Target)) !*Parser(Payload, Target) {
             const self = Self{ .input = input };
             return try self.parser.heapAlloc(allocator, self);
         }
 
-        pub fn initStack(input: MapToContext(Payload, Value, Target)) Self {
+        pub fn initStack(input: Context(Payload, Value, Target)) Self {
             return Self{ .input = input };
         }
 
@@ -52,7 +60,7 @@ pub fn MapTo(comptime Payload: type, comptime Value: type, comptime Target: type
             return v;
         }
 
-        pub fn parse(parser: *const Parser(Payload, Target), in_ctx: *const Context(Payload, Target)) callconv(.Async) !void {
+        pub fn parse(parser: *const Parser(Payload, Target), in_ctx: *const ParserContext(Payload, Target)) callconv(.Async) !void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
@@ -99,7 +107,7 @@ test "mapto" {
         };
 
         const Payload = void;
-        const ctx = try Context(Payload, String).init(allocator, "hello world", {});
+        const ctx = try ParserContext(Payload, String).init(allocator, "hello world", {});
         defer ctx.deinit();
 
         const mapTo = try MapTo(Payload, LiteralValue, String).init(allocator, .{
