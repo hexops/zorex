@@ -10,7 +10,9 @@ pub const OneOfAmbiguous = oneof_ambiguous.OneOfAmbiguous;
 pub const oneof = @import("oneof.zig");
 pub const OneOf = oneof.OneOf;
 
-pub usingnamespace @import("optional.zig");
+pub const optional = @import("optional.zig");
+pub const Optional = optional.Optional;
+
 pub usingnamespace @import("reentrant.zig");
 pub usingnamespace @import("repeated_ambiguous.zig");
 pub usingnamespace @import("repeated.zig");
