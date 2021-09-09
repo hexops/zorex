@@ -10,27 +10,6 @@ pub fn OneOfContext(comptime Payload: type, comptime Value: type) type {
     return []const *Parser(Payload, Value);
 }
 
-/// Represents values from one parse path.
-///
-/// In the case of a non-ambiguous `OneOf` grammar of `Parser1 | Parser2`, the combinator will
-/// yield:
-///
-/// ```
-/// stream(OneOfValue(Parser1Value))
-/// ```
-///
-/// Or:
-///
-/// ```
-/// stream(OneOfValue(Parser2Value))
-/// ```
-///
-/// In the case of an ambiguous grammar `Parser1 | Parser2` where either parser can produce three
-/// different parse paths, it will always yield the first successful path.
-pub fn OneOfValue(comptime Value: type) type {
-    return Value;
-}
-
 pub const OneOfOwnership = enum {
     borrowed,
     owned,
@@ -41,15 +20,31 @@ pub const OneOfOwnership = enum {
 /// matching is desired, see `OneOfAmbiguous`.
 ///
 /// The `input` parsers must remain alive for as long as the `OneOf` parser will be used.
+///
+/// In the case of a non-ambiguous `OneOf` grammar of `Parser1 | Parser2`, the combinator will
+/// yield:
+///
+/// ```
+/// stream(Parser1Value)
+/// ```
+///
+/// Or:
+///
+/// ```
+/// stream(Parser2Value)
+/// ```
+///
+/// In the case of an ambiguous grammar `Parser1 | Parser2` where either parser can produce three
+/// different parse paths, it will always yield the first successful path.
 pub fn OneOf(comptime Payload: type, comptime Value: type) type {
     return struct {
-        parser: Parser(Payload, OneOfValue(Value)) = Parser(Payload, OneOfValue(Value)).init(parse, nodeName, deinit, countReferencesTo),
+        parser: Parser(Payload, Value) = Parser(Payload, Value).init(parse, nodeName, deinit, countReferencesTo),
         input: OneOfContext(Payload, Value),
         ownership: OneOfOwnership,
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, input: OneOfContext(Payload, Value), ownership: OneOfOwnership) !*Parser(Payload, OneOfValue(Value)) {
+        pub fn init(allocator: *mem.Allocator, input: OneOfContext(Payload, Value), ownership: OneOfOwnership) !*Parser(Payload, Value) {
             var self = Self{ .input = input, .ownership = ownership };
             if (ownership == .copy) {
                 const Elem = std.meta.Elem(@TypeOf(input));
@@ -124,7 +119,7 @@ pub fn OneOf(comptime Payload: type, comptime Value: type) type {
                 //
                 // TODO(slimsag): collect and return the furthest error if a parse path made
                 // progress and failed.
-                try ctx.results.add(Result(OneOfValue(Value)).initError(ctx.offset, "expected OneOf"));
+                try ctx.results.add(Result(Value).initError(ctx.offset, "expected OneOf"));
             }
         }
     };
@@ -141,7 +136,7 @@ test "oneof" {
         const allocator = testing.allocator;
 
         const Payload = void;
-        const ctx = try Context(Payload, OneOfValue(LiteralValue)).init(allocator, "elloworld", {});
+        const ctx = try Context(Payload, LiteralValue).init(allocator, "elloworld", {});
         defer ctx.deinit();
 
         const parsers: []*Parser(Payload, LiteralValue) = &.{
@@ -172,7 +167,7 @@ test "oneof_ambiguous_first" {
         const allocator = testing.allocator;
 
         const Payload = void;
-        const ctx = try Context(Payload, OneOfValue(LiteralValue)).init(allocator, "elloworld", {});
+        const ctx = try Context(Payload, LiteralValue).init(allocator, "elloworld", {});
         defer ctx.deinit();
 
         const parsers: []*Parser(Payload, LiteralValue) = &.{
