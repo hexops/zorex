@@ -1,10 +1,15 @@
-usingnamespace @import("../engine/engine.zig");
+const engine = @import("../engine/engine.zig");
+const Error = engine.Error;
+const Parser = engine.Parser;
+const ParserContext = engine.Context;
+const Result = engine.Result;
+const ParserNodeName = engine.ParserNodeName;
 
 const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
 
-pub const AlwaysVoid = struct {
+pub const Void = struct {
     pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
         _ = self;
         _ = allocator;
@@ -13,7 +18,7 @@ pub const AlwaysVoid = struct {
 
 /// If the result is not `null`, its `.offset` value will be updated to reflect the current parse
 /// position before Always returns it.
-pub fn AlwaysContext(comptime Value: type) type {
+pub fn Context(comptime Value: type) type {
     return ?Result(Value);
 }
 
@@ -23,16 +28,16 @@ pub fn AlwaysContext(comptime Value: type) type {
 pub fn Always(comptime Payload: type, comptime Value: type) type {
     return struct {
         parser: Parser(Payload, Value) = Parser(Payload, Value).init(parse, nodeName, deinit, null),
-        input: AlwaysContext(Value),
+        input: Context(Value),
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, input: AlwaysContext(Value)) !*Parser(Payload, Value) {
+        pub fn init(allocator: *mem.Allocator, input: Context(Value)) !*Parser(Payload, Value) {
             const self = Self{ .input = input };
             return try self.parser.heapAlloc(allocator, self);
         }
 
-        pub fn initStack(input: AlwaysContext(Value)) Self {
+        pub fn initStack(input: Context(Value)) Self {
             return Self{ .input = input };
         }
 
@@ -51,7 +56,7 @@ pub fn Always(comptime Payload: type, comptime Value: type) type {
             return v;
         }
 
-        pub fn parse(parser: *const Parser(Payload, Value), in_ctx: *const Context(Payload, Value)) callconv(.Async) Error!void {
+        pub fn parse(parser: *const Parser(Payload, Value), in_ctx: *const ParserContext(Payload, Value)) callconv(.Async) Error!void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
@@ -70,10 +75,10 @@ test "always" {
         const allocator = testing.allocator;
 
         const Payload = void;
-        const ctx = try Context(Payload, AlwaysVoid).init(allocator, "hello world", {});
+        const ctx = try ParserContext(Payload, Void).init(allocator, "hello world", {});
         defer ctx.deinit();
 
-        const noop = try Always(Payload, AlwaysVoid).init(allocator, null);
+        const noop = try Always(Payload, Void).init(allocator, null);
         defer noop.deinit(allocator, null);
 
         try noop.parse(&ctx);

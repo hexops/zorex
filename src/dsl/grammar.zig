@@ -14,7 +14,6 @@ const LiteralValue = combn.LiteralValue;
 const OneOf = combn.OneOf;
 const MapTo = combn.MapTo;
 const Optional = combn.Optional;
-const Always = combn.Always;
 
 const String = @import("String.zig");
 const Node = @import("Node.zig");
@@ -204,7 +203,7 @@ pub fn init(allocator: *mem.Allocator) !*Parser(*CompilerContext, Compilation) {
                         // TODO(slimsag): actually compose the compilation to parse this regexp!
                         const node = try Node.init(_allocator, String.init("TODO(slimsag): value from parsing regexp!"), null);
                         const success = Result(*Node).init(in.offset, node);
-                        var always_success = try Always(void, *Node).init(_allocator, success);
+                        var always_success = try combn.Always(void, *Node).init(_allocator, success);
 
                         var result_compilation = Compilation.initParser(Compilation.CompiledParser{
                             .ptr = always_success.ref(),
