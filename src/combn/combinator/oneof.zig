@@ -161,7 +161,7 @@ test "oneof" {
 }
 
 // Confirms behavior of the following grammar, which is ambiguous and should use OneOfAmbiguous
-// instead of OneOf:
+// instead of OneOf if ambiguity needs to be enumerated:
 //
 // ```ebnf
 // Grammar = "ello" | "elloworld" ;

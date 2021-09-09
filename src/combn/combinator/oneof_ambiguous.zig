@@ -1,4 +1,11 @@
-usingnamespace @import("../engine/engine.zig");
+const engine = @import("../engine/engine.zig");
+const Error = engine.Error;
+const Parser = engine.Parser;
+const ParserContext = engine.Context;
+const Result = engine.Result;
+const ParserNodeName = engine.ParserNodeName;
+const ResultStream = engine.ResultStream;
+
 const Literal = @import("../parser/literal.zig").Literal;
 const LiteralValue = @import("../parser/literal.zig").LiteralValue;
 
@@ -6,8 +13,8 @@ const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
 
-pub fn OneOfAmbiguousContext(comptime Payload: type, comptime Value: type) type {
-    return []const *Parser(Payload, Value);
+pub fn Context(comptime Payload: type, comptime V: type) type {
+    return []const *Parser(Payload, V);
 }
 
 /// Represents values from one parse path.
@@ -16,13 +23,13 @@ pub fn OneOfAmbiguousContext(comptime Payload: type, comptime Value: type) type 
 /// yield:
 ///
 /// ```
-/// stream(OneOfAmbiguousValue(Parser1Value))
+/// stream(Value(Parser1Value))
 /// ```
 ///
 /// Or:
 ///
 /// ```
-/// stream(OneOfAmbiguousValue(Parser2Value))
+/// stream(Value(Parser2Value))
 /// ```
 ///
 /// In the case of an ambiguous grammar `Parser1 | Parser2` where either parser can produce three
@@ -30,20 +37,20 @@ pub fn OneOfAmbiguousContext(comptime Payload: type, comptime Value: type) type 
 ///
 /// ```
 /// stream(
-///     OneOfAmbiguousValue(Parser1Value1),
-///     OneOfAmbiguousValue(Parser1Value2),
-///     OneOfAmbiguousValue(Parser1Value3),
-///     OneOfAmbiguousValue(Parser2Value1),
-///     OneOfAmbiguousValue(Parser2Value2),
-///     OneOfAmbiguousValue(Parser2Value3),
+///     Value(Parser1Value1),
+///     Value(Parser1Value2),
+///     Value(Parser1Value3),
+///     Value(Parser2Value1),
+///     Value(Parser2Value2),
+///     Value(Parser2Value3),
 /// )
 /// ```
 ///
-pub fn OneOfAmbiguousValue(comptime Value: type) type {
-    return Value;
+pub fn Value(comptime V: type) type {
+    return V;
 }
 
-pub const OneOfAmbigousOwnership = enum {
+pub const Ownership = enum {
     borrowed,
     owned,
     copy,
@@ -52,15 +59,15 @@ pub const OneOfAmbigousOwnership = enum {
 /// Matches one of the given `input` parsers, supporting ambiguous and unambiguous grammars.
 ///
 /// The `input` parsers must remain alive for as long as the `OneOfAmbiguous` parser will be used.
-pub fn OneOfAmbiguous(comptime Payload: type, comptime Value: type) type {
+pub fn OneOfAmbiguous(comptime Payload: type, comptime V: type) type {
     return struct {
-        parser: Parser(Payload, OneOfAmbiguousValue(Value)) = Parser(Payload, OneOfAmbiguousValue(Value)).init(parse, nodeName, deinit, countReferencesTo),
-        input: OneOfAmbiguousContext(Payload, Value),
-        ownership: OneOfAmbigousOwnership,
+        parser: Parser(Payload, Value(V)) = Parser(Payload, Value(V)).init(parse, nodeName, deinit, countReferencesTo),
+        input: Context(Payload, V),
+        ownership: Ownership,
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, input: OneOfAmbiguousContext(Payload, Value), ownership: OneOfAmbigousOwnership) !*Parser(Payload, OneOfAmbiguousValue(Value)) {
+        pub fn init(allocator: *mem.Allocator, input: Context(Payload, V), ownership: Ownership) !*Parser(Payload, Value(V)) {
             var self = Self{ .input = input, .ownership = ownership };
             if (ownership == .copy) {
                 const Elem = std.meta.Elem(@TypeOf(input));
@@ -72,12 +79,12 @@ pub fn OneOfAmbiguous(comptime Payload: type, comptime Value: type) type {
             return try self.parser.heapAlloc(allocator, self);
         }
 
-        pub fn initStack(input: OneOfAmbiguousContext(Payload, Value), ownership: OneOfAmbigousOwnership) Self {
-            if (ownership == OneOfAmbigousOwnership.copy) unreachable;
+        pub fn initStack(input: Context(Payload, V), ownership: Ownership) Self {
+            if (ownership == Ownership.copy) unreachable;
             return Self{ .input = input, .ownership = ownership };
         }
 
-        pub fn deinit(parser: *Parser(Payload, Value), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
+        pub fn deinit(parser: *Parser(Payload, V), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             for (self.input) |in_parser| {
                 in_parser.deinit(allocator, freed);
@@ -85,7 +92,7 @@ pub fn OneOfAmbiguous(comptime Payload: type, comptime Value: type) type {
             if (self.ownership == .owned) allocator.free(self.input);
         }
 
-        pub fn countReferencesTo(parser: *const Parser(Payload, Value), other: usize, freed: *std.AutoHashMap(usize, void)) usize {
+        pub fn countReferencesTo(parser: *const Parser(Payload, V), other: usize, freed: *std.AutoHashMap(usize, void)) usize {
             const self = @fieldParentPtr(Self, "parser", parser);
             if (@ptrToInt(parser) == other) return 1;
             var count: usize = 0;
@@ -95,7 +102,7 @@ pub fn OneOfAmbiguous(comptime Payload: type, comptime Value: type) type {
             return count;
         }
 
-        pub fn nodeName(parser: *const Parser(Payload, Value), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+        pub fn nodeName(parser: *const Parser(Payload, V), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
             const self = @fieldParentPtr(Self, "parser", parser);
 
             var v = std.hash_map.hashString("OneOfAmbiguous");
@@ -105,16 +112,16 @@ pub fn OneOfAmbiguous(comptime Payload: type, comptime Value: type) type {
             return v;
         }
 
-        pub fn parse(parser: *const Parser(Payload, Value), in_ctx: *const Context(Payload, Value)) callconv(.Async) !void {
+        pub fn parse(parser: *const Parser(Payload, V), in_ctx: *const ParserContext(Payload, V)) callconv(.Async) !void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
 
-            var buffer = try ResultStream(Result(OneOfAmbiguousValue(Value))).init(ctx.allocator, ctx.key);
+            var buffer = try ResultStream(Result(Value(V))).init(ctx.allocator, ctx.key);
             defer buffer.deinit();
             for (self.input) |in_parser| {
                 const child_node_name = try in_parser.nodeName(&in_ctx.memoizer.node_name_cache);
-                var child_ctx = try in_ctx.initChild(Value, child_node_name, ctx.offset);
+                var child_ctx = try in_ctx.initChild(V, child_node_name, ctx.offset);
                 defer child_ctx.deinitChild();
                 if (!child_ctx.existing_results) try in_parser.parse(&child_ctx);
                 var sub = child_ctx.subscribe();
@@ -126,7 +133,7 @@ pub fn OneOfAmbiguous(comptime Payload: type, comptime Value: type) type {
 
             var gotValues: usize = 0;
             var gotErrors: usize = 0;
-            var sub = buffer.subscribe(ctx.key, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"));
+            var sub = buffer.subscribe(ctx.key, ctx.path, Result(V).initError(ctx.offset, "matches only the empty language"));
             while (sub.next()) |next| {
                 switch (next.result) {
                     .err => gotErrors += 1,
@@ -138,7 +145,7 @@ pub fn OneOfAmbiguous(comptime Payload: type, comptime Value: type) type {
                 //
                 // TODO(slimsag): would the client not want to enumerate error'd paths that made some
                 // progress?
-                var sub2 = buffer.subscribe(ctx.key, ctx.path, Result(Value).initError(ctx.offset, "matches only the empty language"));
+                var sub2 = buffer.subscribe(ctx.key, ctx.path, Result(V).initError(ctx.offset, "matches only the empty language"));
                 while (sub2.next()) |next| {
                     switch (next.result) {
                         .err => {},
@@ -153,7 +160,7 @@ pub fn OneOfAmbiguous(comptime Payload: type, comptime Value: type) type {
             //
             // TODO(slimsag): collect and return the furthest error if a parse path made
             // progress and failed.
-            try ctx.results.add(Result(OneOfAmbiguousValue(Value)).initError(ctx.offset, "expected OneOfAmbiguous"));
+            try ctx.results.add(Result(Value(V)).initError(ctx.offset, "expected OneOfAmbiguous"));
         }
     };
 }
@@ -169,7 +176,7 @@ test "oneof" {
         const allocator = testing.allocator;
 
         const Payload = void;
-        const ctx = try Context(Payload, OneOfAmbiguousValue(LiteralValue)).init(allocator, "elloworld", {});
+        const ctx = try ParserContext(Payload, Value(LiteralValue)).init(allocator, "elloworld", {});
         defer ctx.deinit();
 
         const parsers: []*Parser(Payload, LiteralValue) = &.{
@@ -182,7 +189,7 @@ test "oneof" {
 
         var sub = ctx.subscribe();
         var first = sub.next().?;
-        try testing.expectEqual(Result(OneOfAmbiguousValue(LiteralValue)).init(4, .{ .value = "ello" }).toUnowned(), first);
+        try testing.expectEqual(Result(Value(LiteralValue)).init(4, .{ .value = "ello" }).toUnowned(), first);
         try testing.expect(sub.next() == null); // stream closed
     }
 }
@@ -198,7 +205,7 @@ test "oneof_ambiguous" {
         const allocator = testing.allocator;
 
         const Payload = void;
-        const ctx = try Context(Payload, OneOfAmbiguousValue(LiteralValue)).init(allocator, "elloworld", {});
+        const ctx = try ParserContext(Payload, Value(LiteralValue)).init(allocator, "elloworld", {});
         defer ctx.deinit();
 
         const parsers: []*Parser(Payload, LiteralValue) = &.{ (try Literal(Payload).init(allocator, "ello")).ref(), (try Literal(Payload).init(allocator, "elloworld")).ref() };
