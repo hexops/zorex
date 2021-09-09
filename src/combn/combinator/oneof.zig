@@ -1,4 +1,11 @@
-usingnamespace @import("../engine/engine.zig");
+const engine = @import("../engine/engine.zig");
+const Error = engine.Error;
+const Parser = engine.Parser;
+const ParserContext = engine.Context;
+const Result = engine.Result;
+const ParserNodeName = engine.ParserNodeName;
+const ResultStream = engine.ResultStream;
+
 const Literal = @import("../parser/literal.zig").Literal;
 const LiteralValue = @import("../parser/literal.zig").LiteralValue;
 
@@ -6,11 +13,11 @@ const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
 
-pub fn OneOfContext(comptime Payload: type, comptime Value: type) type {
+pub fn Context(comptime Payload: type, comptime Value: type) type {
     return []const *Parser(Payload, Value);
 }
 
-pub const OneOfOwnership = enum {
+pub const Ownership = enum {
     borrowed,
     owned,
     copy,
@@ -39,12 +46,12 @@ pub const OneOfOwnership = enum {
 pub fn OneOf(comptime Payload: type, comptime Value: type) type {
     return struct {
         parser: Parser(Payload, Value) = Parser(Payload, Value).init(parse, nodeName, deinit, countReferencesTo),
-        input: OneOfContext(Payload, Value),
-        ownership: OneOfOwnership,
+        input: Context(Payload, Value),
+        ownership: Ownership,
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, input: OneOfContext(Payload, Value), ownership: OneOfOwnership) !*Parser(Payload, Value) {
+        pub fn init(allocator: *mem.Allocator, input: Context(Payload, Value), ownership: Ownership) !*Parser(Payload, Value) {
             var self = Self{ .input = input, .ownership = ownership };
             if (ownership == .copy) {
                 const Elem = std.meta.Elem(@TypeOf(input));
@@ -56,8 +63,8 @@ pub fn OneOf(comptime Payload: type, comptime Value: type) type {
             return try self.parser.heapAlloc(allocator, self);
         }
 
-        pub fn initStack(input: OneOfContext(Payload, Value), ownership: OneOfOwnership) Self {
-            if (ownership == OneOfOwnership.copy) unreachable;
+        pub fn initStack(input: Context(Payload, Value), ownership: Ownership) Self {
+            if (ownership == Ownership.copy) unreachable;
             return Self{ .input = input, .ownership = ownership };
         }
 
@@ -89,7 +96,7 @@ pub fn OneOf(comptime Payload: type, comptime Value: type) type {
             return v;
         }
 
-        pub fn parse(parser: *const Parser(Payload, Value), in_ctx: *const Context(Payload, Value)) callconv(.Async) !void {
+        pub fn parse(parser: *const Parser(Payload, Value), in_ctx: *const ParserContext(Payload, Value)) callconv(.Async) !void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
@@ -136,7 +143,7 @@ test "oneof" {
         const allocator = testing.allocator;
 
         const Payload = void;
-        const ctx = try Context(Payload, LiteralValue).init(allocator, "elloworld", {});
+        const ctx = try ParserContext(Payload, LiteralValue).init(allocator, "elloworld", {});
         defer ctx.deinit();
 
         const parsers: []*Parser(Payload, LiteralValue) = &.{
@@ -167,7 +174,7 @@ test "oneof_ambiguous_first" {
         const allocator = testing.allocator;
 
         const Payload = void;
-        const ctx = try Context(Payload, LiteralValue).init(allocator, "elloworld", {});
+        const ctx = try ParserContext(Payload, LiteralValue).init(allocator, "elloworld", {});
         defer ctx.deinit();
 
         const parsers: []*Parser(Payload, LiteralValue) = &.{

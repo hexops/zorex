@@ -7,7 +7,9 @@ pub const MapTo = mapto.MapTo;
 pub const oneof_ambiguous = @import("oneof_ambiguous.zig");
 pub const OneOfAmbiguous = oneof_ambiguous.OneOfAmbiguous;
 
-pub usingnamespace @import("oneof.zig");
+pub const oneof = @import("oneof.zig");
+pub const OneOf = oneof.OneOf;
+
 pub usingnamespace @import("optional.zig");
 pub usingnamespace @import("reentrant.zig");
 pub usingnamespace @import("repeated_ambiguous.zig");
