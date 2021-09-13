@@ -1,4 +1,9 @@
-usingnamespace @import("../engine/engine.zig");
+const engine = @import("../engine/engine.zig");
+const Error = engine.Error;
+const Parser = engine.Parser;
+const ParserContext = engine.Context;
+const Result = engine.Result;
+const ParserNodeName = engine.ParserNodeName;
 
 const std = @import("std");
 const testing = std.testing;
@@ -44,7 +49,7 @@ pub fn Literal(comptime Payload: type) type {
             return v;
         }
 
-        pub fn parse(parser: *const Parser(Payload, LiteralValue), in_ctx: *const Context(Payload, LiteralValue)) callconv(.Async) !void {
+        pub fn parse(parser: *const Parser(Payload, LiteralValue), in_ctx: *const ParserContext(Payload, LiteralValue)) callconv(.Async) !void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
@@ -66,7 +71,7 @@ test "literal" {
         const allocator = testing.allocator;
 
         const Payload = void;
-        var ctx = try Context(Payload, LiteralValue).init(allocator, "hello world", {});
+        var ctx = try ParserContext(Payload, LiteralValue).init(allocator, "hello world", {});
         defer ctx.deinit();
 
         var want = "hello";
