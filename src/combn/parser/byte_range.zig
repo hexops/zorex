@@ -1,4 +1,9 @@
-usingnamespace @import("../engine/engine.zig");
+const engine = @import("../engine/engine.zig");
+const Error = engine.Error;
+const Parser = engine.Parser;
+const ParserContext = engine.Context;
+const Result = engine.Result;
+const ParserNodeName = engine.ParserNodeName;
 
 const std = @import("std");
 const testing = std.testing;
@@ -48,7 +53,7 @@ pub fn ByteRange(comptime Payload: type) type {
             return v;
         }
 
-        pub fn parse(parser: *const Parser(Payload, ByteRangeValue), in_ctx: *const Context(Payload, ByteRangeValue)) callconv(.Async) !void {
+        pub fn parse(parser: *const Parser(Payload, ByteRangeValue), in_ctx: *const ParserContext(Payload, ByteRangeValue)) callconv(.Async) !void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
@@ -70,7 +75,7 @@ test "byte_range" {
         const allocator = testing.allocator;
 
         const Payload = void;
-        var ctx = try Context(Payload, ByteRangeValue).init(allocator, "hello world", {});
+        var ctx = try ParserContext(Payload, ByteRangeValue).init(allocator, "hello world", {});
         defer ctx.deinit();
 
         var any_byte = try ByteRange(Payload).init(allocator, .{ .from = 0, .to = 255 });
