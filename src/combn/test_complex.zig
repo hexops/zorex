@@ -1,4 +1,17 @@
-usingnamespace @import("combn.zig");
+const combn = @import("combn.zig");
+const Result = combn.Result;
+const Parser = combn.Parser;
+const Error = combn.Error;
+const Context = combn.Context;
+const ParserPosKey = combn.ParserPosKey;
+const ParserPath = combn.ParserPath;
+const Literal = combn.Literal;
+const LiteralValue = combn.LiteralValue;
+const MapTo = combn.MapTo;
+const Optional = combn.Optional;
+const Reentrant = combn.Reentrant;
+const SequenceAmbiguous = combn.SequenceAmbiguous;
+const SequenceAmbiguousValue = combn.sequence_ambiguous.SequenceAmbiguousValue;
 
 const std = @import("std");
 const mem = std.mem;
