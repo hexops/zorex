@@ -1,4 +1,9 @@
-usingnamespace @import("../engine/engine.zig");
+const engine = @import("../engine/engine.zig");
+const Error = engine.Error;
+const Parser = engine.Parser;
+const ParserContext = engine.Context;
+const Result = engine.Result;
+const ParserNodeName = engine.ParserNodeName;
 
 const std = @import("std");
 const testing = std.testing;
@@ -33,7 +38,7 @@ pub fn End(comptime Payload: type) type {
             return std.hash_map.hashString("End");
         }
 
-        pub fn parse(parser: *const Parser(Payload, EndValue), in_ctx: *const Context(Payload, EndValue)) callconv(.Async) !void {
+        pub fn parse(parser: *const Parser(Payload, EndValue), in_ctx: *const ParserContext(Payload, EndValue)) callconv(.Async) !void {
             _ = parser;
             var ctx = in_ctx.with({});
             defer ctx.results.close();
@@ -53,7 +58,7 @@ test "end" {
         const allocator = testing.allocator;
 
         const Payload = void;
-        var ctx = try Context(Payload, EndValue).init(allocator, "", {});
+        var ctx = try ParserContext(Payload, EndValue).init(allocator, "", {});
         defer ctx.deinit();
 
         var e = try End(Payload).init(allocator);
