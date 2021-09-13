@@ -13,7 +13,9 @@ pub const OneOf = oneof.OneOf;
 pub const optional = @import("optional.zig");
 pub const Optional = optional.Optional;
 
-pub usingnamespace @import("reentrant.zig");
+pub const reentrant = @import("reentrant.zig");
+pub const Reentrant = reentrant.Reentrant;
+
 pub usingnamespace @import("repeated_ambiguous.zig");
 pub usingnamespace @import("repeated.zig");
 pub usingnamespace @import("sequence_ambiguous.zig");
