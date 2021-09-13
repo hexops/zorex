@@ -9,15 +9,15 @@ const ParserPosKey = engine.ParserPosKey;
 const ParserPath = engine.ParserPath;
 
 const Literal = @import("../parser/literal.zig").Literal;
-const LiteralValue = @import("../parser/literal.zig").LiteralValue;
+const LiteralValue = @import("../parser/literal.zig").Value;
 const MapTo = @import("mapto.zig").MapTo;
 
 const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
 
-pub fn SequenceAmbiguousContext(comptime Payload: type, comptime Value: type) type {
-    return []const *Parser(Payload, Value);
+pub fn Context(comptime Payload: type, comptime V: type) type {
+    return []const *Parser(Payload, V);
 }
 
 /// Represents a sequence of parsed values. 
@@ -25,9 +25,9 @@ pub fn SequenceAmbiguousContext(comptime Payload: type, comptime Value: type) ty
 /// In the case of a non-ambiguous grammar, a `SequenceAmbiguous` combinator will yield:
 ///
 /// ```
-/// SequenceAmbiguousValue{
+/// Value{
 ///     node: value1,
-///     next: ResultStream(SequenceAmbiguousValue{
+///     next: ResultStream(Value{
 ///         node: value2,
 ///         next: ...,
 ///     })
@@ -38,14 +38,14 @@ pub fn SequenceAmbiguousContext(comptime Payload: type, comptime Value: type) ty
 /// (each representing one possible parse path / interpretation of the grammar):
 ///
 /// ```
-/// SequenceAmbiguousValue{
+/// Value{
 ///     node: value1,
 ///     next: ResultStream(
-///         SequenceAmbiguousValue{
+///         Value{
 ///             node: value2variant1,
 ///             next: ...,
 ///         },
-///         SequenceAmbiguousValue{
+///         Value{
 ///             node: value2variant2,
 ///             next: ...,
 ///         },
@@ -53,9 +53,9 @@ pub fn SequenceAmbiguousContext(comptime Payload: type, comptime Value: type) ty
 /// }
 /// ```
 ///
-pub fn SequenceAmbiguousValue(comptime Value: type) type {
+pub fn Value(comptime V: type) type {
     return struct {
-        node: Result(Value),
+        node: Result(V),
         next: *ResultStream(Result(@This())),
 
         pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
@@ -64,21 +64,21 @@ pub fn SequenceAmbiguousValue(comptime Value: type) type {
             allocator.destroy(self.next);
         }
 
-        pub fn flatten(self: *const @This(), allocator: *mem.Allocator, subscriber: ParserPosKey, path: ParserPath) Error!ResultStream(Result(Value)) {
-            var dst = try ResultStream(Result(Value)).init(allocator, subscriber);
+        pub fn flatten(self: *const @This(), allocator: *mem.Allocator, subscriber: ParserPosKey, path: ParserPath) Error!ResultStream(Result(V)) {
+            var dst = try ResultStream(Result(V)).init(allocator, subscriber);
             try self.flatten_into(&dst, allocator, subscriber, path);
             dst.close(); // TODO(slimsag): why does deferring this not work?
             return dst;
         }
 
-        pub fn flatten_into(self: *const @This(), dst: *ResultStream(Result(Value)), allocator: *mem.Allocator, subscriber: ParserPosKey, path: ParserPath) Error!void {
+        pub fn flatten_into(self: *const @This(), dst: *ResultStream(Result(V)), allocator: *mem.Allocator, subscriber: ParserPosKey, path: ParserPath) Error!void {
             try dst.add(self.node.toUnowned());
 
-            var sub = self.next.subscribe(subscriber, path, Result(SequenceAmbiguousValue(Value)).initError(0, "matches only the empty language"));
+            var sub = self.next.subscribe(subscriber, path, Result(Value(V)).initError(0, "matches only the empty language"));
             nosuspend {
                 while (sub.next()) |next_path| {
                     switch (next_path.result) {
-                        .err => try dst.add(Result(Value).initError(next_path.offset, next_path.result.err)),
+                        .err => try dst.add(Result(V).initError(next_path.offset, next_path.result.err)),
                         else => try next_path.result.value.flatten_into(dst, allocator, subscriber, path),
                     }
                 }
@@ -87,7 +87,7 @@ pub fn SequenceAmbiguousValue(comptime Value: type) type {
     };
 }
 
-pub const SequenceAmbiguousOwnership = enum {
+pub const Ownership = enum {
     borrowed,
     owned,
     copy,
@@ -97,15 +97,15 @@ pub const SequenceAmbiguousOwnership = enum {
 /// MapTo, if needed.)
 ///
 /// The `input` parsers must remain alive for as long as the `SequenceAmbiguous` parser will be used.
-pub fn SequenceAmbiguous(comptime Payload: type, comptime Value: type) type {
+pub fn SequenceAmbiguous(comptime Payload: type, comptime V: type) type {
     return struct {
-        parser: Parser(Payload, SequenceAmbiguousValue(Value)) = Parser(Payload, SequenceAmbiguousValue(Value)).init(parse, nodeName, deinit, countReferencesTo),
-        input: SequenceAmbiguousContext(Payload, Value),
-        ownership: SequenceAmbiguousOwnership,
+        parser: Parser(Payload, Value(V)) = Parser(Payload, Value(V)).init(parse, nodeName, deinit, countReferencesTo),
+        input: Context(Payload, V),
+        ownership: Ownership,
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, input: SequenceAmbiguousContext(Payload, Value), ownership: SequenceAmbiguousOwnership) !*Parser(Payload, SequenceAmbiguousValue(Value)) {
+        pub fn init(allocator: *mem.Allocator, input: Context(Payload, V), ownership: Ownership) !*Parser(Payload, Value(V)) {
             var self = Self{ .input = input, .ownership = ownership };
             if (ownership == .copy) {
                 const Elem = std.meta.Elem(@TypeOf(input));
@@ -117,12 +117,12 @@ pub fn SequenceAmbiguous(comptime Payload: type, comptime Value: type) type {
             return try self.parser.heapAlloc(allocator, self);
         }
 
-        pub fn initStack(input: SequenceAmbiguousContext(Payload, Value), ownership: SequenceAmbiguousOwnership) Self {
-            if (ownership == SequenceAmbiguousOwnership.copy) unreachable;
+        pub fn initStack(input: Context(Payload, V), ownership: Ownership) Self {
+            if (ownership == Ownership.copy) unreachable;
             return Self{ .input = input, .ownership = ownership };
         }
 
-        pub fn deinit(parser: *Parser(Payload, SequenceAmbiguousValue(Value)), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
+        pub fn deinit(parser: *Parser(Payload, Value(V)), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             for (self.input) |child_parser| {
                 child_parser.deinit(allocator, freed);
@@ -130,7 +130,7 @@ pub fn SequenceAmbiguous(comptime Payload: type, comptime Value: type) type {
             if (self.ownership == .owned) allocator.free(self.input);
         }
 
-        pub fn countReferencesTo(parser: *const Parser(Payload, SequenceAmbiguousValue(Value)), other: usize, freed: *std.AutoHashMap(usize, void)) usize {
+        pub fn countReferencesTo(parser: *const Parser(Payload, Value(V)), other: usize, freed: *std.AutoHashMap(usize, void)) usize {
             const self = @fieldParentPtr(Self, "parser", parser);
             if (@ptrToInt(parser) == other) return 1;
             var count: usize = 0;
@@ -140,7 +140,7 @@ pub fn SequenceAmbiguous(comptime Payload: type, comptime Value: type) type {
             return count;
         }
 
-        pub fn nodeName(parser: *const Parser(Payload, SequenceAmbiguousValue(Value)), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+        pub fn nodeName(parser: *const Parser(Payload, Value(V)), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
             const self = @fieldParentPtr(Self, "parser", parser);
 
             var v = std.hash_map.hashString("SequenceAmbiguous");
@@ -150,7 +150,7 @@ pub fn SequenceAmbiguous(comptime Payload: type, comptime Value: type) type {
             return v;
         }
 
-        pub fn parse(parser: *const Parser(Payload, SequenceAmbiguousValue(Value)), in_ctx: *const ParserContext(Payload, SequenceAmbiguousValue(Value))) callconv(.Async) Error!void {
+        pub fn parse(parser: *const Parser(Payload, Value(V)), in_ctx: *const ParserContext(Payload, Value(V))) callconv(.Async) Error!void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
@@ -191,7 +191,7 @@ pub fn SequenceAmbiguous(comptime Payload: type, comptime Value: type) type {
             // (A1, A2) and invoking SequenceAmbiguous(next) to produce the associated `stream()` for those
             // parse states.
             const child_node_name = try self.input[0].nodeName(&in_ctx.memoizer.node_name_cache);
-            var child_ctx = try in_ctx.initChild(Value, child_node_name, ctx.offset);
+            var child_ctx = try in_ctx.initChild(V, child_node_name, ctx.offset);
             defer child_ctx.deinitChild();
             if (!child_ctx.existing_results) try self.input[0].parse(&child_ctx);
 
@@ -200,7 +200,7 @@ pub fn SequenceAmbiguous(comptime Payload: type, comptime Value: type) type {
             while (sub.next()) |top_level| {
                 switch (top_level.result) {
                     .err => {
-                        try ctx.results.add(Result(SequenceAmbiguousValue(Value)).initError(top_level.offset, top_level.result.err));
+                        try ctx.results.add(Result(Value(V)).initError(top_level.offset, top_level.result.err));
                         continue;
                     },
                     else => {
@@ -208,11 +208,11 @@ pub fn SequenceAmbiguous(comptime Payload: type, comptime Value: type) type {
 
                         // Now get the stream that continues down this path (i.e. the stream
                         // associated with A1, A2.)
-                        var path_results = try ctx.allocator.create(ResultStream(Result(SequenceAmbiguousValue(Value))));
-                        path_results.* = try ResultStream(Result(SequenceAmbiguousValue(Value))).init(ctx.allocator, ctx.key);
-                        var path = SequenceAmbiguous(Payload, Value).initStack(self.input[1..], .borrowed);
+                        var path_results = try ctx.allocator.create(ResultStream(Result(Value(V))));
+                        path_results.* = try ResultStream(Result(Value(V))).init(ctx.allocator, ctx.key);
+                        var path = SequenceAmbiguous(Payload, V).initStack(self.input[1..], .borrowed);
                         const path_node_name = try path.parser.nodeName(&in_ctx.memoizer.node_name_cache);
-                        var path_ctx = try in_ctx.initChild(SequenceAmbiguousValue(Value), path_node_name, top_level.offset);
+                        var path_ctx = try in_ctx.initChild(Value(V), path_node_name, top_level.offset);
                         defer path_ctx.deinitChild();
                         if (!path_ctx.existing_results) try path.parser.parse(&path_ctx);
                         var path_results_sub = path_ctx.subscribe();
@@ -222,7 +222,7 @@ pub fn SequenceAmbiguous(comptime Payload: type, comptime Value: type) type {
                         path_results.close();
 
                         // Emit our top-level value tuple (e.g. (A1, stream(...))
-                        try ctx.results.add(Result(SequenceAmbiguousValue(Value)).init(top_level.offset, .{
+                        try ctx.results.add(Result(Value(V)).init(top_level.offset, .{
                             .node = top_level.toUnowned(),
                             .next = path_results,
                         }));
@@ -238,7 +238,7 @@ test "sequence" {
         const allocator = testing.allocator;
 
         const Payload = void;
-        const ctx = try ParserContext(Payload, SequenceAmbiguousValue(LiteralValue)).init(allocator, "abc123abc456_123abc", {});
+        const ctx = try ParserContext(Payload, Value(LiteralValue)).init(allocator, "abc123abc456_123abc", {});
         defer ctx.deinit();
 
         var seq = try SequenceAmbiguous(Payload, LiteralValue).init(allocator, &.{

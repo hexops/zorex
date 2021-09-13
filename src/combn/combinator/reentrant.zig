@@ -10,7 +10,7 @@ const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
 
-pub fn ReentrantContext(comptime Payload: type, comptime Value: type) type {
+pub fn Context(comptime Payload: type, comptime Value: type) type {
     return *Parser(Payload, Value);
 }
 
@@ -34,16 +34,16 @@ pub fn ReentrantContext(comptime Payload: type, comptime Value: type) type {
 pub fn Reentrant(comptime Payload: type, comptime Value: type) type {
     return struct {
         parser: Parser(Payload, Value) = Parser(Payload, Value).init(parse, nodeName, deinit, countReferencesTo),
-        input: ReentrantContext(Payload, Value),
+        input: Context(Payload, Value),
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, input: ReentrantContext(Payload, Value)) !*Parser(Payload, Value) {
+        pub fn init(allocator: *mem.Allocator, input: Context(Payload, Value)) !*Parser(Payload, Value) {
             const self = Self{ .input = input };
             return try self.parser.heapAlloc(allocator, self);
         }
 
-        pub fn initStack(input: ReentrantContext(Payload, Value)) Self {
+        pub fn initStack(input: Context(Payload, Value)) Self {
             return Self{ .input = input };
         }
 

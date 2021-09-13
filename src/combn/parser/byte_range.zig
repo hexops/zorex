@@ -9,7 +9,7 @@ const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
 
-pub const ByteRangeContext = struct {
+pub const Context = struct {
     // from byte (inclusive)
     from: u8,
 
@@ -17,7 +17,7 @@ pub const ByteRangeContext = struct {
     to: u8,
 };
 
-pub const ByteRangeValue = struct {
+pub const Value = struct {
     value: u8,
 
     pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
@@ -29,21 +29,21 @@ pub const ByteRangeValue = struct {
 /// Matches any single byte in the specified range.
 pub fn ByteRange(comptime Payload: type) type {
     return struct {
-        parser: Parser(Payload, ByteRangeValue) = Parser(Payload, ByteRangeValue).init(parse, nodeName, null, null),
-        input: ByteRangeContext,
+        parser: Parser(Payload, Value) = Parser(Payload, Value).init(parse, nodeName, null, null),
+        input: Context,
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, input: ByteRangeContext) !*Parser(Payload, ByteRangeValue) {
+        pub fn init(allocator: *mem.Allocator, input: Context) !*Parser(Payload, Value) {
             const self = Self{ .input = input };
             return try self.parser.heapAlloc(allocator, self);
         }
 
-        pub fn initStack(input: ByteRangeContext) Self {
+        pub fn initStack(input: Context) Self {
             return Self{ .input = input };
         }
 
-        pub fn nodeName(parser: *const Parser(Payload, ByteRangeValue), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+        pub fn nodeName(parser: *const Parser(Payload, Value), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
             _ = node_name_cache;
             const self = @fieldParentPtr(Self, "parser", parser);
 
@@ -53,7 +53,7 @@ pub fn ByteRange(comptime Payload: type) type {
             return v;
         }
 
-        pub fn parse(parser: *const Parser(Payload, ByteRangeValue), in_ctx: *const ParserContext(Payload, ByteRangeValue)) callconv(.Async) !void {
+        pub fn parse(parser: *const Parser(Payload, Value), in_ctx: *const ParserContext(Payload, Value)) callconv(.Async) !void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
@@ -61,10 +61,10 @@ pub fn ByteRange(comptime Payload: type) type {
             const src = ctx.src[ctx.offset..];
             if (src.len == 0 or src[0] < self.input.from or src[0] > self.input.to) {
                 // TODO(slimsag): include in error message the expected range (or "any byte" if full range)
-                try ctx.results.add(Result(ByteRangeValue).initError(ctx.offset + 1, "expected byte range"));
+                try ctx.results.add(Result(Value).initError(ctx.offset + 1, "expected byte range"));
                 return;
             }
-            try ctx.results.add(Result(ByteRangeValue).init(ctx.offset + 1, .{ .value = src[0] }));
+            try ctx.results.add(Result(Value).init(ctx.offset + 1, .{ .value = src[0] }));
             return;
         }
     };
@@ -75,7 +75,7 @@ test "byte_range" {
         const allocator = testing.allocator;
 
         const Payload = void;
-        var ctx = try ParserContext(Payload, ByteRangeValue).init(allocator, "hello world", {});
+        var ctx = try ParserContext(Payload, Value).init(allocator, "hello world", {});
         defer ctx.deinit();
 
         var any_byte = try ByteRange(Payload).init(allocator, .{ .from = 0, .to = 255 });
@@ -85,7 +85,7 @@ test "byte_range" {
         var sub = ctx.subscribe();
         var first = sub.next().?;
         defer first.deinit(ctx.allocator);
-        try testing.expectEqual(Result(ByteRangeValue).init(1, .{ .value = 'h' }), first);
+        try testing.expectEqual(Result(Value).init(1, .{ .value = 'h' }), first);
         try testing.expect(sub.next() == null);
     }
 }

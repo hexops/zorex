@@ -7,7 +7,7 @@ const ParserNodeName = engine.ParserNodeName;
 const ResultStream = engine.ResultStream;
 
 const Literal = @import("../parser/literal.zig").Literal;
-const LiteralValue = @import("../parser/literal.zig").LiteralValue;
+const LiteralValue = @import("../parser/literal.zig").Value;
 
 const std = @import("std");
 const testing = std.testing;

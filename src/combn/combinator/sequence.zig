@@ -7,15 +7,15 @@ const ParserNodeName = engine.ParserNodeName;
 const ResultStream = engine.ResultStream;
 
 const Literal = @import("../parser/literal.zig").Literal;
-const LiteralValue = @import("../parser/literal.zig").LiteralValue;
+const LiteralValue = @import("../parser/literal.zig").Value;
 const MapTo = @import("mapto.zig").MapTo;
 
 const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
 
-pub fn SequenceContext(comptime Payload: type, comptime Value: type) type {
-    return []const *Parser(Payload, Value);
+pub fn Context(comptime Payload: type, comptime V: type) type {
+    return []const *Parser(Payload, V);
 }
 
 /// Represents a sequence of parsed values. 
@@ -28,9 +28,9 @@ pub fn SequenceContext(comptime Payload: type, comptime Value: type) type {
 ///
 /// In the case of an ambiguous grammar, it would yield a stream with only the first parse path.
 /// Use SequenceAmbiguous if ambiguou parse paths are desirable.
-pub fn SequenceValue(comptime Value: type) type {
+pub fn Value(comptime V: type) type {
     return struct {
-        results: *ResultStream(Result(Value)),
+        results: *ResultStream(Result(V)),
 
         pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
             self.results.deinit();
@@ -49,15 +49,15 @@ pub const SequenceOwnership = enum {
 /// MapTo, if needed.) If ambiguous parse paths are desirable, use SequenceAmbiguous.
 ///
 /// The `input` parsers must remain alive for as long as the `Sequence` parser will be used.
-pub fn Sequence(comptime Payload: type, comptime Value: type) type {
+pub fn Sequence(comptime Payload: type, comptime V: type) type {
     return struct {
-        parser: Parser(Payload, SequenceValue(Value)) = Parser(Payload, SequenceValue(Value)).init(parse, nodeName, deinit, countReferencesTo),
-        input: SequenceContext(Payload, Value),
+        parser: Parser(Payload, Value(V)) = Parser(Payload, Value(V)).init(parse, nodeName, deinit, countReferencesTo),
+        input: Context(Payload, V),
         ownership: SequenceOwnership,
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, input: SequenceContext(Payload, Value), ownership: SequenceOwnership) !*Parser(Payload, SequenceValue(Value)) {
+        pub fn init(allocator: *mem.Allocator, input: Context(Payload, V), ownership: SequenceOwnership) !*Parser(Payload, Value(V)) {
             var self = Self{ .input = input, .ownership = ownership };
             if (ownership == .copy) {
                 const Elem = std.meta.Elem(@TypeOf(input));
@@ -69,12 +69,12 @@ pub fn Sequence(comptime Payload: type, comptime Value: type) type {
             return try self.parser.heapAlloc(allocator, self);
         }
 
-        pub fn initStack(input: SequenceContext(Payload, Value), ownership: SequenceOwnership) Self {
+        pub fn initStack(input: Context(Payload, V), ownership: SequenceOwnership) Self {
             if (ownership == SequenceOwnership.copy) unreachable;
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *Parser(Payload, SequenceValue(Value)), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
+        pub fn deinit(parser: *Parser(Payload, Value(V)), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             for (self.input) |child_parser| {
                 child_parser.deinit(allocator, freed);
@@ -82,7 +82,7 @@ pub fn Sequence(comptime Payload: type, comptime Value: type) type {
             if (self.ownership == .owned) allocator.free(self.input);
         }
 
-        pub fn countReferencesTo(parser: *const Parser(Payload, SequenceValue(Value)), other: usize, freed: *std.AutoHashMap(usize, void)) usize {
+        pub fn countReferencesTo(parser: *const Parser(Payload, Value(V)), other: usize, freed: *std.AutoHashMap(usize, void)) usize {
             const self = @fieldParentPtr(Self, "parser", parser);
             if (@ptrToInt(parser) == other) return 1;
             var count: usize = 0;
@@ -92,7 +92,7 @@ pub fn Sequence(comptime Payload: type, comptime Value: type) type {
             return count;
         }
 
-        pub fn nodeName(parser: *const Parser(Payload, SequenceValue(Value)), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+        pub fn nodeName(parser: *const Parser(Payload, Value(V)), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
             const self = @fieldParentPtr(Self, "parser", parser);
 
             var v = std.hash_map.hashString("Sequence");
@@ -102,7 +102,7 @@ pub fn Sequence(comptime Payload: type, comptime Value: type) type {
             return v;
         }
 
-        pub fn parse(parser: *const Parser(Payload, SequenceValue(Value)), in_ctx: *const ParserContext(Payload, SequenceValue(Value))) callconv(.Async) Error!void {
+        pub fn parse(parser: *const Parser(Payload, Value(V)), in_ctx: *const ParserContext(Payload, Value(V))) callconv(.Async) Error!void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
@@ -117,15 +117,15 @@ pub fn Sequence(comptime Payload: type, comptime Value: type) type {
                 return;
             }
 
-            var buffer = try ctx.allocator.create(ResultStream(Result(Value)));
+            var buffer = try ctx.allocator.create(ResultStream(Result(V)));
             errdefer ctx.allocator.destroy(buffer);
             errdefer buffer.deinit();
-            buffer.* = try ResultStream(Result(Value)).init(ctx.allocator, ctx.key);
+            buffer.* = try ResultStream(Result(V)).init(ctx.allocator, ctx.key);
 
             var offset: usize = ctx.offset;
             for (self.input) |child_parser| {
                 const child_node_name = try child_parser.nodeName(&in_ctx.memoizer.node_name_cache);
-                var child_ctx = try in_ctx.initChild(Value, child_node_name, offset);
+                var child_ctx = try in_ctx.initChild(V, child_node_name, offset);
                 defer child_ctx.deinitChild();
                 if (!child_ctx.existing_results) try child_parser.parse(&child_ctx);
 
@@ -137,7 +137,7 @@ pub fn Sequence(comptime Payload: type, comptime Value: type) type {
                             buffer.close();
                             buffer.deinit();
                             ctx.allocator.destroy(buffer);
-                            try ctx.results.add(Result(SequenceValue(Value)).initError(next.offset, next.result.err));
+                            try ctx.results.add(Result(Value(V)).initError(next.offset, next.result.err));
                             return;
                         },
                         else => {
@@ -153,7 +153,7 @@ pub fn Sequence(comptime Payload: type, comptime Value: type) type {
                 }
             }
             buffer.close();
-            try ctx.results.add(Result(SequenceValue(Value)).init(offset, .{ .results = buffer }));
+            try ctx.results.add(Result(Value(V)).init(offset, .{ .results = buffer }));
         }
     };
 }
@@ -163,7 +163,7 @@ test "sequence" {
         const allocator = testing.allocator;
 
         const Payload = void;
-        const ctx = try ParserContext(Payload, SequenceValue(LiteralValue)).init(allocator, "abc123abc456_123abc", {});
+        const ctx = try ParserContext(Payload, Value(LiteralValue)).init(allocator, "abc123abc456_123abc", {});
         defer ctx.deinit();
 
         var seq = try Sequence(Payload, LiteralValue).init(allocator, &.{

@@ -540,7 +540,7 @@ test "syntax" {
 test "heap_parser" {
     nosuspend {
         const Literal = @import("../parser/literal.zig").Literal;
-        const LiteralValue = @import("../parser/literal.zig").LiteralValue;
+        const LiteralValue = @import("../parser/literal.zig").Value;
 
         const allocator = testing.allocator;
 

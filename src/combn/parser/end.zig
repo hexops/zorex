@@ -9,7 +9,7 @@ const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
 
-pub const EndValue = struct {
+pub const Value = struct {
     pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
         _ = self;
         _ = allocator;
@@ -19,11 +19,11 @@ pub const EndValue = struct {
 /// Matches the end of the `input` string.
 pub fn End(comptime Payload: type) type {
     return struct {
-        parser: Parser(Payload, EndValue) = Parser(Payload, EndValue).init(parse, nodeName, null, null),
+        parser: Parser(Payload, Value) = Parser(Payload, Value).init(parse, nodeName, null, null),
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator) !*Parser(Payload, EndValue) {
+        pub fn init(allocator: *mem.Allocator) !*Parser(Payload, Value) {
             const self = Self{};
             return try self.parser.heapAlloc(allocator, self);
         }
@@ -32,22 +32,22 @@ pub fn End(comptime Payload: type) type {
             return Self{};
         }
 
-        pub fn nodeName(parser: *const Parser(Payload, EndValue), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+        pub fn nodeName(parser: *const Parser(Payload, Value), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
             _ = parser;
             _ = node_name_cache;
             return std.hash_map.hashString("End");
         }
 
-        pub fn parse(parser: *const Parser(Payload, EndValue), in_ctx: *const ParserContext(Payload, EndValue)) callconv(.Async) !void {
+        pub fn parse(parser: *const Parser(Payload, Value), in_ctx: *const ParserContext(Payload, Value)) callconv(.Async) !void {
             _ = parser;
             var ctx = in_ctx.with({});
             defer ctx.results.close();
 
             if (ctx.offset != ctx.src.len) {
-                try ctx.results.add(Result(EndValue).initError(ctx.offset + 1, "expected end of input"));
+                try ctx.results.add(Result(Value).initError(ctx.offset + 1, "expected end of input"));
                 return;
             }
-            try ctx.results.add(Result(EndValue).init(ctx.offset, .{}));
+            try ctx.results.add(Result(Value).init(ctx.offset, .{}));
             return;
         }
     };
@@ -58,7 +58,7 @@ test "end" {
         const allocator = testing.allocator;
 
         const Payload = void;
-        var ctx = try ParserContext(Payload, EndValue).init(allocator, "", {});
+        var ctx = try ParserContext(Payload, Value).init(allocator, "", {});
         defer ctx.deinit();
 
         var e = try End(Payload).init(allocator);
@@ -68,7 +68,7 @@ test "end" {
         var sub = ctx.subscribe();
         var first = sub.next().?;
         defer first.deinit(ctx.allocator);
-        try testing.expectEqual(Result(EndValue).init(0, .{}), first);
+        try testing.expectEqual(Result(Value).init(0, .{}), first);
         try testing.expect(sub.next() == null);
     }
 }

@@ -7,16 +7,16 @@ const ParserNodeName = engine.ParserNodeName;
 const ResultStream = engine.ResultStream;
 
 const Literal = @import("../parser/literal.zig").Literal;
-const LiteralValue = @import("../parser/literal.zig").LiteralValue;
+const LiteralValue = @import("../parser/literal.zig").Value;
 
 const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
 
-pub fn RepeatedContext(comptime Payload: type, comptime Value: type) type {
+pub fn Context(comptime Payload: type, comptime V: type) type {
     return struct {
         /// The parser which should be repeatedly parsed.
-        parser: *Parser(Payload, Value),
+        parser: *Parser(Payload, V),
 
         /// The minimum number of times the parser must successfully match.
         min: usize,
@@ -36,9 +36,9 @@ pub fn RepeatedContext(comptime Payload: type, comptime Value: type) type {
 ///
 /// In the case of an ambiguous grammar, it would yield a stream with only the first parse path.
 /// Use RepeatedAmbiguous if ambiguou parse paths are desirable.
-pub fn RepeatedValue(comptime Value: type) type {
+pub fn Value(comptime V: type) type {
     return struct {
-        results: *ResultStream(Result(Value)),
+        results: *ResultStream(Result(V)),
 
         pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
             self.results.deinit();
@@ -51,34 +51,34 @@ pub fn RepeatedValue(comptime Value: type) type {
 /// are desirable, use RepeatedAmbiguous.
 ///
 /// The `input` parsers must remain alive for as long as the `Repeated` parser will be used.
-pub fn Repeated(comptime Payload: type, comptime Value: type) type {
+pub fn Repeated(comptime Payload: type, comptime V: type) type {
     return struct {
-        parser: Parser(Payload, RepeatedValue(Value)) = Parser(Payload, RepeatedValue(Value)).init(parse, nodeName, deinit, countReferencesTo),
-        input: RepeatedContext(Payload, Value),
+        parser: Parser(Payload, Value(V)) = Parser(Payload, Value(V)).init(parse, nodeName, deinit, countReferencesTo),
+        input: Context(Payload, V),
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, input: RepeatedContext(Payload, Value)) !*Parser(Payload, RepeatedValue(Value)) {
+        pub fn init(allocator: *mem.Allocator, input: Context(Payload, V)) !*Parser(Payload, Value(V)) {
             const self = Self{ .input = input };
             return try self.parser.heapAlloc(allocator, self);
         }
 
-        pub fn initStack(input: RepeatedContext(Payload, Value)) Self {
+        pub fn initStack(input: Context(Payload, V)) Self {
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *Parser(Payload, RepeatedValue(Value)), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
+        pub fn deinit(parser: *Parser(Payload, Value(V)), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             self.input.parser.deinit(allocator, freed);
         }
 
-        pub fn countReferencesTo(parser: *const Parser(Payload, RepeatedValue(Value)), other: usize, freed: *std.AutoHashMap(usize, void)) usize {
+        pub fn countReferencesTo(parser: *const Parser(Payload, Value(V)), other: usize, freed: *std.AutoHashMap(usize, void)) usize {
             const self = @fieldParentPtr(Self, "parser", parser);
             if (@ptrToInt(parser) == other) return 1;
             return self.input.parser.countReferencesTo(other, freed);
         }
 
-        pub fn nodeName(parser: *const Parser(Payload, RepeatedValue(Value)), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+        pub fn nodeName(parser: *const Parser(Payload, Value(V)), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
             const self = @fieldParentPtr(Self, "parser", parser);
 
             var v = std.hash_map.hashString("Repeated");
@@ -88,7 +88,7 @@ pub fn Repeated(comptime Payload: type, comptime Value: type) type {
             return v;
         }
 
-        pub fn parse(parser: *const Parser(Payload, RepeatedValue(Value)), in_ctx: *const ParserContext(Payload, RepeatedValue(Value))) callconv(.Async) Error!void {
+        pub fn parse(parser: *const Parser(Payload, Value(V)), in_ctx: *const ParserContext(Payload, Value(V))) callconv(.Async) Error!void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
@@ -103,16 +103,16 @@ pub fn Repeated(comptime Payload: type, comptime Value: type) type {
                 return;
             }
 
-            var buffer = try ctx.allocator.create(ResultStream(Result(Value)));
+            var buffer = try ctx.allocator.create(ResultStream(Result(V)));
             errdefer ctx.allocator.destroy(buffer);
             errdefer buffer.deinit();
-            buffer.* = try ResultStream(Result(Value)).init(ctx.allocator, ctx.key);
+            buffer.* = try ResultStream(Result(V)).init(ctx.allocator, ctx.key);
 
             var num_values: usize = 0;
             var offset: usize = ctx.offset;
             while (true) {
                 const child_node_name = try self.input.parser.nodeName(&in_ctx.memoizer.node_name_cache);
-                var child_ctx = try in_ctx.initChild(Value, child_node_name, offset);
+                var child_ctx = try in_ctx.initChild(V, child_node_name, offset);
                 defer child_ctx.deinitChild();
                 if (!child_ctx.existing_results) try self.input.parser.parse(&child_ctx);
 
@@ -126,11 +126,11 @@ pub fn Repeated(comptime Payload: type, comptime Value: type) type {
                                 buffer.close();
                                 buffer.deinit();
                                 ctx.allocator.destroy(buffer);
-                                try ctx.results.add(Result(RepeatedValue(Value)).initError(next.offset, next.result.err));
+                                try ctx.results.add(Result(Value(V)).initError(next.offset, next.result.err));
                                 return;
                             }
                             buffer.close();
-                            try ctx.results.add(Result(RepeatedValue(Value)).init(offset, .{ .results = buffer }));
+                            try ctx.results.add(Result(Value(V)).init(offset, .{ .results = buffer }));
                             return;
                         },
                         else => {
@@ -149,7 +149,7 @@ pub fn Repeated(comptime Payload: type, comptime Value: type) type {
                 if (num_values >= ctx.input.max and ctx.input.max != -1) break;
             }
             buffer.close();
-            try ctx.results.add(Result(RepeatedValue(Value)).init(offset, .{ .results = buffer }));
+            try ctx.results.add(Result(Value(V)).init(offset, .{ .results = buffer }));
         }
     };
 }
@@ -159,7 +159,7 @@ test "repeated" {
         const allocator = testing.allocator;
 
         const Payload = void;
-        const ctx = try ParserContext(Payload, RepeatedValue(LiteralValue)).init(allocator, "abcabcabc123abc", {});
+        const ctx = try ParserContext(Payload, Value(LiteralValue)).init(allocator, "abcabcabc123abc", {});
         defer ctx.deinit();
 
         var abcInfinity = try Repeated(Payload, LiteralValue).init(allocator, .{

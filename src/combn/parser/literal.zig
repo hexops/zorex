@@ -9,9 +9,9 @@ const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
 
-pub const LiteralContext = []const u8;
+pub const Context = []const u8;
 
-pub const LiteralValue = struct {
+pub const Value = struct {
     /// The `input` string itself.
     value: []const u8,
 
@@ -26,21 +26,21 @@ pub const LiteralValue = struct {
 /// The `input` string must remain alive for as long as the `Literal` parser will be used.
 pub fn Literal(comptime Payload: type) type {
     return struct {
-        parser: Parser(Payload, LiteralValue) = Parser(Payload, LiteralValue).init(parse, nodeName, null, null),
-        input: LiteralContext,
+        parser: Parser(Payload, Value) = Parser(Payload, Value).init(parse, nodeName, null, null),
+        input: Context,
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, input: LiteralContext) !*Parser(Payload, LiteralValue) {
+        pub fn init(allocator: *mem.Allocator, input: Context) !*Parser(Payload, Value) {
             const self = Self{ .input = input };
             return try self.parser.heapAlloc(allocator, self);
         }
 
-        pub fn initStack(input: LiteralContext) Self {
+        pub fn initStack(input: Context) Self {
             return Self{ .input = input };
         }
 
-        pub fn nodeName(parser: *const Parser(Payload, LiteralValue), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+        pub fn nodeName(parser: *const Parser(Payload, Value), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
             _ = node_name_cache;
             const self = @fieldParentPtr(Self, "parser", parser);
 
@@ -49,7 +49,7 @@ pub fn Literal(comptime Payload: type) type {
             return v;
         }
 
-        pub fn parse(parser: *const Parser(Payload, LiteralValue), in_ctx: *const ParserContext(Payload, LiteralValue)) callconv(.Async) !void {
+        pub fn parse(parser: *const Parser(Payload, Value), in_ctx: *const ParserContext(Payload, Value)) callconv(.Async) !void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
@@ -57,10 +57,10 @@ pub fn Literal(comptime Payload: type) type {
             const src = ctx.src[ctx.offset..];
             if (!mem.startsWith(u8, src, ctx.input)) {
                 // TODO(slimsag): include what literal was expected
-                try ctx.results.add(Result(LiteralValue).initError(ctx.offset + 1, "expected literal"));
+                try ctx.results.add(Result(Value).initError(ctx.offset + 1, "expected literal"));
                 return;
             }
-            try ctx.results.add(Result(LiteralValue).init(ctx.offset + ctx.input.len, .{ .value = self.input }));
+            try ctx.results.add(Result(Value).init(ctx.offset + ctx.input.len, .{ .value = self.input }));
             return;
         }
     };
@@ -71,7 +71,7 @@ test "literal" {
         const allocator = testing.allocator;
 
         const Payload = void;
-        var ctx = try ParserContext(Payload, LiteralValue).init(allocator, "hello world", {});
+        var ctx = try ParserContext(Payload, Value).init(allocator, "hello world", {});
         defer ctx.deinit();
 
         var want = "hello";
@@ -82,7 +82,7 @@ test "literal" {
         var sub = ctx.subscribe();
         var first = sub.next().?;
         defer first.deinit(ctx.allocator);
-        try testing.expectEqual(Result(LiteralValue).init(want.len, .{ .value = "hello" }), first);
+        try testing.expectEqual(Result(Value).init(want.len, .{ .value = "hello" }), first);
         try testing.expect(sub.next() == null);
     }
 }
