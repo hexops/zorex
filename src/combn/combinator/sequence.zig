@@ -1,4 +1,11 @@
-usingnamespace @import("../engine/engine.zig");
+const engine = @import("../engine/engine.zig");
+const Error = engine.Error;
+const Parser = engine.Parser;
+const ParserContext = engine.Context;
+const Result = engine.Result;
+const ParserNodeName = engine.ParserNodeName;
+const ResultStream = engine.ResultStream;
+
 const Literal = @import("../parser/literal.zig").Literal;
 const LiteralValue = @import("../parser/literal.zig").LiteralValue;
 const MapTo = @import("mapto.zig").MapTo;
@@ -95,7 +102,7 @@ pub fn Sequence(comptime Payload: type, comptime Value: type) type {
             return v;
         }
 
-        pub fn parse(parser: *const Parser(Payload, SequenceValue(Value)), in_ctx: *const Context(Payload, SequenceValue(Value))) callconv(.Async) Error!void {
+        pub fn parse(parser: *const Parser(Payload, SequenceValue(Value)), in_ctx: *const ParserContext(Payload, SequenceValue(Value))) callconv(.Async) Error!void {
             const self = @fieldParentPtr(Self, "parser", parser);
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
@@ -156,7 +163,7 @@ test "sequence" {
         const allocator = testing.allocator;
 
         const Payload = void;
-        const ctx = try Context(Payload, SequenceValue(LiteralValue)).init(allocator, "abc123abc456_123abc", {});
+        const ctx = try ParserContext(Payload, SequenceValue(LiteralValue)).init(allocator, "abc123abc456_123abc", {});
         defer ctx.deinit();
 
         var seq = try Sequence(Payload, LiteralValue).init(allocator, &.{

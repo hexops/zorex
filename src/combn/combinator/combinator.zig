@@ -25,7 +25,8 @@ pub const Repeated = repeated.Repeated;
 pub const sequence_ambiguous = @import("sequence_ambiguous.zig");
 pub const SequenceAmbiguous = sequence_ambiguous.SequenceAmbiguous;
 
-pub usingnamespace @import("sequence.zig");
+pub const sequence = @import("sequence.zig");
+pub const Sequence = sequence.Sequence;
 
 test "include" {
     _ = OneOfAmbiguous;
