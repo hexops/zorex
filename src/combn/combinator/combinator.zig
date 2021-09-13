@@ -16,11 +16,14 @@ pub const Optional = optional.Optional;
 pub const reentrant = @import("reentrant.zig");
 pub const Reentrant = reentrant.Reentrant;
 
-pub usingnamespace @import("repeated_ambiguous.zig");
+pub const repeated_ambiguous = @import("repeated_ambiguous.zig");
+pub const RepeatedAmbiguous = repeated_ambiguous.RepeatedAmbiguous;
+
 pub usingnamespace @import("repeated.zig");
 pub usingnamespace @import("sequence_ambiguous.zig");
 pub usingnamespace @import("sequence.zig");
 
 test "include" {
     _ = OneOfAmbiguous;
+    _ = RepeatedAmbiguous;
 }
