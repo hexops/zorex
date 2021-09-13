@@ -19,7 +19,9 @@ pub const Reentrant = reentrant.Reentrant;
 pub const repeated_ambiguous = @import("repeated_ambiguous.zig");
 pub const RepeatedAmbiguous = repeated_ambiguous.RepeatedAmbiguous;
 
-pub usingnamespace @import("repeated.zig");
+pub const repeated = @import("repeated.zig");
+pub const Repeated = repeated.Repeated;
+
 pub usingnamespace @import("sequence_ambiguous.zig");
 pub usingnamespace @import("sequence.zig");
 
