@@ -1,19 +1,19 @@
 const combn = @import("../combn/combn.zig");
-const Result = combn.Result;
-const Parser = combn.Parser;
-const Error = combn.Error;
-const Context = combn.Context;
-const ParserPosKey = combn.ParserPosKey;
-const ParserPath = combn.ParserPath;
-const Sequence = combn.Sequence;
-const SequenceValue = combn.sequence.Value;
-const Repeated = combn.Repeated;
-const RepeatedValue = combn.repeated.Value;
-const Literal = combn.Literal;
-const LiteralValue = combn.literal.Value;
-const OneOf = combn.OneOf;
-const MapTo = combn.MapTo;
-const Optional = combn.Optional;
+const Result = combn.engine.Result;
+const Parser = combn.engine.Parser;
+const Error = combn.engine.Error;
+const Context = combn.engine.Context;
+const ParserPosKey = combn.engine.ParserPosKey;
+const ParserPath = combn.engine.ParserPath;
+const Sequence = combn.combinator.Sequence;
+const SequenceValue = combn.combinator.sequence.Value;
+const Repeated = combn.combinator.Repeated;
+const RepeatedValue = combn.combinator.repeated.Value;
+const Literal = combn.parser.Literal;
+const LiteralValue = combn.parser.literal.Value;
+const OneOf = combn.combinator.OneOf;
+const MapTo = combn.combinator.MapTo;
+const Optional = combn.combinator.Optional;
 
 const String = @import("String.zig");
 const Node = @import("Node.zig");
@@ -203,7 +203,7 @@ pub fn init(allocator: *mem.Allocator) !*Parser(*CompilerContext, Compilation) {
                         // TODO(slimsag): actually compose the compilation to parse this regexp!
                         const node = try Node.init(_allocator, String.init("TODO(slimsag): value from parsing regexp!"), null);
                         const success = Result(*Node).init(in.offset, node);
-                        var always_success = try combn.Always(void, *Node).init(_allocator, success);
+                        var always_success = try combn.combinator.Always(void, *Node).init(_allocator, success);
 
                         var result_compilation = Compilation.initParser(Compilation.CompiledParser{
                             .ptr = always_success.ref(),

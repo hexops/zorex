@@ -1,5 +1,5 @@
-pub usingnamespace @import("combinator/combinator.zig");
-pub usingnamespace @import("engine/engine.zig");
-pub usingnamespace @import("parser/parser.zig");
+pub const combinator = @import("combinator/combinator.zig");
+pub const engine = @import("engine/engine.zig");
+pub const parser = @import("parser/parser.zig");
 
 usingnamespace @import("test_complex.zig");

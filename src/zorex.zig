@@ -1,6 +1,6 @@
-usingnamespace @import("combn/combn.zig");
-usingnamespace @import("dsl/dsl.zig");
+pub const combn = @import("combn/combn.zig");
+pub const dsl = @import("dsl/dsl.zig");
 
-test "all" {
-    _ = Program;
+test "include" {
+    _ = dsl.Program;
 }
