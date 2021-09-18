@@ -39,7 +39,7 @@ pub fn Value(comptime V: type) type {
     };
 }
 
-pub const SequenceOwnership = enum {
+pub const Ownership = enum {
     borrowed,
     owned,
     copy,
@@ -53,11 +53,11 @@ pub fn Sequence(comptime Payload: type, comptime V: type) type {
     return struct {
         parser: Parser(Payload, Value(V)) = Parser(Payload, Value(V)).init(parse, nodeName, deinit, countReferencesTo),
         input: Context(Payload, V),
-        ownership: SequenceOwnership,
+        ownership: Ownership,
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, input: Context(Payload, V), ownership: SequenceOwnership) !*Parser(Payload, Value(V)) {
+        pub fn init(allocator: *mem.Allocator, input: Context(Payload, V), ownership: Ownership) !*Parser(Payload, Value(V)) {
             var self = Self{ .input = input, .ownership = ownership };
             if (ownership == .copy) {
                 const Elem = std.meta.Elem(@TypeOf(input));
@@ -69,8 +69,8 @@ pub fn Sequence(comptime Payload: type, comptime V: type) type {
             return try self.parser.heapAlloc(allocator, self);
         }
 
-        pub fn initStack(input: Context(Payload, V), ownership: SequenceOwnership) Self {
-            if (ownership == SequenceOwnership.copy) unreachable;
+        pub fn initStack(input: Context(Payload, V), ownership: Ownership) Self {
+            if (ownership == Ownership.copy) unreachable;
             return Self{ .input = input };
         }
 
