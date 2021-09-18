@@ -3,7 +3,7 @@
 //! the syntax described by the DSL.
 
 const combn = @import("../combn/combn.zig");
-const Parser = combn.engine.Parser;
+const Parser = combn.gllparser.Parser;
 
 const String = @import("String.zig");
 const Node = @import("Node.zig");

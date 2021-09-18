@@ -7,8 +7,8 @@ const Node = @import("Node.zig");
 const CompilerContext = @import("CompilerContext.zig");
 
 const combn = @import("../combn/combn.zig");
-const Context = combn.engine.Context;
-const Result = combn.engine.Result;
+const Context = combn.gllparser.Context;
+const Result = combn.gllparser.Result;
 
 const std = @import("std");
 const testing = std.testing;

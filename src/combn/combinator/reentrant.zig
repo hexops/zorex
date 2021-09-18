@@ -1,10 +1,10 @@
-const engine = @import("../engine/engine.zig");
-const Error = engine.Error;
-const Parser = engine.Parser;
-const ParserContext = engine.Context;
-const Result = engine.Result;
-const ParserNodeName = engine.ParserNodeName;
-const ResultStream = engine.ResultStream;
+const gllparser = @import("../gllparser/gllparser.zig");
+const Error = gllparser.Error;
+const Parser = gllparser.Parser;
+const ParserContext = gllparser.Context;
+const Result = gllparser.Result;
+const ParserNodeName = gllparser.ParserNodeName;
+const ResultStream = gllparser.ResultStream;
 
 const std = @import("std");
 const testing = std.testing;
