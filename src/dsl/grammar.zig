@@ -352,32 +352,31 @@ pub fn init(allocator: *mem.Allocator) !*Parser(*CompilerContext, Compilation) {
         whitespace_one_or_more.ref(),
     }, .copy);
 
-    // TODO(slimsag): match EOF
-    return try MapTo(*CompilerContext, RepeatedValue(?Compilation), Compilation).init(allocator, .{
+    const non_null_root_compilation = try MapTo(*CompilerContext, RepeatedValue(?Compilation), ?Compilation).init(allocator, .{
         .parser = (try Repeated(*CompilerContext, ?Compilation).init(allocator, .{
             .parser = definition_or_expr_or_whitespace.ref(),
             .min = 1,
             .max = -1,
         })).ref(),
         .mapTo = struct {
-            fn mapTo(in: Result(RepeatedValue(?Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(Compilation) {
+            fn mapTo(in: Result(RepeatedValue(?Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
                 _ = compiler_context;
                 _ = _allocator;
                 switch (in.result) {
-                    .err => return Result(Compilation).initError(in.offset, in.result.err),
+                    .err => return Result(?Compilation).initError(in.offset, in.result.err),
                     else => {
                         var repeated = in.result.value;
                         var sub = repeated.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"));
 
                         var offset = in.offset;
-                        var compilation: ?Result(Compilation) = null;
+                        var compilation: ?Result(?Compilation) = null;
                         while (sub.next()) |next| {
                             offset = next.offset;
                             switch (next.result) {
                                 .value => |v| {
                                     if (v != null) {
                                         if (compilation == null) {
-                                            compilation = Result(Compilation).init(next.offset, v.?);
+                                            compilation = Result(?Compilation).init(next.offset, v.?);
                                         } else {
                                             // another parse path yielded a compilation, i.e. our grammar was ambiguous -
                                             // and it definitely shouldn't be!
@@ -385,14 +384,61 @@ pub fn init(allocator: *mem.Allocator) !*Parser(*CompilerContext, Compilation) {
                                         }
                                     }
                                 },
-                                .err => |e| return Result(Compilation).initError(offset, e),
+                                .err => |e| return Result(?Compilation).initError(offset, e),
                             }
                         }
                         if (compilation == null) {
                             // Grammar does not have a root expression
-                            return Result(Compilation).initError(offset, "root expression missing");
+                            return Result(?Compilation).initError(offset, "root expression missing");
                         }
                         return compilation.?.toUnowned();
+                    },
+                }
+            }
+        }.mapTo,
+    });
+
+    const end = try MapTo(*CompilerContext, combn.parser.end.Value, ?Compilation).init(allocator, .{
+        .parser = (try combn.parser.End(*CompilerContext).init(allocator)).ref(),
+        .mapTo = struct {
+            fn mapTo(in: Result(combn.parser.end.Value), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
+                _ = compiler_context;
+                _ = _allocator;
+                _ = key;
+                _ = path;
+                switch (in.result) {
+                    .err => return Result(?Compilation).initError(in.offset, in.result.err),
+                    else => return Result(?Compilation).init(in.offset, null),
+                }
+            }
+        }.mapTo,
+    });
+
+    const grammar_then_end = try Sequence(*CompilerContext, ?Compilation).init(allocator, &.{
+        non_null_root_compilation.ref(),
+        end.ref(),
+    }, .copy);
+
+    return try MapTo(*CompilerContext, SequenceValue(?Compilation), Compilation).init(allocator, .{
+        .parser = grammar_then_end.ref(),
+        .mapTo = struct {
+            fn mapTo(in: Result(SequenceValue(?Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(Compilation) {
+                _ = compiler_context;
+                _ = _allocator;
+                _ = key;
+                _ = path;
+                switch (in.result) {
+                    .err => return Result(Compilation).initError(in.offset, in.result.err),
+                    else => {
+                        var sequence = in.result.value;
+
+                        var sub = sequence.results.subscribe(key, path, Result(?Compilation).initError(in.offset, "matches only the empty language"));
+                        const root_compilation = sub.next();
+                        assert(root_compilation != null);
+                        const _end = sub.next();
+                        assert(_end != null);
+                        assert(sub.next() == null);
+                        return Result(Compilation).init(in.offset, root_compilation.?.result.value.?).toUnowned();
                     },
                 }
             }
