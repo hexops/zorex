@@ -3,7 +3,7 @@ const Error = gllparser.Error;
 const Parser = gllparser.Parser;
 const ParserContext = gllparser.Context;
 const Result = gllparser.Result;
-const ParserNodeName = gllparser.ParserNodeName;
+const NodeName = gllparser.NodeName;
 
 const std = @import("std");
 const testing = std.testing;
@@ -43,7 +43,7 @@ pub fn ByteRange(comptime Payload: type) type {
             return Self{ .input = input };
         }
 
-        pub fn nodeName(parser: *const Parser(Payload, Value), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+        pub fn nodeName(parser: *const Parser(Payload, Value), node_name_cache: *std.AutoHashMap(usize, NodeName)) Error!u64 {
             _ = node_name_cache;
             const self = @fieldParentPtr(Self, "parser", parser);
 

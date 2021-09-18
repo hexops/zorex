@@ -3,7 +3,7 @@ const Error = gllparser.Error;
 const Parser = gllparser.Parser;
 const ParserContext = gllparser.Context;
 const Result = gllparser.Result;
-const ParserNodeName = gllparser.ParserNodeName;
+const NodeName = gllparser.NodeName;
 const ResultStream = gllparser.ResultStream;
 
 const std = @import("std");
@@ -58,7 +58,7 @@ pub fn Reentrant(comptime Payload: type, comptime Value: type) type {
             return self.input.countReferencesTo(other, freed);
         }
 
-        pub fn nodeName(parser: *const Parser(Payload, Value), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+        pub fn nodeName(parser: *const Parser(Payload, Value), node_name_cache: *std.AutoHashMap(usize, NodeName)) Error!u64 {
             const self = @fieldParentPtr(Self, "parser", parser);
 
             var v = std.hash_map.hashString("Reentrant");

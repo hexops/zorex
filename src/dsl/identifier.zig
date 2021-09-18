@@ -5,7 +5,7 @@ const Error = combn.gllparser.Error;
 const Context = combn.gllparser.Context;
 const PosKey = combn.gllparser.PosKey;
 const ParserPath = combn.gllparser.ParserPath;
-const ParserNodeName = combn.gllparser.ParserNodeName;
+const NodeName = combn.gllparser.NodeName;
 
 const String = @import("String.zig");
 const Compilation = @import("Compilation.zig");
@@ -32,7 +32,7 @@ pub const Identifier = struct {
         return Self{};
     }
 
-    pub fn nodeName(parser: *const Parser(*CompilerContext, ?Compilation), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+    pub fn nodeName(parser: *const Parser(*CompilerContext, ?Compilation), node_name_cache: *std.AutoHashMap(usize, NodeName)) Error!u64 {
         _ = parser;
         _ = node_name_cache;
         var v = std.hash_map.hashString("Identifier");

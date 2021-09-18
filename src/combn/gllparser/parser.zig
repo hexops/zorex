@@ -92,7 +92,7 @@ const ParserPosDepthKey = struct {
 
 /// Describes the exact string and offset into it that a parser node is parsing.
 pub const PosKey = struct {
-    node_name: ParserNodeName,
+    node_name: NodeName,
     src_ptr: usize,
     offset: usize,
 };
@@ -111,7 +111,7 @@ pub const PosKey = struct {
 /// * Identifying a parser node at a particular position: the parser `offset` position and `src`
 ///   string to parse are NOT parse of a parser node name, for that see `PosKey`.
 ///
-pub const ParserNodeName = u64;
+pub const NodeName = u64;
 
 /// Records a single recursion retry for a parser.
 const RecursionRetry = struct {
@@ -127,7 +127,7 @@ const Memoizer = struct {
     memoized: std.AutoHashMap(ParserPosDepthKey, MemoizeValue),
 
     /// *Parser(T, P) -> computed parser node name.
-    node_name_cache: std.AutoHashMap(usize, ParserNodeName),
+    node_name_cache: std.AutoHashMap(usize, NodeName),
 
     /// Maps position key -> the currently active recursion retry attempt, if any.
     recursion: std.AutoHashMap(PosKey, RecursionRetry),
@@ -271,7 +271,7 @@ const Memoizer = struct {
         var self = try allocator.create(@This());
         self.* = .{
             .memoized = std.AutoHashMap(ParserPosDepthKey, MemoizeValue).init(allocator),
-            .node_name_cache = std.AutoHashMap(usize, ParserNodeName).init(allocator),
+            .node_name_cache = std.AutoHashMap(usize, NodeName).init(allocator),
             .recursion = std.AutoHashMap(PosKey, RecursionRetry).init(allocator),
             .deferred_cleanups = std.ArrayList(MemoizeValue).init(allocator),
         };
@@ -334,14 +334,14 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
             };
         }
 
-        pub fn initChild(self: @This(), comptime NewValue: type, node_name: ParserNodeName, offset: usize) !Context(Input, NewValue) {
+        pub fn initChild(self: @This(), comptime NewValue: type, node_name: NodeName, offset: usize) !Context(Input, NewValue) {
             return self.initChildRetry(NewValue, node_name, offset, null);
         }
 
         /// initChildRetry initializes a child context to be used as a single retry attempt with a
         /// new maximum depth of reentrant parser invocations for the child and all of its
         /// children.
-        pub fn initChildRetry(self: @This(), comptime NewValue: type, node_name: ParserNodeName, offset: usize, max_depth: ?usize) !Context(Input, NewValue) {
+        pub fn initChildRetry(self: @This(), comptime NewValue: type, node_name: NodeName, offset: usize, max_depth: ?usize) !Context(Input, NewValue) {
             var src_ptr: usize = 0;
             if (self.src.len > 0) {
                 src_ptr = @ptrToInt(&self.src[0]);
@@ -375,7 +375,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
         /// isRetrying tells if this context represents a retry initiated previously via
         /// initChildRetry, potentially by a distant parent recursive call, indicating that a new
         /// reentrant retry should not be attempted.
-        pub fn isRetrying(self: @This(), node_name: ParserNodeName, offset: usize) bool {
+        pub fn isRetrying(self: @This(), node_name: NodeName, offset: usize) bool {
             var src_ptr: usize = 0;
             if (self.src.len > 0) {
                 src_ptr = @ptrToInt(&self.src[0]);
@@ -439,7 +439,7 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
     return struct {
         const Self = @This();
         _parse: fn (self: *const Self, ctx: *const Context(Payload, Value)) callconv(.Async) Error!void,
-        _nodeName: fn (self: *const Self, node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64,
+        _nodeName: fn (self: *const Self, node_name_cache: *std.AutoHashMap(usize, NodeName)) Error!u64,
         _deinit: ?fn (self: *Self, allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void,
         _countReferencesTo: ?fn (self: *const Self, other: usize, freed: *std.AutoHashMap(usize, void)) usize,
         _heap_storage: ?[]u8,
@@ -447,7 +447,7 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
 
         pub fn init(
             parseImpl: fn (self: *const Self, ctx: *const Context(Payload, Value)) callconv(.Async) Error!void,
-            nodeNameImpl: fn (self: *const Self, node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64,
+            nodeNameImpl: fn (self: *const Self, node_name_cache: *std.AutoHashMap(usize, NodeName)) Error!u64,
             deinitImpl: ?fn (self: *Self, allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void,
             countReferencesToImpl: ?fn (self: *const Self, other: usize, freed: *std.AutoHashMap(usize, void)) usize,
         ) Self {
@@ -514,7 +514,7 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
             return try await @asyncCall(frame, {}, self._parse, .{ self, ctx });
         }
 
-        pub fn nodeName(self: *const Self, node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+        pub fn nodeName(self: *const Self, node_name_cache: *std.AutoHashMap(usize, NodeName)) Error!u64 {
             var v = try node_name_cache.getOrPut(@ptrToInt(self));
             if (!v.found_existing) {
                 v.value_ptr.* = 1337; // "currently calculating" code

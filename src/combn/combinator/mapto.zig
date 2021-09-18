@@ -3,7 +3,7 @@ const Error = gllparser.Error;
 const Parser = gllparser.Parser;
 const ParserContext = gllparser.Context;
 const Result = gllparser.Result;
-const ParserNodeName = gllparser.ParserNodeName;
+const NodeName = gllparser.NodeName;
 const PosKey = gllparser.PosKey;
 const ParserPath = gllparser.ParserPath;
 
@@ -51,7 +51,7 @@ pub fn MapTo(comptime Payload: type, comptime Value: type, comptime Target: type
             return self.input.parser.countReferencesTo(other, freed);
         }
 
-        pub fn nodeName(parser: *const Parser(Payload, Target), node_name_cache: *std.AutoHashMap(usize, ParserNodeName)) Error!u64 {
+        pub fn nodeName(parser: *const Parser(Payload, Target), node_name_cache: *std.AutoHashMap(usize, NodeName)) Error!u64 {
             const self = @fieldParentPtr(Self, "parser", parser);
 
             var v = std.hash_map.hashString("MapTo");
