@@ -54,8 +54,7 @@ pub fn Literal(comptime Payload: type) type {
             var ctx = in_ctx.with(self.input);
             defer ctx.results.close();
 
-            const src = ctx.src[ctx.offset..];
-            if (!mem.startsWith(u8, src, ctx.input)) {
+            if (ctx.offset >= ctx.src.len or !mem.startsWith(u8, ctx.src[ctx.offset..], ctx.input)) {
                 // TODO(slimsag): include what literal was expected
                 try ctx.results.add(Result(Value).initError(ctx.offset + 1, "expected literal"));
                 return;
