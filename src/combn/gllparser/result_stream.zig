@@ -2,7 +2,7 @@ const std = @import("std");
 const testing = std.testing;
 const mem = std.mem;
 const ParserPath = @import("ParserPath.zig");
-const ParserPosKey = @import("parser.zig").ParserPosKey;
+const PosKey = @import("parser.zig").PosKey;
 const deinitOptional = @import("parser.zig").deinitOptional;
 
 /// A ResultStream iterator.
@@ -10,7 +10,7 @@ pub fn Iterator(comptime T: type) type {
     return struct {
         stream: *ResultStream(T),
         index: usize = 0,
-        subscriber: ParserPosKey,
+        subscriber: PosKey,
         path: ParserPath,
         cyclic_closed: bool = false,
         cyclic_error: ?T,
@@ -66,12 +66,12 @@ pub fn ResultStream(comptime T: type) type {
         past_values: std.ArrayList(T),
         listeners: std.ArrayList(anyframe),
         closed: bool,
-        source: ParserPosKey,
+        source: PosKey,
         allocator: *mem.Allocator,
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, source: ParserPosKey) !Self {
+        pub fn init(allocator: *mem.Allocator, source: PosKey) !Self {
             return Self{
                 .past_values = std.ArrayList(T).init(allocator),
                 .listeners = std.ArrayList(anyframe).init(allocator),
@@ -122,7 +122,7 @@ pub fn ResultStream(comptime T: type) type {
         ///
         /// Uses of the returned iterator are valid for as long as the result stream is not
         /// deinitialized.
-        pub fn subscribe(self: *Self, subscriber: ParserPosKey, path: ParserPath, cyclic_error: T) Iterator(T) {
+        pub fn subscribe(self: *Self, subscriber: PosKey, path: ParserPath, cyclic_error: T) Iterator(T) {
             const iter = Iterator(T){
                 .stream = self,
                 .subscriber = subscriber,
@@ -144,7 +144,7 @@ test "result_stream" {
                 _ = allocator;
             }
         };
-        const subscriber = ParserPosKey{
+        const subscriber = PosKey{
             .node_name = 0,
             .src_ptr = 0,
             .offset = 0,

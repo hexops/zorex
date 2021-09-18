@@ -4,7 +4,7 @@ const Parser = gllparser.Parser;
 const ParserContext = gllparser.Context;
 const Result = gllparser.Result;
 const ParserNodeName = gllparser.ParserNodeName;
-const ParserPosKey = gllparser.ParserPosKey;
+const PosKey = gllparser.PosKey;
 const ParserPath = gllparser.ParserPath;
 
 const Literal = @import("../parser/literal.zig").Literal;
@@ -17,7 +17,7 @@ const mem = std.mem;
 pub fn Context(comptime Payload: type, comptime Value: type, comptime Target: type) type {
     return struct {
         parser: *Parser(Payload, Value),
-        mapTo: fn (in: Result(Value), payload: Payload, allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(Target),
+        mapTo: fn (in: Result(Value), payload: Payload, allocator: *mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(Target),
     };
 }
 
@@ -113,7 +113,7 @@ test "mapto" {
         const mapTo = try MapTo(Payload, LiteralValue, String).init(allocator, .{
             .parser = (try Literal(Payload).init(allocator, "hello")).ref(),
             .mapTo = struct {
-                fn mapTo(in: Result(LiteralValue), payload: Payload, _allocator: *mem.Allocator, key: ParserPosKey, path: ParserPath) callconv(.Async) Error!?Result(String) {
+                fn mapTo(in: Result(LiteralValue), payload: Payload, _allocator: *mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(String) {
                     _ = payload;
                     _ = _allocator;
                     _ = key;

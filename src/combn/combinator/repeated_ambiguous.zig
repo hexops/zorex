@@ -5,7 +5,7 @@ const ParserContext = gllparser.Context;
 const Result = gllparser.Result;
 const ParserNodeName = gllparser.ParserNodeName;
 const ResultStream = gllparser.ResultStream;
-const ParserPosKey = gllparser.ParserPosKey;
+const PosKey = gllparser.PosKey;
 const ParserPath = gllparser.ParserPath;
 
 const Literal = @import("../parser/literal.zig").Literal;
@@ -72,14 +72,14 @@ pub fn Value(comptime V: type) type {
             allocator.destroy(self.next);
         }
 
-        pub fn flatten(self: *const @This(), allocator: *mem.Allocator, subscriber: ParserPosKey, path: ParserPath) Error!ResultStream(Result(V)) {
+        pub fn flatten(self: *const @This(), allocator: *mem.Allocator, subscriber: PosKey, path: ParserPath) Error!ResultStream(Result(V)) {
             var dst = try ResultStream(Result(V)).init(allocator, subscriber);
             try self.flatten_into(&dst, allocator, subscriber, path);
             dst.close(); // TODO(slimsag): why does deferring this not work?
             return dst;
         }
 
-        pub fn flatten_into(self: *const @This(), dst: *ResultStream(Result(V)), allocator: *mem.Allocator, subscriber: ParserPosKey, path: ParserPath) Error!void {
+        pub fn flatten_into(self: *const @This(), dst: *ResultStream(Result(V)), allocator: *mem.Allocator, subscriber: PosKey, path: ParserPath) Error!void {
             try dst.add(self.node.toUnowned());
 
             var sub = self.next.subscribe(subscriber, path, Result(Value(V)).initError(0, "matches only the empty language"));

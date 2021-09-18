@@ -86,12 +86,12 @@ fn MemoizedResult(comptime Value: type) type {
 /// A key describing a parser node at a specific position in an input string, as well as the number
 /// of times it reentrantly called itself at that exact position.
 const ParserPosDepthKey = struct {
-    pos_key: ParserPosKey,
+    pos_key: PosKey,
     reentrant_depth: usize,
 };
 
 /// Describes the exact string and offset into it that a parser node is parsing.
-pub const ParserPosKey = struct {
+pub const PosKey = struct {
     node_name: ParserNodeName,
     src_ptr: usize,
     offset: usize,
@@ -109,7 +109,7 @@ pub const ParserPosKey = struct {
 /// * Identifying a singular parser instance (two parser instances with the same inputs will be
 ///   "deduplicated" and have the same parser node name.)
 /// * Identifying a parser node at a particular position: the parser `offset` position and `src`
-///   string to parse are NOT parse of a parser node name, for that see `ParserPosKey`.
+///   string to parse are NOT parse of a parser node name, for that see `PosKey`.
 ///
 pub const ParserNodeName = u64;
 
@@ -130,7 +130,7 @@ const Memoizer = struct {
     node_name_cache: std.AutoHashMap(usize, ParserNodeName),
 
     /// Maps position key -> the currently active recursion retry attempt, if any.
-    recursion: std.AutoHashMap(ParserPosKey, RecursionRetry),
+    recursion: std.AutoHashMap(PosKey, RecursionRetry),
 
     /// Memoized values to cleanup later, because freeing them inside a reentrant parser
     /// invocation is not possible as the parent still intends to use it.
@@ -141,13 +141,13 @@ const Memoizer = struct {
 
     /// Tells if the given parser node is currently being retried at different maximum reentrant
     /// depths as part of a Reentrant combinator.
-    pub fn isRetrying(self: *@This(), key: ParserPosKey) bool {
+    pub fn isRetrying(self: *@This(), key: PosKey) bool {
         const recursion = self.recursion.get(key);
         if (recursion == null) return false;
         return true;
     }
 
-    fn clearPastRecursions(self: *@This(), parser: ParserPosKey, new_max_depth: usize) !void {
+    fn clearPastRecursions(self: *@This(), parser: PosKey, new_max_depth: usize) !void {
         var i: usize = 0;
         while (i <= new_max_depth) : (i += 1) {
             const k = ParserPosDepthKey{
@@ -159,7 +159,7 @@ const Memoizer = struct {
         }
     }
 
-    pub fn get(self: *@This(), comptime Value: type, allocator: *mem.Allocator, parser_path: ParserPath, parser: ParserPosKey, new_max_depth: ?usize) !MemoizedResult(Value) {
+    pub fn get(self: *@This(), comptime Value: type, allocator: *mem.Allocator, parser_path: ParserPath, parser: PosKey, new_max_depth: ?usize) !MemoizedResult(Value) {
         // We memoize results for each unique ParserPosDepthKey, meaning that a parser node can be
         // invoked to parse a specific input string at a specific offset recursively in a reentrant
         // way up to a maximum depth (new_max_depth). This enables our GLL parser to handle grammars
@@ -272,7 +272,7 @@ const Memoizer = struct {
         self.* = .{
             .memoized = std.AutoHashMap(ParserPosDepthKey, MemoizeValue).init(allocator),
             .node_name_cache = std.AutoHashMap(usize, ParserNodeName).init(allocator),
-            .recursion = std.AutoHashMap(ParserPosKey, RecursionRetry).init(allocator),
+            .recursion = std.AutoHashMap(PosKey, RecursionRetry).init(allocator),
             .deferred_cleanups = std.ArrayList(MemoizeValue).init(allocator),
         };
         return self;
@@ -305,7 +305,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
         results: *ResultStream(Result(Value)),
         existing_results: bool,
         memoizer: *Memoizer,
-        key: ParserPosKey,
+        key: PosKey,
         path: ParserPath,
 
         pub fn init(allocator: *mem.Allocator, src: []const u8, input: Input) !@This() {
@@ -346,7 +346,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
             if (self.src.len > 0) {
                 src_ptr = @ptrToInt(&self.src[0]);
             }
-            const key = ParserPosKey{
+            const key = PosKey{
                 .node_name = node_name,
                 .src_ptr = src_ptr,
                 .offset = offset,
@@ -380,7 +380,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
             if (self.src.len > 0) {
                 src_ptr = @ptrToInt(&self.src[0]);
             }
-            return self.memoizer.isRetrying(ParserPosKey{
+            return self.memoizer.isRetrying(PosKey{
                 .node_name = node_name,
                 .src_ptr = src_ptr,
                 .offset = offset,
