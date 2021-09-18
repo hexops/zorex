@@ -20,6 +20,7 @@ const Node = @import("Node.zig");
 const Compilation = @import("Compilation.zig");
 const Identifier = @import("identifier.zig").Identifier;
 const CompilerContext = @import("CompilerContext.zig");
+const pattern_grammar = @import("pattern_grammar.zig");
 
 const std = @import("std");
 const mem = std.mem;
@@ -186,7 +187,7 @@ pub fn init(allocator: *mem.Allocator) !*Parser(*CompilerContext, Compilation) {
     var nested_pattern = try MapTo(*CompilerContext, SequenceValue(?Compilation), ?Compilation).init(allocator, .{
         .parser = (try Sequence(*CompilerContext, ?Compilation).init(allocator, &.{
             forward_slash.ref(),
-            //(&pattern.parser).ref(),
+            (try pattern_grammar.init(allocator)).ref(),
             forward_slash.ref(),
         }, .copy)).ref(),
         .mapTo = struct {

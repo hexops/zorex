@@ -69,7 +69,7 @@ test "DSL" {
         const allocator = testing.allocator;
 
         // Compile the regexp.
-        var compilerResult = try compile(allocator, "//");
+        var compilerResult = try compile(allocator, "/a/");
         defer compilerResult.deinit(allocator);
         switch (compilerResult.compilation.result) {
             .err => |e| @panic(e),

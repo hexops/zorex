@@ -93,7 +93,7 @@ test "example_regex" {
     const allocator = testing.allocator;
 
     // Compile the regex.
-    var program = Program.init(allocator, "//");
+    var program = Program.init(allocator, "/a/");
     defer program.deinit();
     program.compile() catch |err| switch (err) {
         Error.CompilationFailed => @panic(program.error_message.?),
@@ -123,7 +123,7 @@ test "example_zorex" {
     const allocator = testing.allocator;
 
     // Compile the zorex.
-    var program = Program.init(allocator, "Date = //; Date");
+    var program = Program.init(allocator, "Date = /a/; Date");
     defer program.deinit();
     program.compile() catch |err| switch (err) {
         Error.CompilationFailed => @panic(program.error_message.?),
