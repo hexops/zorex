@@ -35,6 +35,7 @@ allocator: *mem.Allocator,
 pub const Error = error{
     OutOfMemory,
     CompilationFailed,
+    ParsingFailed,
 };
 
 /// Initializes a new program with the given source, which is borrowed until compile() is called
@@ -78,7 +79,14 @@ pub fn execute(self: *Program, input: []const u8) !*Node {
         var sub = self.context.?.subscribe();
         var first = sub.next().?;
         assert(sub.next() == null); // no ambiguous parse paths here
-        return first.result.value;
+        return switch (first.result) {
+            .err => |e| {
+                self.error_message = e;
+                self.error_offset = first.offset;
+                return Error.ParsingFailed;
+            },
+            .value => first.result.value,
+        };
     }
 }
 
@@ -102,7 +110,10 @@ test "example_regex" {
 
     // Execute the regex.
     const input = "hmmm";
-    const result = try program.execute(input);
+    const result = program.execute(input) catch |err| switch (err) {
+        Error.ParsingFailed => @panic(program.error_message.?),
+        else => unreachable,
+    };
 
     // Serialize to JSON.
     var buffer = std.ArrayList(u8).init(allocator);
@@ -132,7 +143,10 @@ test "example_zorex" {
 
     // Execute the zorex.
     const input = "hmmm";
-    const result = try program.execute(input);
+    const result = program.execute(input) catch |err| switch (err) {
+        Error.ParsingFailed => @panic(program.error_message.?),
+        else => unreachable,
+    };
 
     // Serialize to JSON.
     var buffer = std.ArrayList(u8).init(allocator);
