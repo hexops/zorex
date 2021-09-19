@@ -25,14 +25,14 @@ pub fn init(allocator: *mem.Allocator) !*Parser(*CompilerContext, ?Compilation) 
     // ```
     //
 
-    const any_byte = try ByteRange(*CompilerContext).init(allocator, .{.from = 0, .to = 255});
+    const any_byte = try ByteRange(*CompilerContext).init(allocator, .{ .from = 0, .to = 255 });
     const any_bytes = try Repeated(*CompilerContext, ByteRangeValue).init(allocator, .{
         .parser = any_byte.ref(),
         .min = 0,
         .max = 1, // TODO(slimsag): make this parse more byte literals
     });
 
-    const literal_any_bytes = try MapTo(*CompilerContext,combn.combinator.repeated.Value(ByteRangeValue), ?Compilation).init(allocator, .{
+    const literal_any_bytes = try MapTo(*CompilerContext, combn.combinator.repeated.Value(ByteRangeValue), ?Compilation).init(allocator, .{
         .parser = any_bytes.ref(),
         .mapTo = struct {
             fn mapTo(in: Result(RepeatedValue(ByteRangeValue)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {

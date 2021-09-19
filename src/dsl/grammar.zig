@@ -176,7 +176,7 @@ pub fn init(allocator: *mem.Allocator) !*Parser(*CompilerContext, Compilation) {
     // TODO(dsl): Expr grouping (...)
     // TODO(dsl): terminal string literals
     // TODO(dsl): comments
-    // TODO(dsl): exception? "-" 
+    // TODO(dsl): exception? "-"
     // TODO(dsl): positive/negative lookahead? Python: & followed by a symbol, token or parenthesized group indicates a positive lookahead (i.e., is required to match but not consumed), while ! indicates a negative lookahead (i.e., is required _not_ to match).
 
     const whitespace_one_or_more = try whitespaceOneOrMore(allocator);
