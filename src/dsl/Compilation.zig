@@ -21,10 +21,11 @@ value: union(ValueTag) {
 
 pub const CompiledParser = struct {
     ptr: *Parser(void, *Node),
+    free_children_parsers: bool,
     slice: ?[]*const Parser(void, *Node),
 
     pub fn deinit(self: @This(), allocator: *mem.Allocator) void {
-        self.ptr.deinit(allocator, null, true);
+        self.ptr.deinit(allocator, null, self.free_children_parsers);
         if (self.slice) |slice| {
             allocator.free(slice);
         }

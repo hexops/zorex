@@ -95,6 +95,7 @@ fn mapCompilationSequence(in: Result(SequenceValue(?Compilation)), compiler_cont
 
             var result_compilation = Compilation.initParser(Compilation.CompiledParser{
                 .ptr = mapped.ref(),
+                .free_children_parsers = true,
                 .slice = slice,
             });
             return Result(?Compilation).init(offset, result_compilation);
@@ -218,6 +219,7 @@ pub fn init(allocator: *mem.Allocator) !*Parser(*CompilerContext, Compilation) {
 
                         var result_compilation = Compilation.initParser(Compilation.CompiledParser{
                             .ptr = always_success.ref(),
+                            .free_children_parsers = true,
                             .slice = null,
                         });
                         return Result(?Compilation).init(in.offset, result_compilation);
