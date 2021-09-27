@@ -41,7 +41,7 @@ pub const CompilerResult = struct {
 
 pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
     const dsl_parser = try grammar.init(allocator);
-    defer dsl_parser.deinit(allocator, null);
+    defer dsl_parser.deinit(allocator, null, true);
 
     var compilerContext = try CompilerContext.init(allocator);
     var ctx = try Context(*CompilerContext, Compilation).init(allocator, syntax, compilerContext);

@@ -65,8 +65,9 @@ pub fn GraphemeRange(comptime Payload: type) type {
             return v;
         }
 
-        pub fn deinit(parser: *Parser(Payload, Value), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
+        pub fn deinit(parser: *Parser(Payload, Value), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void), recursive: bool) void {
             _ = freed;
+            _ = recursive;
             const self = @fieldParentPtr(Self, "parser", parser);
             self.collator.deinit();
             allocator.destroy(self.collator);
@@ -139,7 +140,7 @@ test "grapheme_range" {
         defer ctx.deinit();
 
         var any_grapheme = try GraphemeRange(Payload).init(allocator, .{ .from = "b", .to = "d" });
-        defer any_grapheme.deinit(allocator, null);
+        defer any_grapheme.deinit(allocator, null, true);
         try any_grapheme.parse(&ctx);
 
         var sub = ctx.subscribe();

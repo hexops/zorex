@@ -79,7 +79,7 @@ test "byte_range" {
         defer ctx.deinit();
 
         var any_byte = try ByteRange(Payload).init(allocator, .{ .from = 0, .to = 255 });
-        defer any_byte.deinit(allocator, null);
+        defer any_byte.deinit(allocator, null, true);
         try any_byte.parse(&ctx);
 
         var sub = ctx.subscribe();

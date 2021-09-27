@@ -75,7 +75,7 @@ test "literal" {
 
         var want = "hello";
         var l = try Literal(Payload).init(allocator, want);
-        defer l.deinit(allocator, null);
+        defer l.deinit(allocator, null, true);
         try l.parse(&ctx);
 
         var sub = ctx.subscribe();

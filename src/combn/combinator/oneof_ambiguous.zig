@@ -79,10 +79,10 @@ pub fn OneOfAmbiguous(comptime Payload: type, comptime Value: type) type {
             return Self{ .input = input, .ownership = ownership };
         }
 
-        pub fn deinit(parser: *Parser(Payload, Value), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
+        pub fn deinit(parser: *Parser(Payload, Value), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void), recursive: bool) void {
             const self = @fieldParentPtr(Self, "parser", parser);
-            for (self.input) |in_parser| {
-                in_parser.deinit(allocator, freed);
+            if (recursive) {
+                for (self.input) |in_parser| in_parser.deinit(allocator, freed, true);
             }
             if (self.ownership == .owned) allocator.free(self.input);
         }
@@ -179,7 +179,7 @@ test "oneof" {
             (try Literal(Payload).init(allocator, "world")).ref(),
         };
         var helloOrWorld = try OneOfAmbiguous(Payload, LiteralValue).init(allocator, parsers, .borrowed);
-        defer helloOrWorld.deinit(allocator, null);
+        defer helloOrWorld.deinit(allocator, null, true);
         try helloOrWorld.parse(&ctx);
 
         var sub = ctx.subscribe();
@@ -205,7 +205,7 @@ test "oneof_ambiguous" {
 
         const parsers: []*Parser(Payload, LiteralValue) = &.{ (try Literal(Payload).init(allocator, "ello")).ref(), (try Literal(Payload).init(allocator, "elloworld")).ref() };
         var helloOrWorld = try OneOfAmbiguous(Payload, LiteralValue).init(allocator, parsers, .borrowed);
-        defer helloOrWorld.deinit(allocator, null);
+        defer helloOrWorld.deinit(allocator, null, true);
         try helloOrWorld.parse(&ctx);
 
         var sub = ctx.subscribe();

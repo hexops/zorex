@@ -62,7 +62,7 @@ test "end" {
         defer ctx.deinit();
 
         var e = try End(Payload).init(allocator);
-        defer e.deinit(allocator, null);
+        defer e.deinit(allocator, null, true);
         try e.parse(&ctx);
 
         var sub = ctx.subscribe();

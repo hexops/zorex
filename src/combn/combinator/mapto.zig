@@ -40,9 +40,10 @@ pub fn MapTo(comptime Payload: type, comptime Value: type, comptime Target: type
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *Parser(Payload, Target), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
+        pub fn deinit(parser: *Parser(Payload, Target), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void), recursive: bool) void {
             const self = @fieldParentPtr(Self, "parser", parser);
-            self.input.parser.deinit(allocator, freed);
+            if (!recursive) return;
+            self.input.parser.deinit(allocator, freed, true);
         }
 
         pub fn countReferencesTo(parser: *const Parser(Payload, Target), other: usize, freed: *std.AutoHashMap(usize, void)) usize {
@@ -125,7 +126,7 @@ test "mapto" {
                 }
             }.mapTo,
         });
-        defer mapTo.deinit(allocator, null);
+        defer mapTo.deinit(allocator, null, true);
 
         try mapTo.parse(&ctx);
 

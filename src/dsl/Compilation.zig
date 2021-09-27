@@ -24,7 +24,7 @@ pub const CompiledParser = struct {
     slice: ?[]*const Parser(void, *Node),
 
     pub fn deinit(self: @This(), allocator: *mem.Allocator) void {
-        self.ptr.deinit(allocator, null);
+        self.ptr.deinit(allocator, null, true);
         if (self.slice) |slice| {
             allocator.free(slice);
         }

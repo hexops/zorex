@@ -62,7 +62,7 @@ test "direct_left_recursion_empty_language" {
                 }
             }.mapTo,
         });
-        defer expr.deinit(allocator, null);
+        defer expr.deinit(allocator, null, true);
         parsers[0] = expr.ref();
         try expr.parse(&ctx);
 
@@ -180,7 +180,7 @@ test "direct_left_recursion" {
         }.mapTo,
     });
     parsers[0] = optionalExpr.ref();
-    defer expr.deinit(allocator, null);
+    defer expr.deinit(allocator, null, true);
     try expr.parse(&ctx);
 
     var sub = ctx.subscribe();

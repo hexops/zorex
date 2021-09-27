@@ -47,9 +47,10 @@ pub fn Reentrant(comptime Payload: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *Parser(Payload, Value), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
+        pub fn deinit(parser: *Parser(Payload, Value), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void), recursive: bool) void {
             const self = @fieldParentPtr(Self, "parser", parser);
-            self.input.deinit(allocator, freed);
+            if (!recursive) return;
+            self.input.deinit(allocator, freed, true);
         }
 
         pub fn countReferencesTo(parser: *const Parser(Payload, Value), other: usize, freed: *std.AutoHashMap(usize, void)) usize {

@@ -440,7 +440,7 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
         const Self = @This();
         _parse: fn (self: *const Self, ctx: *const Context(Payload, Value)) callconv(.Async) Error!void,
         _nodeName: fn (self: *const Self, node_name_cache: *std.AutoHashMap(usize, NodeName)) Error!u64,
-        _deinit: ?fn (self: *Self, allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void,
+        _deinit: ?fn (self: *Self, allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void), recursive: bool) void,
         _countReferencesTo: ?fn (self: *const Self, other: usize, freed: *std.AutoHashMap(usize, void)) usize,
         _heap_storage: ?[]u8,
         _refs: usize,
@@ -448,7 +448,7 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
         pub fn init(
             parseImpl: fn (self: *const Self, ctx: *const Context(Payload, Value)) callconv(.Async) Error!void,
             nodeNameImpl: fn (self: *const Self, node_name_cache: *std.AutoHashMap(usize, NodeName)) Error!u64,
-            deinitImpl: ?fn (self: *Self, allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void,
+            deinitImpl: ?fn (self: *Self, allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void), recursive: bool) void,
             countReferencesToImpl: ?fn (self: *const Self, other: usize, freed: *std.AutoHashMap(usize, void)) usize,
         ) Self {
             return .{
@@ -484,7 +484,7 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
             return if (self._countReferencesTo) |countRefs| countRefs(self, other, freed) else 0;
         }
 
-        pub fn deinit(self: *Self, allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
+        pub fn deinit(self: *Self, allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void), recursive: bool) void {
             var freed_parsers = if (freed) |f| f else &std.AutoHashMap(usize, void).init(allocator);
             if (freed_parsers.contains(@ptrToInt(self))) {
                 if (freed == null) {
@@ -497,7 +497,7 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
                 freed_parsers.put(@ptrToInt(self), .{}) catch unreachable;
                 self._refs = 0;
                 if (self._deinit) |dfn| {
-                    dfn(self, allocator, freed_parsers);
+                    dfn(self, allocator, freed_parsers, recursive);
                 }
                 if (self._heap_storage) |s| {
                     allocator.free(s);
@@ -554,7 +554,7 @@ test "heap_parser" {
 
         // Move to heap.
         var heap_parser = try literal_parser.parser.heapAlloc(allocator, literal_parser);
-        defer heap_parser.deinit(allocator, null);
+        defer heap_parser.deinit(allocator, null, true);
 
         // Use it.
         try heap_parser.parse(&ctx);

@@ -122,10 +122,10 @@ pub fn SequenceAmbiguous(comptime Payload: type, comptime V: type) type {
             return Self{ .input = input, .ownership = ownership };
         }
 
-        pub fn deinit(parser: *Parser(Payload, Value(V)), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
+        pub fn deinit(parser: *Parser(Payload, Value(V)), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void), recursive: bool) void {
             const self = @fieldParentPtr(Self, "parser", parser);
-            for (self.input) |child_parser| {
-                child_parser.deinit(allocator, freed);
+            if (recursive) {
+                for (self.input) |child_parser| child_parser.deinit(allocator, freed, true);
             }
             if (self.ownership == .owned) allocator.free(self.input);
         }
@@ -247,7 +247,7 @@ test "sequence" {
             (try Literal(Payload).init(allocator, "c45")).ref(),
             (try Literal(Payload).init(allocator, "6")).ref(),
         }, .borrowed);
-        defer seq.deinit(allocator, null);
+        defer seq.deinit(allocator, null, true);
         try seq.parse(&ctx);
 
         var sub = ctx.subscribe();

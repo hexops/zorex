@@ -82,7 +82,7 @@ test "identifier" {
         defer ctx.deinit();
 
         var l = try Identifier.init(allocator);
-        defer l.deinit(allocator, null);
+        defer l.deinit(allocator, null, true);
         try l.parse(&ctx);
 
         var sub = ctx.subscribe();

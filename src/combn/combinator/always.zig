@@ -41,9 +41,10 @@ pub fn Always(comptime Payload: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *Parser(Payload, Value), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
+        pub fn deinit(parser: *Parser(Payload, Value), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void), recursive: bool) void {
             _ = freed;
             const self = @fieldParentPtr(Self, "parser", parser);
+            if (!recursive) return;
             if (self.input) |input| input.deinit(allocator);
         }
 
@@ -79,7 +80,7 @@ test "always" {
         defer ctx.deinit();
 
         const noop = try Always(Payload, Void).init(allocator, null);
-        defer noop.deinit(allocator, null);
+        defer noop.deinit(allocator, null, true);
 
         try noop.parse(&ctx);
 
