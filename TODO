@@ -1,0 +1,24 @@
+TODO
+
+Add ResultStream commit/reject behavior
+
+Add tests for left/right direct/indirect recursion, ambiguity, etc.
+
+Rename repeated -> many?
+Rename oneof -> choice?
+
+
+
+
+    // TODO(slimsag): RegExpr should not require terminating "/" and newline; requires escaping "/" which is annoying.
+    // TODO(slimsag): define exact semantics of combining regex .* with further grammar matching
+    // TODO(slimsag): add support for comments
+    // TODO(slimsag): investigate regexp flags/modes: multi-line/single-line matching, case sensitivity, s mode for "let n match \n", U for ungreedy
+    // TODO(slimsag): ^ (start) and $ (end)
+    // TODO(slimsag): are flags that change meaning actually a good idea?
+    // TODO(slimsag): named groups, unnamed groups, groups with flags
+    // TODO(slimsag): consider non-greedy repetition operators?
+    // TODO(slimsag): consider range-based repetition operators?
+    // TODO(slimsag): range character classes
+    // TODO(slimsag): ASCII/Unicode named character classes?
+    // TODO(slimsag): exact hex character literals (\xFF)
