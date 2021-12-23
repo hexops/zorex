@@ -7,7 +7,7 @@ const CompilerContext = @This();
 
 identifiers: Compilation.HashMap,
 
-pub fn init(allocator: *mem.Allocator) !*CompilerContext {
+pub fn init(allocator: mem.Allocator) !*CompilerContext {
     const compilerContext = try allocator.create(CompilerContext);
     compilerContext.* = CompilerContext{
         .identifiers = Compilation.HashMap.init(allocator),
@@ -15,7 +15,7 @@ pub fn init(allocator: *mem.Allocator) !*CompilerContext {
     return compilerContext;
 }
 
-pub fn deinit(self: *CompilerContext, allocator: *mem.Allocator) void {
+pub fn deinit(self: *CompilerContext, allocator: mem.Allocator) void {
     self.identifiers.deinit();
     allocator.destroy(self);
 }

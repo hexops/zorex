@@ -33,13 +33,13 @@ pub const CompilerResult = struct {
     ctx: Context(*CompilerContext, Compilation),
     compilerContext: *CompilerContext,
 
-    pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
+    pub fn deinit(self: *const @This(), allocator: mem.Allocator) void {
         self.ctx.deinit();
         self.compilerContext.deinit(allocator);
     }
 };
 
-pub fn compile(allocator: *mem.Allocator, syntax: []const u8) !CompilerResult {
+pub fn compile(allocator: mem.Allocator, syntax: []const u8) !CompilerResult {
     const dsl_parser = try grammar.init(allocator);
     defer dsl_parser.deinit(allocator, null);
 

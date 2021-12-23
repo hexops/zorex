@@ -17,7 +17,7 @@ const CompilerContext = @import("CompilerContext.zig");
 const std = @import("std");
 const mem = std.mem;
 
-pub fn init(allocator: *mem.Allocator) !*Parser(*CompilerContext, ?Compilation) {
+pub fn init(allocator: mem.Allocator) !*Parser(*CompilerContext, ?Compilation) {
     // Pattern matching grammar
     //
     // ```ebnf
@@ -35,7 +35,7 @@ pub fn init(allocator: *mem.Allocator) !*Parser(*CompilerContext, ?Compilation) 
     const literal_any_bytes = try MapTo(*CompilerContext,combn.combinator.repeated.Value(ByteRangeValue), ?Compilation).init(allocator, .{
         .parser = any_bytes.ref(),
         .mapTo = struct {
-            fn mapTo(in: Result(RepeatedValue(ByteRangeValue)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
+            fn mapTo(in: Result(RepeatedValue(ByteRangeValue)), compiler_context: *CompilerContext, _allocator: mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
                 _ = compiler_context;
                 _ = _allocator;
                 _ = key;

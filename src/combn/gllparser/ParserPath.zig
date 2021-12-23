@@ -14,7 +14,7 @@ pub fn init() ParserPath {
     };
 }
 
-pub fn deinit(self: ParserPath, allocator: *mem.Allocator) void {
+pub fn deinit(self: ParserPath, allocator: mem.Allocator) void {
     var next = self.stack.root;
     while (next != null) {
         const tmp = next.?.next;
@@ -23,7 +23,7 @@ pub fn deinit(self: ParserPath, allocator: *mem.Allocator) void {
     }
 }
 
-pub fn push(self: *ParserPath, key: PosKey, allocator: *mem.Allocator) !void {
+pub fn push(self: *ParserPath, key: PosKey, allocator: mem.Allocator) !void {
     const Node = std.atomic.Stack(PosKey).Node;
     const pathNode = try allocator.create(Node);
     pathNode.* = .{
@@ -33,7 +33,7 @@ pub fn push(self: *ParserPath, key: PosKey, allocator: *mem.Allocator) !void {
     self.stack.push(pathNode);
 }
 
-pub fn clone(self: ParserPath, allocator: *mem.Allocator) !ParserPath {
+pub fn clone(self: ParserPath, allocator: mem.Allocator) !ParserPath {
     var new = ParserPath.init();
     var next = self.stack.root;
     while (next != null) : (next = next.?.next) {

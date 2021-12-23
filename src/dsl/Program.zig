@@ -30,7 +30,7 @@ program: ?CompilerResult,
 /// Context for the program.
 context: ?Context(void, *Node),
 
-allocator: *mem.Allocator,
+allocator: mem.Allocator,
 
 pub const Error = error{
     OutOfMemory,
@@ -39,7 +39,7 @@ pub const Error = error{
 
 /// Initializes a new program with the given source, which is borrowed until compile() is called
 /// and returns.
-pub fn init(allocator: *mem.Allocator, src: []const u8) Program {
+pub fn init(allocator: mem.Allocator, src: []const u8) Program {
     return Program{
         .error_message = null,
         .error_offset = 0,

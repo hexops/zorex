@@ -23,7 +23,7 @@ pub const CompiledParser = struct {
     ptr: *Parser(void, *Node),
     slice: ?[]*const Parser(void, *Node),
 
-    pub fn deinit(self: @This(), allocator: *mem.Allocator) void {
+    pub fn deinit(self: @This(), allocator: mem.Allocator) void {
         self.ptr.deinit(allocator, null);
         if (self.slice) |slice| {
             allocator.free(slice);
@@ -44,7 +44,7 @@ pub fn initIdentifier(identifier: String) Compilation {
     return .{ .value = .{ .identifier = identifier } };
 }
 
-pub fn deinit(self: *const Compilation, allocator: *mem.Allocator) void {
+pub fn deinit(self: *const Compilation, allocator: mem.Allocator) void {
     switch (self.value) {
         .parser => |v| v.deinit(allocator),
         .identifier => |v| v.deinit(allocator),

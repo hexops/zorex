@@ -32,7 +32,7 @@ pub fn Value(comptime V: type) type {
     return struct {
         results: *ResultStream(Result(V)),
 
-        pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
+        pub fn deinit(self: *const @This(), allocator: mem.Allocator) void {
             self.results.deinit();
             allocator.destroy(self.results);
         }
@@ -57,7 +57,7 @@ pub fn Sequence(comptime Payload: type, comptime V: type) type {
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, input: Context(Payload, V), ownership: Ownership) !*Parser(Payload, Value(V)) {
+        pub fn init(allocator: mem.Allocator, input: Context(Payload, V), ownership: Ownership) !*Parser(Payload, Value(V)) {
             var self = Self{ .input = input, .ownership = ownership };
             if (ownership == .copy) {
                 const Elem = std.meta.Elem(@TypeOf(input));
@@ -74,7 +74,7 @@ pub fn Sequence(comptime Payload: type, comptime V: type) type {
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *Parser(Payload, Value(V)), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
+        pub fn deinit(parser: *Parser(Payload, Value(V)), allocator: mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             for (self.input) |child_parser| {
                 child_parser.deinit(allocator, freed);

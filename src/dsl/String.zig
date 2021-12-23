@@ -15,6 +15,6 @@ pub fn init(value: []const u8) @This() {
     return .{ .value = value, .owned = false };
 }
 
-pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
+pub fn deinit(self: *const @This(), allocator: mem.Allocator) void {
     if (self.owned) allocator.free(self.value);
 }

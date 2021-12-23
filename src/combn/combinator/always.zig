@@ -10,7 +10,7 @@ const testing = std.testing;
 const mem = std.mem;
 
 pub const Void = struct {
-    pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
+    pub fn deinit(self: *const @This(), allocator: mem.Allocator) void {
         _ = self;
         _ = allocator;
     }
@@ -32,7 +32,7 @@ pub fn Always(comptime Payload: type, comptime Value: type) type {
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, input: Context(Value)) !*Parser(Payload, Value) {
+        pub fn init(allocator: mem.Allocator, input: Context(Value)) !*Parser(Payload, Value) {
             const self = Self{ .input = input };
             return try self.parser.heapAlloc(allocator, self);
         }
@@ -41,7 +41,7 @@ pub fn Always(comptime Payload: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *Parser(Payload, Value), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
+        pub fn deinit(parser: *Parser(Payload, Value), allocator: mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
             _ = freed;
             const self = @fieldParentPtr(Self, "parser", parser);
             if (self.input) |input| input.deinit(allocator);

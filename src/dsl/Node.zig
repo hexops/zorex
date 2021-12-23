@@ -14,7 +14,7 @@ children: ?[]*Node,
 
 pub const Error = error{OutOfMemory};
 
-pub fn init(allocator: *mem.Allocator, name: String, value: ?String) !*Node {
+pub fn init(allocator: mem.Allocator, name: String, value: ?String) !*Node {
     var self = try allocator.create(Node);
     self.* = .{
         .name = name,
@@ -30,7 +30,7 @@ pub fn ref(self: *Node) *Node {
     return self;
 }
 
-pub fn deinit(self: *Node, allocator: *mem.Allocator) void {
+pub fn deinit(self: *Node, allocator: mem.Allocator) void {
     self.refs -= 1;
     if (self.refs == 0) {
         self.name.deinit(allocator);
@@ -44,7 +44,7 @@ pub fn deinit(self: *Node, allocator: *mem.Allocator) void {
     if (self.refs < 0) unreachable;
 }
 
-pub fn writeJSON(self: *const Node, allocator: *mem.Allocator, out_stream: anytype) Error!void {
+pub fn writeJSON(self: *const Node, allocator: mem.Allocator, out_stream: anytype) Error!void {
     var w = std.json.WriteStream(@TypeOf(out_stream), 5).init(out_stream);
 
     var ptrToID = std.AutoHashMap(*const Node, i32).init(allocator);

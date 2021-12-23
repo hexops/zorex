@@ -10,7 +10,7 @@ const testing = std.testing;
 const mem = std.mem;
 
 pub const Value = struct {
-    pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
+    pub fn deinit(self: *const @This(), allocator: mem.Allocator) void {
         _ = self;
         _ = allocator;
     }
@@ -23,7 +23,7 @@ pub fn End(comptime Payload: type) type {
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator) !*Parser(Payload, Value) {
+        pub fn init(allocator: mem.Allocator) !*Parser(Payload, Value) {
             const self = Self{};
             return try self.parser.heapAlloc(allocator, self);
         }

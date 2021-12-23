@@ -27,7 +27,7 @@ const mem = std.mem;
 const testing = std.testing;
 const assert = std.debug.assert;
 
-pub fn mapLiteralToNone(in: Result(LiteralValue), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: PosKey, path: ParserPath) Error!?Result(?Compilation) {
+pub fn mapLiteralToNone(in: Result(LiteralValue), compiler_context: *CompilerContext, _allocator: mem.Allocator, key: PosKey, path: ParserPath) Error!?Result(?Compilation) {
     _ = compiler_context;
     _ = _allocator;
     _ = path;
@@ -40,7 +40,7 @@ pub fn mapLiteralToNone(in: Result(LiteralValue), compiler_context: *CompilerCon
 
 /// Maps a SequenceValue(*Node) -> singular *Node with no name and children (each of the nodes in
 /// the sequence.)
-fn mapNodeSequence(in: Result(SequenceValue(*Node)), program_context: void, _allocator: *mem.Allocator, key: PosKey, path: ParserPath) Error!?Result(*Node) {
+fn mapNodeSequence(in: Result(SequenceValue(*Node)), program_context: void, _allocator: mem.Allocator, key: PosKey, path: ParserPath) Error!?Result(*Node) {
     _ = program_context;
     switch (in.result) {
         .err => return Result(*Node).initError(in.offset, in.result.err),
@@ -66,7 +66,7 @@ fn mapNodeSequence(in: Result(SequenceValue(*Node)), program_context: void, _all
 
 /// Maps a SequenceValue(?Compilation) -> singular ?Compilation which parses all compilations in sequence,
 /// emitting a single unnamed Node with children.
-fn mapCompilationSequence(in: Result(SequenceValue(?Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: PosKey, path: ParserPath) Error!?Result(?Compilation) {
+fn mapCompilationSequence(in: Result(SequenceValue(?Compilation)), compiler_context: *CompilerContext, _allocator: mem.Allocator, key: PosKey, path: ParserPath) Error!?Result(?Compilation) {
     _ = compiler_context;
     switch (in.result) {
         .err => return Result(?Compilation).initError(in.offset, in.result.err),
@@ -102,7 +102,7 @@ fn mapCompilationSequence(in: Result(SequenceValue(?Compilation)), compiler_cont
     }
 }
 
-pub fn whitespaceOneOrMore(allocator: *mem.Allocator) !*Parser(*CompilerContext, ?Compilation) {
+pub fn whitespaceOneOrMore(allocator: mem.Allocator) !*Parser(*CompilerContext, ?Compilation) {
     const newline = try MapTo(*CompilerContext, LiteralValue, ?Compilation).init(allocator, .{
         .parser = (try OneOf(*CompilerContext, LiteralValue).init(allocator, &.{
             (try Literal(*CompilerContext).init(allocator, "\r\n")).ref(),
@@ -133,7 +133,7 @@ pub fn whitespaceOneOrMore(allocator: *mem.Allocator) !*Parser(*CompilerContext,
             .max = -1,
         })).ref(),
         .mapTo = struct {
-            fn mapTo(in: Result(RepeatedValue(?Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
+            fn mapTo(in: Result(RepeatedValue(?Compilation)), compiler_context: *CompilerContext, _allocator: mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
                 _ = compiler_context;
                 _ = _allocator;
                 _ = key;
@@ -151,7 +151,7 @@ pub fn whitespaceOneOrMore(allocator: *mem.Allocator) !*Parser(*CompilerContext,
     });
 }
 
-pub fn init(allocator: *mem.Allocator) !*Parser(*CompilerContext, Compilation) {
+pub fn init(allocator: mem.Allocator) !*Parser(*CompilerContext, Compilation) {
     // DSL grammar
     //
     // ```ebnf
@@ -201,7 +201,7 @@ pub fn init(allocator: *mem.Allocator) !*Parser(*CompilerContext, Compilation) {
             forward_slash.ref(),
         }, .copy)).ref(),
         .mapTo = struct {
-            fn mapTo(in: Result(SequenceValue(?Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
+            fn mapTo(in: Result(SequenceValue(?Compilation)), compiler_context: *CompilerContext, _allocator: mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
                 _ = compiler_context;
                 _ = key;
                 _ = path;
@@ -230,7 +230,7 @@ pub fn init(allocator: *mem.Allocator) !*Parser(*CompilerContext, Compilation) {
     var identifier_expr = try MapTo(*CompilerContext, ?Compilation, ?Compilation).init(allocator, .{
         .parser = (try Identifier.init(allocator)).ref(),
         .mapTo = struct {
-            fn mapTo(in: Result(?Compilation), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
+            fn mapTo(in: Result(?Compilation), compiler_context: *CompilerContext, _allocator: mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
                 _ = _allocator;
                 _ = key;
                 _ = path;
@@ -273,7 +273,7 @@ pub fn init(allocator: *mem.Allocator) !*Parser(*CompilerContext, Compilation) {
             comma.ref(),
         }, .copy)).ref(),
         .mapTo = struct {
-            fn mapTo(in: Result(SequenceValue(?Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
+            fn mapTo(in: Result(SequenceValue(?Compilation)), compiler_context: *CompilerContext, _allocator: mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
                 _ = compiler_context;
                 _ = _allocator;
                 switch (in.result) {
@@ -294,7 +294,7 @@ pub fn init(allocator: *mem.Allocator) !*Parser(*CompilerContext, Compilation) {
     var optional_expr_list_inner_left = try MapTo(*CompilerContext, ??Compilation, ?Compilation).init(allocator, .{
         .parser = (try Optional(*CompilerContext, ?Compilation).init(allocator, expr_list_inner_left.ref())).ref(),
         .mapTo = struct {
-            fn mapTo(in: Result(??Compilation), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
+            fn mapTo(in: Result(??Compilation), compiler_context: *CompilerContext, _allocator: mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
                 _ = compiler_context;
                 _ = _allocator;
                 _ = key;
@@ -323,7 +323,7 @@ pub fn init(allocator: *mem.Allocator) !*Parser(*CompilerContext, Compilation) {
             semicolon.ref(),
         }, .copy)).ref(),
         .mapTo = struct {
-            fn mapTo(in: Result(SequenceValue(?Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
+            fn mapTo(in: Result(SequenceValue(?Compilation)), compiler_context: *CompilerContext, _allocator: mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
                 _ = _allocator;
                 switch (in.result) {
                     .err => return Result(?Compilation).initError(in.offset, in.result.err),
@@ -369,7 +369,7 @@ pub fn init(allocator: *mem.Allocator) !*Parser(*CompilerContext, Compilation) {
             .max = -1,
         })).ref(),
         .mapTo = struct {
-            fn mapTo(in: Result(RepeatedValue(?Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
+            fn mapTo(in: Result(RepeatedValue(?Compilation)), compiler_context: *CompilerContext, _allocator: mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
                 _ = compiler_context;
                 _ = _allocator;
                 switch (in.result) {
@@ -411,7 +411,7 @@ pub fn init(allocator: *mem.Allocator) !*Parser(*CompilerContext, Compilation) {
     const end = try MapTo(*CompilerContext, combn.parser.end.Value, ?Compilation).init(allocator, .{
         .parser = (try combn.parser.End(*CompilerContext).init(allocator)).ref(),
         .mapTo = struct {
-            fn mapTo(in: Result(combn.parser.end.Value), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
+            fn mapTo(in: Result(combn.parser.end.Value), compiler_context: *CompilerContext, _allocator: mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(?Compilation) {
                 _ = compiler_context;
                 _ = _allocator;
                 _ = key;
@@ -432,7 +432,7 @@ pub fn init(allocator: *mem.Allocator) !*Parser(*CompilerContext, Compilation) {
     return try MapTo(*CompilerContext, SequenceValue(?Compilation), Compilation).init(allocator, .{
         .parser = grammar_then_end.ref(),
         .mapTo = struct {
-            fn mapTo(in: Result(SequenceValue(?Compilation)), compiler_context: *CompilerContext, _allocator: *mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(Compilation) {
+            fn mapTo(in: Result(SequenceValue(?Compilation)), compiler_context: *CompilerContext, _allocator: mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(Compilation) {
                 _ = compiler_context;
                 _ = _allocator;
                 _ = key;

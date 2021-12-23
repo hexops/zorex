@@ -51,7 +51,7 @@ pub fn OneOf(comptime Payload: type, comptime Value: type) type {
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, input: Context(Payload, Value), ownership: Ownership) !*Parser(Payload, Value) {
+        pub fn init(allocator: mem.Allocator, input: Context(Payload, Value), ownership: Ownership) !*Parser(Payload, Value) {
             var self = Self{ .input = input, .ownership = ownership };
             if (ownership == .copy) {
                 const Elem = std.meta.Elem(@TypeOf(input));
@@ -68,7 +68,7 @@ pub fn OneOf(comptime Payload: type, comptime Value: type) type {
             return Self{ .input = input, .ownership = ownership };
         }
 
-        pub fn deinit(parser: *Parser(Payload, Value), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
+        pub fn deinit(parser: *Parser(Payload, Value), allocator: mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             for (self.input) |in_parser| {
                 in_parser.deinit(allocator, freed);

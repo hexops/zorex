@@ -17,7 +17,7 @@ const mem = std.mem;
 pub fn Context(comptime Payload: type, comptime Value: type, comptime Target: type) type {
     return struct {
         parser: *Parser(Payload, Value),
-        mapTo: fn (in: Result(Value), payload: Payload, allocator: *mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(Target),
+        mapTo: fn (in: Result(Value), payload: Payload, allocator: mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(Target),
     };
 }
 
@@ -31,7 +31,7 @@ pub fn MapTo(comptime Payload: type, comptime Value: type, comptime Target: type
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, input: Context(Payload, Value, Target)) !*Parser(Payload, Target) {
+        pub fn init(allocator: mem.Allocator, input: Context(Payload, Value, Target)) !*Parser(Payload, Target) {
             const self = Self{ .input = input };
             return try self.parser.heapAlloc(allocator, self);
         }
@@ -40,7 +40,7 @@ pub fn MapTo(comptime Payload: type, comptime Value: type, comptime Target: type
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *Parser(Payload, Target), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
+        pub fn deinit(parser: *Parser(Payload, Target), allocator: mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             self.input.parser.deinit(allocator, freed);
         }
@@ -100,7 +100,7 @@ test "mapto" {
                 return .{ .value = value };
             }
 
-            pub fn deinit(self: *const @This(), _allocator: *mem.Allocator) void {
+            pub fn deinit(self: *const @This(), _allocator: mem.Allocator) void {
                 _ = self;
                 _ = _allocator;
             }
@@ -113,7 +113,7 @@ test "mapto" {
         const mapTo = try MapTo(Payload, LiteralValue, String).init(allocator, .{
             .parser = (try Literal(Payload).init(allocator, "hello")).ref(),
             .mapTo = struct {
-                fn mapTo(in: Result(LiteralValue), payload: Payload, _allocator: *mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(String) {
+                fn mapTo(in: Result(LiteralValue), payload: Payload, _allocator: mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(String) {
                     _ = payload;
                     _ = _allocator;
                     _ = key;

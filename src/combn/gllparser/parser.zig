@@ -15,7 +15,7 @@ pub const ResultTag = enum {
 
 /// deinitOptional invokes value.deinit(allocator), taking into account it being an optional
 /// `?Value`, `??Value`, etc.
-pub inline fn deinitOptional(value: anytype, allocator: *mem.Allocator) void {
+pub inline fn deinitOptional(value: anytype, allocator: mem.Allocator) void {
     switch (@typeInfo(@TypeOf(value))) {
         .Optional => if (value) |v| return deinitOptional(v, allocator),
         else => value.deinit(allocator),
@@ -45,7 +45,7 @@ pub fn Result(comptime Value: type) type {
             };
         }
 
-        pub fn deinit(self: @This(), allocator: *mem.Allocator) void {
+        pub fn deinit(self: @This(), allocator: mem.Allocator) void {
             if (!self.owned) return;
             switch (self.result) {
                 .value => |value| {
@@ -73,7 +73,7 @@ pub fn Result(comptime Value: type) type {
 
 const MemoizeValue = struct {
     results: usize, // untyped pointer *ResultStream(Result(Value))
-    deinit: fn (results: usize, allocator: *mem.Allocator) void,
+    deinit: fn (results: usize, allocator: mem.Allocator) void,
 };
 
 fn MemoizedResult(comptime Value: type) type {
@@ -159,7 +159,7 @@ const Memoizer = struct {
         }
     }
 
-    pub fn get(self: *@This(), comptime Value: type, allocator: *mem.Allocator, parser_path: ParserPath, parser: PosKey, new_max_depth: ?usize) !MemoizedResult(Value) {
+    pub fn get(self: *@This(), comptime Value: type, allocator: mem.Allocator, parser_path: ParserPath, parser: PosKey, new_max_depth: ?usize) !MemoizedResult(Value) {
         // We memoize results for each unique ParserPosDepthKey, meaning that a parser node can be
         // invoked to parse a specific input string at a specific offset recursively in a reentrant
         // way up to a maximum depth (new_max_depth). This enables our GLL parser to handle grammars
@@ -253,7 +253,7 @@ const Memoizer = struct {
             m.value_ptr.* = MemoizeValue{
                 .results = @ptrToInt(results),
                 .deinit = struct {
-                    fn deinit(_resultsPtr: usize, _allocator: *mem.Allocator) void {
+                    fn deinit(_resultsPtr: usize, _allocator: mem.Allocator) void {
                         var _results = @intToPtr(*ResultStream(Result(Value)), _resultsPtr);
                         _results.deinit();
                         _allocator.destroy(_results);
@@ -267,7 +267,7 @@ const Memoizer = struct {
         };
     }
 
-    pub fn init(allocator: *mem.Allocator) !*@This() {
+    pub fn init(allocator: mem.Allocator) !*@This() {
         var self = try allocator.create(@This());
         self.* = .{
             .memoized = std.AutoHashMap(ParserPosDepthKey, MemoizeValue).init(allocator),
@@ -278,7 +278,7 @@ const Memoizer = struct {
         return self;
     }
 
-    pub fn deinit(self: *@This(), allocator: *mem.Allocator) void {
+    pub fn deinit(self: *@This(), allocator: mem.Allocator) void {
         var iter = self.memoized.iterator();
         while (iter.next()) |memoized| {
             memoized.value_ptr.deinit(memoized.value_ptr.results, allocator);
@@ -299,7 +299,7 @@ const Memoizer = struct {
 pub fn Context(comptime Input: type, comptime Value: type) type {
     return struct {
         input: Input,
-        allocator: *mem.Allocator,
+        allocator: mem.Allocator,
         src: []const u8,
         offset: usize,
         results: *ResultStream(Result(Value)),
@@ -308,7 +308,7 @@ pub fn Context(comptime Input: type, comptime Value: type) type {
         key: PosKey,
         path: ParserPath,
 
-        pub fn init(allocator: *mem.Allocator, src: []const u8, input: Input) !@This() {
+        pub fn init(allocator: mem.Allocator, src: []const u8, input: Input) !@This() {
             var src_ptr: usize = 0;
             if (src.len > 0) {
                 src_ptr = @ptrToInt(&src[0]);
@@ -440,7 +440,7 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
         const Self = @This();
         _parse: fn (self: *const Self, ctx: *const Context(Payload, Value)) callconv(.Async) Error!void,
         _nodeName: fn (self: *const Self, node_name_cache: *std.AutoHashMap(usize, NodeName)) Error!u64,
-        _deinit: ?fn (self: *Self, allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void,
+        _deinit: ?fn (self: *Self, allocator: mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void,
         _countReferencesTo: ?fn (self: *const Self, other: usize, freed: *std.AutoHashMap(usize, void)) usize,
         _heap_storage: ?[]u8,
         _refs: usize,
@@ -448,7 +448,7 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
         pub fn init(
             parseImpl: fn (self: *const Self, ctx: *const Context(Payload, Value)) callconv(.Async) Error!void,
             nodeNameImpl: fn (self: *const Self, node_name_cache: *std.AutoHashMap(usize, NodeName)) Error!u64,
-            deinitImpl: ?fn (self: *Self, allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void,
+            deinitImpl: ?fn (self: *Self, allocator: mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void,
             countReferencesToImpl: ?fn (self: *const Self, other: usize, freed: *std.AutoHashMap(usize, void)) usize,
         ) Self {
             return .{
@@ -464,7 +464,7 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
         /// Allocates and stores the `parent` value (e.g. `Literal(...).init(...)` on the heap,
         /// turning this `Parser` into a heap-allocated one. Returned is a poiner to the
         /// heap-allocated `&parent.parser`.
-        pub fn heapAlloc(self: *const Self, allocator: *mem.Allocator, parent: anytype) !*Self {
+        pub fn heapAlloc(self: *const Self, allocator: mem.Allocator, parent: anytype) !*Self {
             _ = self;
             const Parent = @TypeOf(parent);
             var memory = try allocator.allocAdvanced(u8, @alignOf(Parent), @sizeOf(Parent), mem.Allocator.Exact.at_least);
@@ -484,7 +484,7 @@ pub fn Parser(comptime Payload: type, comptime Value: type) type {
             return if (self._countReferencesTo) |countRefs| countRefs(self, other, freed) else 0;
         }
 
-        pub fn deinit(self: *Self, allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
+        pub fn deinit(self: *Self, allocator: mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
             var freed_parsers = if (freed) |f| f else &std.AutoHashMap(usize, void).init(allocator);
             if (freed_parsers.contains(@ptrToInt(self))) {
                 if (freed == null) {

@@ -66,20 +66,20 @@ pub fn Value(comptime V: type) type {
         node: Result(V),
         next: *ResultStream(Result(@This())),
 
-        pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
+        pub fn deinit(self: *const @This(), allocator: mem.Allocator) void {
             self.next.deinit();
             self.node.deinit(allocator);
             allocator.destroy(self.next);
         }
 
-        pub fn flatten(self: *const @This(), allocator: *mem.Allocator, subscriber: PosKey, path: ParserPath) Error!ResultStream(Result(V)) {
+        pub fn flatten(self: *const @This(), allocator: mem.Allocator, subscriber: PosKey, path: ParserPath) Error!ResultStream(Result(V)) {
             var dst = try ResultStream(Result(V)).init(allocator, subscriber);
             try self.flatten_into(&dst, allocator, subscriber, path);
             dst.close(); // TODO(slimsag): why does deferring this not work?
             return dst;
         }
 
-        pub fn flatten_into(self: *const @This(), dst: *ResultStream(Result(V)), allocator: *mem.Allocator, subscriber: PosKey, path: ParserPath) Error!void {
+        pub fn flatten_into(self: *const @This(), dst: *ResultStream(Result(V)), allocator: mem.Allocator, subscriber: PosKey, path: ParserPath) Error!void {
             try dst.add(self.node.toUnowned());
 
             var sub = self.next.subscribe(subscriber, path, Result(Value(V)).initError(0, "matches only the empty language"));
@@ -105,7 +105,7 @@ pub fn RepeatedAmbiguous(comptime Payload: type, comptime V: type) type {
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, input: Context(Payload, V)) !*Parser(Payload, Value(V)) {
+        pub fn init(allocator: mem.Allocator, input: Context(Payload, V)) !*Parser(Payload, Value(V)) {
             const self = Self{ .input = input };
             return try self.parser.heapAlloc(allocator, self);
         }
@@ -114,7 +114,7 @@ pub fn RepeatedAmbiguous(comptime Payload: type, comptime V: type) type {
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *Parser(Payload, Value(V)), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
+        pub fn deinit(parser: *Parser(Payload, Value(V)), allocator: mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             self.input.parser.deinit(allocator, freed);
         }

@@ -23,7 +23,7 @@ pub const Identifier = struct {
 
     const Self = @This();
 
-    pub fn init(allocator: *mem.Allocator) !*Parser(*CompilerContext, ?Compilation) {
+    pub fn init(allocator: mem.Allocator) !*Parser(*CompilerContext, ?Compilation) {
         const self = Self{};
         return try self.parser.heapAlloc(allocator, self);
     }

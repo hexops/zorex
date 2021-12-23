@@ -38,7 +38,7 @@ pub fn Reentrant(comptime Payload: type, comptime Value: type) type {
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, input: Context(Payload, Value)) !*Parser(Payload, Value) {
+        pub fn init(allocator: mem.Allocator, input: Context(Payload, Value)) !*Parser(Payload, Value) {
             const self = Self{ .input = input };
             return try self.parser.heapAlloc(allocator, self);
         }
@@ -47,7 +47,7 @@ pub fn Reentrant(comptime Payload: type, comptime Value: type) type {
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *Parser(Payload, Value), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
+        pub fn deinit(parser: *Parser(Payload, Value), allocator: mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             self.input.deinit(allocator, freed);
         }

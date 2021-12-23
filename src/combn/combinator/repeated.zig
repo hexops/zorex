@@ -40,7 +40,7 @@ pub fn Value(comptime V: type) type {
     return struct {
         results: *ResultStream(Result(V)),
 
-        pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
+        pub fn deinit(self: *const @This(), allocator: mem.Allocator) void {
             self.results.deinit();
             allocator.destroy(self.results);
         }
@@ -58,7 +58,7 @@ pub fn Repeated(comptime Payload: type, comptime V: type) type {
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, input: Context(Payload, V)) !*Parser(Payload, Value(V)) {
+        pub fn init(allocator: mem.Allocator, input: Context(Payload, V)) !*Parser(Payload, Value(V)) {
             const self = Self{ .input = input };
             return try self.parser.heapAlloc(allocator, self);
         }
@@ -67,7 +67,7 @@ pub fn Repeated(comptime Payload: type, comptime V: type) type {
             return Self{ .input = input };
         }
 
-        pub fn deinit(parser: *Parser(Payload, Value(V)), allocator: *mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
+        pub fn deinit(parser: *Parser(Payload, Value(V)), allocator: mem.Allocator, freed: ?*std.AutoHashMap(usize, void)) void {
             const self = @fieldParentPtr(Self, "parser", parser);
             self.input.parser.deinit(allocator, freed);
         }

@@ -33,7 +33,7 @@ test "direct_left_recursion_empty_language" {
         const node = struct {
             name: []const u8,
 
-            pub fn deinit(self: *const @This(), _allocator: *mem.Allocator) void {
+            pub fn deinit(self: *const @This(), _allocator: mem.Allocator) void {
                 _ = self;
                 _ = _allocator;
             }
@@ -49,7 +49,7 @@ test "direct_left_recursion_empty_language" {
         var expr = try MapTo(Payload, SequenceAmbiguousValue(node), node).init(allocator, .{
             .parser = (try SequenceAmbiguous(Payload, node).init(allocator, &parsers, .borrowed)).ref(),
             .mapTo = struct {
-                fn mapTo(in: Result(SequenceAmbiguousValue(node)), payload: Payload, _allocator: *mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(node) {
+                fn mapTo(in: Result(SequenceAmbiguousValue(node)), payload: Payload, _allocator: mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(node) {
                     _ = payload;
                     switch (in.result) {
                         .err => return Result(node).initError(in.offset, in.result.err),
@@ -89,7 +89,7 @@ test "direct_left_recursion" {
     const node = struct {
         name: std.ArrayList(u8),
 
-        pub fn deinit(self: *const @This(), _allocator: *mem.Allocator) void {
+        pub fn deinit(self: *const @This(), _allocator: mem.Allocator) void {
             _ = _allocator;
             self.name.deinit();
         }
@@ -102,7 +102,7 @@ test "direct_left_recursion" {
     var abcAsNode = try MapTo(Payload, LiteralValue, node).init(allocator, .{
         .parser = (try Literal(Payload).init(allocator, "abc")).ref(),
         .mapTo = struct {
-            fn mapTo(in: Result(LiteralValue), payload: Payload, _allocator: *mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(node) {
+            fn mapTo(in: Result(LiteralValue), payload: Payload, _allocator: mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(node) {
                 _ = _allocator;
                 _ = payload;
                 _ = key;
@@ -128,7 +128,7 @@ test "direct_left_recursion" {
         try MapTo(Payload, SequenceAmbiguousValue(node), node).init(allocator, .{
             .parser = (try SequenceAmbiguous(Payload, node).init(allocator, &parsers, .borrowed)).ref(),
             .mapTo = struct {
-                fn mapTo(in: Result(SequenceAmbiguousValue(node)), payload: Payload, _allocator: *mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(node) {
+                fn mapTo(in: Result(SequenceAmbiguousValue(node)), payload: Payload, _allocator: mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(node) {
                     _ = payload;
                     switch (in.result) {
                         .err => return Result(node).initError(in.offset, in.result.err),
@@ -158,7 +158,7 @@ test "direct_left_recursion" {
     var optionalExpr = try MapTo(Payload, ?node, node).init(allocator, .{
         .parser = (try Optional(Payload, node).init(allocator, expr.ref())).ref(),
         .mapTo = struct {
-            fn mapTo(in: Result(?node), payload: Payload, _allocator: *mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(node) {
+            fn mapTo(in: Result(?node), payload: Payload, _allocator: mem.Allocator, key: PosKey, path: ParserPath) callconv(.Async) Error!?Result(node) {
                 _ = payload;
                 _ = key;
                 _ = path;

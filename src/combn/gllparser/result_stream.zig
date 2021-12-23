@@ -67,11 +67,11 @@ pub fn ResultStream(comptime T: type) type {
         listeners: std.ArrayList(anyframe),
         closed: bool,
         source: PosKey,
-        allocator: *mem.Allocator,
+        allocator: mem.Allocator,
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, source: PosKey) !Self {
+        pub fn init(allocator: mem.Allocator, source: PosKey) !Self {
             return Self{
                 .past_values = std.ArrayList(T).init(allocator),
                 .listeners = std.ArrayList(anyframe).init(allocator),
@@ -139,7 +139,7 @@ test "result_stream" {
         const value = struct {
             value: i32,
 
-            pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
+            pub fn deinit(self: *const @This(), allocator: mem.Allocator) void {
                 _ = self;
                 _ = allocator;
             }

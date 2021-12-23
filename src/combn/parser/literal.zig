@@ -15,7 +15,7 @@ pub const Value = struct {
     /// The `input` string itself.
     value: []const u8,
 
-    pub fn deinit(self: *const @This(), allocator: *mem.Allocator) void {
+    pub fn deinit(self: *const @This(), allocator: mem.Allocator) void {
         _ = self;
         _ = allocator;
     }
@@ -31,7 +31,7 @@ pub fn Literal(comptime Payload: type) type {
 
         const Self = @This();
 
-        pub fn init(allocator: *mem.Allocator, input: Context) !*Parser(Payload, Value) {
+        pub fn init(allocator: mem.Allocator, input: Context) !*Parser(Payload, Value) {
             const self = Self{ .input = input };
             return try self.parser.heapAlloc(allocator, self);
         }
